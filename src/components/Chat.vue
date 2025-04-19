@@ -20,7 +20,7 @@
   
   <script setup lang="ts">
   import { ref } from "vue";
-  import type { ChatCompletionRequestMessage } from "openai";
+  import type { ChatCompletionRequestMessage } from "@/api/openai";
   import { chat } from "@/api/openai";
   
   const userInput = ref("");
