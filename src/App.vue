@@ -1,7 +1,7 @@
 <template>
   <div id="app">
     <header>
-      <img src="@/assets/logo.svg" alt="NexusQuiz AI" class="logo" />
+      <img src="@/assets/logo.png" alt="NexusQuiz AI" class="logo" />
       <h1>NexusQuiz AI</h1>
       <nav>
         <router-link to="/">Home</router-link>
