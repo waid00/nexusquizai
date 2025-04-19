@@ -1,7 +1,5 @@
 <template>
   <div id="app">
-    <img src="@/assets/logo.svg" alt="Logo" class="logo" />
-    <h1>My Vue + OpenAI Chat</h1>
     <Chat />
   </div>
 </template>
@@ -10,15 +8,11 @@
 import Chat from "@/components/Chat.vue";
 </script>
 
-<style>
+<style scoped>
 #app {
-  max-width: 600px;
-  margin: 2rem auto;
-  text-align: center;
-  font-family: Arial, sans-serif;
-}
-.logo {
-  width: 100px;
-  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 400px;
+  margin: auto;
+  padding: 2rem 1rem;
 }
 </style>

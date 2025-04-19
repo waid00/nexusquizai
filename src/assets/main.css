@@ -1,35 +1,22 @@
-@import './base.css';
-
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  font-weight: normal;
+:root {
+  --bg-start: #1e2026;
+  --bg-end:   #111318;
+  --panel-bg: rgba(255, 255, 255, 0.08);
+  --text-main: #e0e0e0;
+  --text-alt:  #a0a0a0;
+  --accent:    #3ddc84;
+  --input-bg:  rgba(255, 255, 255, 0.1);
+  --input-border: rgba(255, 255, 255, 0.2);
+  --transition: 0.3s ease;
 }
 
-a,
-.green {
-  text-decoration: none;
-  color: hsla(160, 100%, 37%, 1);
-  transition: 0.4s;
-  padding: 3px;
-}
-
-@media (hover: hover) {
-  a:hover {
-    background-color: hsla(160, 100%, 37%, 0.2);
-  }
-}
-
-@media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
+body {
+  margin: 0;
+  height: 100vh;
+  background: radial-gradient(circle at top left, var(--bg-start), var(--bg-end));
+  color: var(--text-main);
+  font-family: "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
