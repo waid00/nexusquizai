@@ -1,22 +1,159 @@
 :root {
+  /* — your existing vars — */
   --bg-start: #1e2026;
   --bg-end:   #111318;
-  --panel-bg: rgba(255, 255, 255, 0.08);
+  --panel-bg: rgba(255,255,255,0.08);
   --text-main: #e0e0e0;
   --text-alt:  #a0a0a0;
   --accent:    #3ddc84;
-  --input-bg:  rgba(255, 255, 255, 0.1);
-  --input-border: rgba(255, 255, 255, 0.2);
-  --transition: 0.3s ease;
+  --input-bg:  rgba(255,255,255,0.1);
+  --input-border: rgba(255,255,255,0.2);
+  --transition-duration: 0.3s;
+  --transition-timing: ease;
 }
 
-body {
+/* — reset & layout — */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
   margin: 0;
-  height: 100vh;
+  padding: 0;
+}
+body {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
   background: radial-gradient(circle at top left, var(--bg-start), var(--bg-end));
   color: var(--text-main);
   font-family: "Segoe UI", Roboto, sans-serif;
+}
+
+/* — Page transition (for <transition name="fade">) — */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.5s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* — Header & Nav — */
+header {
   display: flex;
   align-items: center;
-  justify-content: center;
+  padding: 1rem 2rem;
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+header .logo {
+  width: 40px;
+  margin-right: 1rem;
+}
+header h1 {
+  font-size: 1.25rem;
+  color: var(--text-main);
+}
+header nav {
+  margin-left: auto;
+  display: flex;
+  gap: 1rem;
+}
+header nav a {
+  position: relative;
+  color: var(--text-main);
+  text-decoration: none;
+  transition: color var(--transition-duration) var(--transition-timing);
+}
+header nav a.router-link-active,
+header nav a:hover {
+  color: var(--accent);
+}
+/* sliding underline */
+header nav a::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width var(--transition-duration) var(--transition-timing);
+}
+header nav a.router-link-active::after,
+header nav a:hover::after {
+  width: 100%;
+}
+
+/* — Main & Footer full‑width — */
+main {
+  flex: 1;
+  width: 100%;
+  max-width: 960px;  /* same as App.vue */
+  margin: 0 auto;    /* center it */
+  padding: 2rem 1rem;/* comfortable padding on sides */
+}
+
+footer {
+  text-align: center;
+  padding: 0.75rem 2rem;
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  font-size: 0.85rem;
+  color: var(--text-alt);
+  box-shadow: 0 -2px 4px rgba(0,0,0,0.5);
+}
+
+/* — Buttons — */
+button {
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition:
+    background var(--transition-duration) var(--transition-timing),
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+button:hover:not(:disabled) {
+  transform: translateY(-2px) scale(1.03);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* — Inputs, selects, textarea — */
+input, select, textarea {
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: 6px;
+  color: var(--text-main);
+  padding: 0.5rem;
+  transition:
+    border var(--transition-duration) var(--transition-timing),
+    box-shadow var(--transition-duration) var(--transition-timing);
+}
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+
+/* — Quiz‑item slide‑in — */
+.results li {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: slide-in 0.4s forwards;
+}
+@keyframes slide-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
