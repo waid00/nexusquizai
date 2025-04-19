@@ -1,13 +1,17 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import Home     from '@/pages/Home.vue'
-import Generate from '@/pages/Generate.vue'
+import type { RouteRecordRaw } from 'vue-router'
 
-const routes = [
-  { path: '/',         component: Home    },
-  { path: '/generate', component: Generate },
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    name: 'Generate',
+    component: () => import('@/pages/Generate.vue')
+  }
 ]
 
-export default createRouter({
-  history: createWebHistory(),
-  routes,
+const router = createRouter({
+  history: createWebHistory(import.meta.env.BASE_URL),
+  routes
 })
+
+export default router

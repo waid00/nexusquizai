@@ -1,4 +1,3 @@
-<!-- src/pages/Generate.vue -->
 <template>
     <div class="generate">
       <h2 class="page-title">Generate a Quiz</h2>
@@ -8,11 +7,8 @@
         <ModeToggle v-model="isFileMode" />
       </div>
   
-      <!-- 2) Prompt textarea (always available if no file) -->
-      <div
-        v-if="!isFileMode || !fileName"
-        class="section content-section"
-      >
+      <!-- 2) Text‑area (always shown if no file) -->
+      <div v-if="!isFileMode || !fileName" class="section content-section">
         <textarea
           v-model="text"
           placeholder="Paste your text here…"
@@ -29,11 +25,9 @@
             @change="onFile"
             accept=".txt,.docx"
           />
-          <!-- button shows either “Choose File” or the filename -->
           <label for="file-input" class="file-btn">
             {{ fileName || 'Choose File' }}
           </label>
-          <!-- “×” to clear only when file selected -->
           <button
             v-if="fileName"
             class="clear-btn"
@@ -51,11 +45,7 @@
         <div class="controls">
           <div class="control-group">
             <label for="quiz-type">Type</label>
-            <select
-              id="quiz-type"
-              v-model="type"
-              class="select-input"
-            >
+            <select id="quiz-type" v-model="type" class="select-input">
               <option value="mcq">Multiple‑choice</option>
               <option value="tf">True/False</option>
               <option value="fill">Fill‑in‑the‑blank</option>
@@ -144,7 +134,7 @@
   import '@/assets/generate.css'
   import { ref, watch } from 'vue'
   import mammoth from 'mammoth'
-  import { chat, ChatCompletionRequestMessage } from '@/api/openai'
+  import { chat, type ChatCompletionRequestMessage } from '@/api/openai'
   import ModeToggle from '@/components/ModeToggle.vue'
   
   const isFileMode  = ref(false)
@@ -157,17 +147,16 @@
   const isLoading   = ref(false)
   const questions   = ref<any[]>([])
   
-  // When switching back to prompt‐mode, clear file
+  // When switching off file‐mode, clear file input
   watch(isFileMode, (mode) => {
     if (!mode) {
       extracted.value = ''
-      fileName.value = ''
+      fileName.value  = ''
       const fi = document.getElementById('file-input') as HTMLInputElement
       if (fi) fi.value = ''
     }
   })
   
-  // Handle file upload
   async function onFile(e: Event) {
     const f = (e.target as HTMLInputElement).files?.[0]
     if (!f) return
@@ -183,15 +172,13 @@
     }
   }
   
-  // Remove selected file
   function clearFile() {
     extracted.value = ''
-    fileName.value = ''
+    fileName.value  = ''
     const fi = document.getElementById('file-input') as HTMLInputElement
     if (fi) fi.value = ''
   }
   
-  // Generate quiz: fallback to prompt if no file
   async function generate() {
     const src = extracted.value.trim() || text.value.trim()
     if (!src) {
@@ -201,7 +188,7 @@
   
     isLoading.value = true
     const systemPrompt = `You output ONLY a JSON array of quiz objects.`
-    const userPrompt   = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this text. Respond with valid JSON array only.
+    const userPrompt   = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this text. Respond with a valid JSON array only:
   
   """
   ${src}
@@ -240,7 +227,6 @@
   </script>
   
   <style scoped>
-  /* Additional CSS for file‐clear button */
   .file-btn {
     padding: 0.6rem 1.2rem;
     background: var(--input-bg);
