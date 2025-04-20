@@ -18,8 +18,7 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/generate',
     name: 'Generate',
-    component: Generate,
-    meta: { requiresAuth: true }
+    component: Generate
   },
   {
     path: '/login',
