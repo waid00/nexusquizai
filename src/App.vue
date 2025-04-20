@@ -1,12 +1,38 @@
 <template>
   <div id="app">
     <header>
-      <img src="@/assets/logo.png" alt="NexusQuiz AI" class="logo" />
-      <h1>NexusQuiz AI</h1>
+      <div class="header-left">
+        <img src="@/assets/logo.png" alt="NexusQuiz AI" class="logo" />
+        <h1>NexusQuiz AI</h1>
+      </div>
+      
       <nav>
         <router-link to="/">Home</router-link>
         <router-link to="/generate">Generate</router-link>
       </nav>
+      
+      <div class="auth-controls">
+        <template v-if="auth.state.isAuthenticated">
+          <div class="user-menu" ref="userMenu">
+            <button class="user-menu-btn" @click="toggleUserMenu">
+              <span class="username">{{ auth.state.user?.username }}</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path d="M1.553 6.776a.5.5 0 0 1 .67-.223L8 9.44l5.776-2.888a.5.5 0 1 1 .448.894l-6 3a.5.5 0 0 1-.448 0l-6-3a.5.5 0 0 1-.223-.67z"/>
+              </svg>
+            </button>
+            <div class="dropdown-menu" :class="{ 'show': showUserMenu }">
+              <router-link to="/profile" class="dropdown-item">Profile</router-link>
+              <router-link to="/my-quizzes" class="dropdown-item">My Quizzes</router-link>
+              <div class="dropdown-divider"></div>
+              <button @click="logout" class="dropdown-item logout-btn">Logout</button>
+            </div>
+          </div>
+        </template>
+        <template v-else>
+          <router-link to="/login" class="auth-btn login-btn">Login</router-link>
+          <router-link to="/register" class="auth-btn register-btn">Register</router-link>
+        </template>
+      </div>
     </header>
 
     <main>
@@ -21,12 +47,282 @@
   </div>
 </template>
 
-<script setup lang="ts" />
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { auth } from '@/store/auth'
+
+const router = useRouter()
+const showUserMenu = ref(false)
+const userMenu = ref<HTMLElement | null>(null)
+
+// Toggle user dropdown menu
+function toggleUserMenu() {
+  showUserMenu.value = !showUserMenu.value
+}
+
+// Close dropdown when clicking outside
+function handleClickOutside(e: MouseEvent) {
+  if (userMenu.value && !userMenu.value.contains(e.target as Node)) {
+    showUserMenu.value = false
+  }
+}
+
+// Logout handler
+function logout() {
+  auth.logout()
+  showUserMenu.value = false
+  router.push('/')
+}
+
+// Add/remove click listener for dropdown
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+</script>
 
 <style scoped>
 #app {
-  /* constrain the whole app to a comfortable width */
   max-width: 960px;
   margin: 0 auto;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 2rem;
+  background: var(--panel-bg);
+  backdrop-filter: blur(10px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  border-radius: 0 0 12px 12px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+header .logo {
+  width: 42px;
+  height: 42px;
+  margin-right: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.header-left:hover .logo {
+  transform: rotate(10deg) scale(1.1);
+}
+
+header h1 {
+  font-size: 1.25rem;
+  color: var(--text-main);
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+header nav {
+  display: flex;
+  gap: 1.5rem;
+}
+
+header nav a {
+  position: relative;
+  color: var(--text-main);
+  text-decoration: none;
+  transition: color var(--transition-duration) var(--transition-timing);
+  font-weight: 500;
+}
+
+header nav a.router-link-active,
+header nav a:hover {
+  color: var(--accent);
+}
+
+/* sliding underline */
+header nav a::after {
+  content: "";
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width var(--transition-duration) var(--transition-timing);
+}
+
+header nav a.router-link-active::after,
+header nav a:hover::after {
+  width: 100%;
+}
+
+/* Auth controls */
+.auth-controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.auth-btn {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.login-btn {
+  border: 1px solid var(--accent);
+  color: var(--accent);
+  background: transparent;
+}
+
+.login-btn:hover {
+  background: rgba(61, 220, 132, 0.1);
+  transform: translateY(-2px);
+}
+
+.register-btn {
+  background: var(--accent);
+  color: #121212;
+  border: 1px solid var(--accent);
+}
+
+.register-btn:hover {
+  background: var(--accent);
+  opacity: 0.9;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* User menu dropdown */
+.user-menu {
+  position: relative;
+}
+
+.user-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: transparent;
+  border: 1px solid var(--input-border);
+  color: var(--text-main);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.user-menu-btn:hover {
+  border-color: var(--accent);
+  background: rgba(61, 220, 132, 0.05);
+}
+
+.username {
+  font-weight: 500;
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 180px;
+  background: var(--panel-bg);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  z-index: 100;
+}
+
+.dropdown-menu.show {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.dropdown-item {
+  display: block;
+  padding: 0.75rem 1rem;
+  color: var(--text-main);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  text-align: left;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.dropdown-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--accent);
+}
+
+.dropdown-divider {
+  height: 1px;
+  background: var(--input-border);
+  margin: 0.25rem 0;
+}
+
+.logout-btn {
+  color: rgb(255, 89, 89);
+}
+
+.logout-btn:hover {
+  background: rgba(255, 89, 89, 0.1);
+  color: rgb(255, 89, 89);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  header {
+    flex-wrap: wrap;
+    padding: 1rem;
+  }
+  
+  header nav {
+    order: 3;
+    width: 100%;
+    margin-top: 1rem;
+    justify-content: center;
+  }
+  
+  .auth-controls {
+    flex-shrink: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  header h1 {
+    font-size: 1rem;
+  }
+  
+  header .logo {
+    width: 32px;
+    height: 32px;
+    margin-right: 0.5rem;
+  }
+  
+  .auth-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  
+  .username {
+    max-width: 80px;
+  }
 }
 </style>
