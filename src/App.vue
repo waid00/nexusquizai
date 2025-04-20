@@ -93,18 +93,21 @@ onUnmounted(() => {
 
 header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 1rem 2rem;
+  align-items: center; /* Vertically center all direct children */
+  justify-content: flex-start; /* Align items to the start, let margin handle spacing */
+  padding: 0 2rem;
   background: var(--panel-bg);
   backdrop-filter: blur(10px);
   box-shadow: 0 2px 4px rgba(0,0,0,0.5);
   border-radius: 0 0 12px 12px;
+  height: 70px; /* Maintain fixed height */
 }
 
 .header-left {
   display: flex;
-  align-items: center;
+  align-items: center; /* Vertically center logo and title */
+  gap: 1rem;
+  margin-right: 2rem; /* Add some space after the logo/title */
 }
 
 header .logo {
@@ -127,7 +130,9 @@ header h1 {
 
 header nav {
   display: flex;
+  align-items: center; /* Vertically center nav links */
   gap: 1.5rem;
+  margin-left: auto; /* Push nav away from left, towards center/right */
 }
 
 header nav a {
@@ -136,6 +141,8 @@ header nav a {
   text-decoration: none;
   transition: color var(--transition-duration) var(--transition-timing);
   font-weight: 500;
+  display: inline-flex; /* Helps with vertical alignment */
+  align-items: center;
 }
 
 header nav a.router-link-active,
@@ -163,27 +170,33 @@ header nav a:hover::after {
 /* Auth controls */
 .auth-controls {
   display: flex;
-  gap: 1rem;
+  align-items: center; /* Vertically center buttons */
+  gap: 0.8rem;
+  margin-left: 2rem; /* Add space between nav and auth controls */
 }
 
 .auth-btn {
-  padding: 0.5rem 1rem;
+  padding: 8px 20px;
   border-radius: 6px;
   font-size: 0.9rem;
   font-weight: 500;
   text-decoration: none;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 38px; /* Consistent height */
+  white-space: nowrap; /* Prevent button text wrapping */
 }
 
 .login-btn {
+  background: transparent;
   border: 1px solid var(--accent);
   color: var(--accent);
-  background: transparent;
 }
 
 .login-btn:hover {
   background: rgba(61, 220, 132, 0.1);
-  transform: translateY(-2px);
 }
 
 .register-btn {
@@ -193,15 +206,14 @@ header nav a:hover::after {
 }
 
 .register-btn:hover {
-  background: var(--accent);
   opacity: 0.9;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 /* User menu dropdown */
 .user-menu {
   position: relative;
+  display: flex;
+  align-items: center;
 }
 
 .user-menu-btn {
@@ -211,15 +223,12 @@ header nav a:hover::after {
   background: transparent;
   border: 1px solid var(--input-border);
   color: var(--text-main);
-  padding: 0.5rem 1rem;
+  padding: 0 1rem;
   border-radius: 6px;
   cursor: pointer;
   transition: all 0.3s ease;
-}
-
-.user-menu-btn:hover {
-  border-color: var(--accent);
-  background: rgba(61, 220, 132, 0.05);
+  height: 38px; /* Match auth-btn height */
+  white-space: nowrap; /* Prevent button text wrapping */
 }
 
 .username {
@@ -243,7 +252,7 @@ header nav a:hover::after {
   opacity: 0;
   transform: translateY(-10px);
   transition: all 0.3s ease;
-  z-index: 100;
+  z-index: 1000; /* Increased z-index */
 }
 
 .dropdown-menu.show {

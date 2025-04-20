@@ -28,6 +28,7 @@ export async function getDB(): Promise<Database> {
           username TEXT NOT NULL UNIQUE,
           email TEXT NOT NULL UNIQUE,
           password_hash TEXT NOT NULL,
+          recovery_phrase TEXT,
           role_id INTEGER NOT NULL,
           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
           is_active INTEGER NOT NULL DEFAULT 1,
