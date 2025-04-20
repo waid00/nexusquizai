@@ -10,7 +10,7 @@
     </div>
 
     <!-- 2) Text‑area (always shown if no file) -->
-    <div v-if="!isFileMode || !fileName" class="section content-section">
+    <div v-if="!isFileMode" class="section content-section">
       <textarea
         v-model="text"
         placeholder="Paste your text here…"
