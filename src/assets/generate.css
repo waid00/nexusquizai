@@ -74,6 +74,8 @@
   
   /* Content input areas */
   .content-section {
+    margin-bottom: var(--spacing-xl);
+    margin-top: var(--spacing-xl);
     display: flex;
     flex-direction: column;
   }

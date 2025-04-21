@@ -4,10 +4,11 @@ import { auth } from '@/store/auth'
 
 // Import your pages (filenames must match!)
 import Home from '@/pages/Home.vue'
-import Generate from '@/pages/Generate.vue'
+import Generate from '@/pages/generate.vue'
 import Login from '@/pages/Login.vue'
 import Register from '@/pages/Register.vue'
 import ForgotPassword from '@/pages/ForgotPassword.vue'
+import MyQuizzes from '@/pages/MyQuizzes.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -19,6 +20,30 @@ const routes: RouteRecordRaw[] = [
     path: '/generate',
     name: 'Generate',
     component: Generate
+  },
+  {
+    path: '/my-quizzes',
+    name: 'MyQuizzes',
+    component: MyQuizzes,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/quiz/:id',
+    name: 'TakeQuiz',
+    component: () => import('@/pages/TakeQuiz.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/quiz/:id/details',
+    name: 'QuizDetails',
+    component: () => import('@/pages/QuizDetails.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/attempt/:id',
+    name: 'AttemptDetails',
+    component: () => import('@/pages/AttemptDetails.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',
