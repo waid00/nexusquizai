@@ -1,6 +1,6 @@
 // src/store/auth.ts
 import { reactive, readonly } from 'vue'
-import { getDB } from '@/db/index'
+import { getDB, saveDB } from '@/db/index'
 import bcrypt from 'bcryptjs'
 
 // Predefined word list for recovery phrases - common, easy-to-remember words
@@ -119,6 +119,9 @@ async function register(username: string, email: string, password: string): Prom
       INSERT INTO Users (username, email, password_hash, recovery_phrase, role_id)
       VALUES ('${username}', '${email}', '${passwordHash}', '${recoveryPhraseString}', ${roleId})
     `)
+
+    // Save changes to localStorage
+    saveDB()
 
     return true
   } catch (err: any) {
@@ -247,6 +250,9 @@ async function resetPassword(newPassword: string): Promise<boolean> {
       SET password_hash = '${passwordHash}'
       WHERE user_id = ${state.user.userId}
     `)
+
+    // Save changes to localStorage
+    saveDB()
 
     // Reset temporary recovery state
     state.user = null

@@ -59,6 +59,7 @@
               class="form-input recovery-input" 
               :ref="`word${index}`"
               @keydown="handleWordInputKeydown($event, index)"
+              @paste="handlePasteWord($event, index)"
               :disabled="isLoading"
               autocomplete="off"
             >
@@ -258,6 +259,33 @@ async function goToRecoveryPhrase() {
 function goToUsername() {
   errorMessage.value = ''
   currentStep.value = 'username'
+}
+
+// Handle pasting all recovery words at once
+function handlePasteWord(event: ClipboardEvent, index: number) {
+  if (event.clipboardData) {
+    const pastedText = event.clipboardData.getData('text')
+    
+    // Check if multiple words were pasted
+    const words = pastedText.trim().split(/[\s,\t\n]+/).filter(word => word)
+    
+    if (words.length > 1) {
+      event.preventDefault() // Prevent default paste behavior
+      distributePastedWords(pastedText)
+    }
+    // For single word pastes, let the default behavior happen
+  }
+}
+
+// Distribute words from pasted text into individual inputs
+function distributePastedWords(text: string) {
+  // Split by spaces, commas, tabs, or newlines
+  const words = text.trim().split(/[\s,\t\n]+/).filter(word => word)
+  
+  // Fill recovery phrase array with words (up to 10)
+  for (let i = 0; i < Math.min(words.length, 10); i++) {
+    recoveryPhrase.value[i] = words[i].toLowerCase().trim()
+  }
 }
 
 // Recover phrase validation
