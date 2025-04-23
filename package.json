@@ -11,8 +11,10 @@
     "type-check": "vue-tsc --build"
   },
   "dependencies": {
+    "@types/lodash.debounce": "^4.0.9",
     "bcryptjs": "^3.0.2",
     "idb": "^7.1.1",
+    "lodash.debounce": "^4.0.8",
     "mammoth": "^1.9.0",
     "sql.js": "^1.13.0",
     "vue": "^3.5.13",

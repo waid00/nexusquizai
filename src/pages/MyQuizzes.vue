@@ -527,7 +527,6 @@ async function toggleUpvote(quiz: any) {
 
 <style scoped>
 .my-quizzes {
-  max-width: 800px;
   margin: 0 auto;
   padding: var(--spacing-lg);
 }
@@ -618,8 +617,26 @@ async function toggleUpvote(quiz: any) {
 /* Quiz Cards */
 .quiz-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--spacing-md);
+}
+
+@media (min-width: 992px) {
+  .quiz-list {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .quiz-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 576px) {
+  .quiz-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 .quiz-card, .attempt-card {
@@ -651,6 +668,13 @@ async function toggleUpvote(quiz: any) {
   font-size: 1.1rem;
   font-weight: 600;
   color: var(--text-main);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-width: 200px;
+  word-break: break-word;
 }
 
 .quiz-badge {
@@ -890,7 +914,7 @@ input:checked + .slider:before {
   }
   
   .quiz-list {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, 1fr);
   }
   
   .tab-btn {

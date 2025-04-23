@@ -92,6 +92,7 @@
           <h3 class="section-title">Your Quiz</h3>
           <div class="action-buttons">
             <button class="export-btn" @click="exportCSV">Export CSV</button>
+            <button class="save-quiz-btn" @click="saveAndViewQuiz">Save Quiz</button>
             <button class="take-quiz-btn" @click="startQuiz">Take Quiz</button>
           </div>
         </div>
@@ -104,7 +105,11 @@
             type="text" 
             placeholder="Enter a name for your quiz"
             class="form-input"
+            maxlength="50"
           />
+          <span class="char-counter" :class="{ 'limit-near': quizName.length > 40 }">
+            {{ quizName.length }}/50
+          </span>
         </div>
         
         <ul class="question-list">
@@ -265,10 +270,13 @@
 <script setup lang="ts">
 import '@/assets/generate.css'
 import { ref, watch, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import mammoth from 'mammoth'
 import { chat, type ChatCompletionRequestMessage } from '@/api/openai'
 import ModeToggle from '@/components/ModeToggle.vue'
 import { auth } from '@/store/auth'
+
+const router = useRouter()
 
 const isFileMode  = ref(false)
 const text        = ref('')
@@ -287,6 +295,7 @@ const quizName = ref('')
 const quizStartTime = ref<Date | null>(null)
 const score = ref(0)
 const currentQuestionIndex = ref(0)
+const currentQuizId = ref<number | null>(null)
 
 // Computed property to check if all questions are answered
 const allQuestionsAnswered = computed(() => {
@@ -396,6 +405,15 @@ ${src}
     try {
       questions.value = JSON.parse(jsonText)
       console.log('Parsed questions:', questions.value)
+      
+      // Auto-save the quiz with a default name
+      if (auth.state.isAuthenticated && auth.state.user) {
+        quizName.value = "Untitled Quiz"
+        const savedQuizId = await saveQuizToDatabase(quizName.value, questions.value.length)
+        console.log("Quiz auto-saved with ID:", savedQuizId)
+        currentQuizId.value = savedQuizId
+      }
+      
     } catch (error) {
       const jsonError = error as Error
       console.error('JSON parse error:', jsonError)
@@ -872,6 +890,56 @@ function retakeQuiz() {
   userAnswers.value = Array(questions.value.length).fill(undefined)
   quizStartTime.value = new Date()
 }
+
+// Save quiz and view details
+async function saveAndViewQuiz() {
+  if (!auth.state.isAuthenticated || !auth.state.user) {
+    alert('You must be logged in to save quizzes')
+    return
+  }
+  
+  try {
+    if (!currentQuizId.value) {
+      // If not already saved (shouldn't happen, but just in case), save it first
+      const savedQuizId = await saveQuizToDatabase(quizName.value || "Untitled Quiz", questions.value.length)
+      currentQuizId.value = savedQuizId
+      console.log("Created new quiz with ID:", savedQuizId)
+    } else if (quizName.value) {
+      // Quiz already exists, update the name
+      console.log("Updating quiz name to:", quizName.value, "for quiz ID:", currentQuizId.value)
+      
+      const { getDB, saveDB } = await import('@/db/index')
+      const db = await getDB()
+      
+      // First check if the quiz exists and belongs to this user
+      const quizCheck = db.exec(`
+        SELECT quiz_id FROM Quizzes 
+        WHERE quiz_id = ? AND owner_id = ?
+      `, [currentQuizId.value, auth.state.user.userId])
+      
+      if (quizCheck.length === 0 || quizCheck[0].values.length === 0) {
+        throw new Error('Quiz not found or you do not have permission to edit it')
+      }
+      
+      // Update the quiz name
+      db.run(`
+        UPDATE Quizzes
+        SET title = ?, updated_at = datetime('now')
+        WHERE quiz_id = ? AND owner_id = ?
+      `, [quizName.value, currentQuizId.value, auth.state.user.userId])
+      
+      await saveDB()
+      console.log(`Updated quiz name to: ${quizName.value}`)
+    }
+    
+    // Navigate to quiz details page
+    router.push(`/quiz/${currentQuizId.value}/details`)
+    
+  } catch (error) {
+    console.error('Error saving quiz:', error)
+    alert('Failed to save the quiz. Please try again.')
+  }
+}
 </script>
 
 <style scoped>
@@ -922,6 +990,15 @@ function retakeQuiz() {
   border-radius: var(--radius-sm);
   background: var(--input-bg);
   color: var(--text-main);
+}
+
+.char-counter {
+  font-size: 0.85rem;
+  color: var(--text-alt);
+}
+
+.char-counter.limit-near {
+  color: var(--accent);
 }
 
 /* Action buttons */
