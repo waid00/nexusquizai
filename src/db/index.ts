@@ -1,5 +1,5 @@
 import initSqlJs, { type Database, type SqlJsStatic } from 'sql.js';
-import { openDB, type IDBPDatabase } from 'idb';
+import { openDB, type IDBPDatabase, deleteDB } from 'idb';
 
 // Load the WASM file from the public directory
 const SQLPromise: Promise<SqlJsStatic> = initSqlJs({
@@ -45,6 +45,30 @@ export async function saveDB(): Promise<void> {
 }
 
 /**
+ * Reset the database by deleting it from IndexedDB
+ * and recreating it with a fresh schema
+ */
+export async function resetDB(): Promise<Database> {
+  try {
+    // Close existing DB connection if open
+    if (db) {
+      db.close();
+      db = null;
+    }
+    
+    // Delete the existing database
+    await deleteDB(DB_NAME);
+    console.log('Database has been reset');
+    
+    // Initialize a fresh database
+    return await getDB();
+  } catch (err) {
+    console.error('Failed to reset database:', err);
+    throw err;
+  }
+}
+
+/**
  * Get or initialize the SQLite database.
  * Loads from IndexedDB if available, otherwise creates a new DB.
  */
@@ -58,9 +82,70 @@ export async function getDB(): Promise<Database> {
       const savedData = await idb.get(DB_STORE_NAME, DB_KEY);
       
       if (savedData) {
-        // Create database from the saved data
-        db = new SQL.Database(savedData);
-        console.log('Database loaded from IndexedDB');
+        try {
+          // Create database from the saved data
+          db = new SQL.Database(savedData);
+          console.log('Database loaded from IndexedDB');
+          
+          // Verify essential tables exist
+          try {
+            const tables = db.exec("SELECT name FROM sqlite_master WHERE type='table'");
+            const tableNames = tables.length > 0 ? tables[0].values.map(row => row[0]) : [];
+            console.log('Database tables:', tableNames);
+            
+            // Check for required tables
+            const requiredTables = ['QuizUpvotes', 'Quizzes', 'Questions', 'Users'];
+            const missingTables = requiredTables.filter(table => !tableNames.includes(table));
+            
+            if (missingTables.length > 0) {
+              console.warn('Missing required tables:', missingTables);
+              
+              // Fix: Instead of throwing an error, recreate the missing tables
+              console.log('Recreating missing tables...');
+              
+              // Use a transaction for recreating tables
+              let sql = '';
+              
+              if (missingTables.includes('QuizUpvotes')) {
+                sql += `
+                  CREATE TABLE IF NOT EXISTS QuizUpvotes (
+                    upvote_id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    quiz_id INTEGER NOT NULL,
+                    user_id INTEGER NOT NULL,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (quiz_id) REFERENCES Quizzes(quiz_id),
+                    FOREIGN KEY (user_id) REFERENCES Users(user_id),
+                    UNIQUE(quiz_id, user_id)
+                  );
+                `;
+              }
+              
+              // Add other missing table creation SQL here if needed
+              
+              if (sql) {
+                try {
+                  db.run(sql);
+                  console.log('Successfully recreated missing tables');
+                  await saveDB(); // Save the updated database
+                } catch (recreateError) {
+                  console.error('Failed to recreate tables:', recreateError);
+                  throw recreateError;
+                }
+              }
+            }
+          } catch (verifyError) {
+            console.error('Table verification failed:', verifyError);
+            // If verification fails, we'll recreate the database
+            db.close();
+            db = new SQL.Database();
+            initializeDatabase(db);
+          }
+        } catch (dbError) {
+          console.error('Failed to create database from saved data:', dbError);
+          // If loading fails, recreate the database
+          db = new SQL.Database();
+          initializeDatabase(db);
+        }
       } else {
         // No saved database, create a new one
         db = new SQL.Database();
@@ -176,6 +261,17 @@ function initializeDatabase(db: Database): void {
         FOREIGN KEY (attempt_id) REFERENCES QuizAttempts(attempt_id),
         FOREIGN KEY (question_id) REFERENCES Questions(question_id),
         FOREIGN KEY (selected_option_id) REFERENCES AnswerOptions(option_id)
+    );
+
+    -- QuizUpvotes
+    CREATE TABLE IF NOT EXISTS QuizUpvotes (
+        upvote_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        quiz_id INTEGER NOT NULL,
+        user_id INTEGER NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (quiz_id) REFERENCES Quizzes(quiz_id),
+        FOREIGN KEY (user_id) REFERENCES Users(user_id),
+        UNIQUE(quiz_id, user_id)
     );
   `);
 
