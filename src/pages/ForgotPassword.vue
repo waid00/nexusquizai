@@ -223,6 +223,7 @@
 import '@/assets/auth.css'
 import { ref, computed } from 'vue'
 import { auth } from '@/store/auth'
+import { supabase } from '@/api/supabase'
 
 // Step navigation (username → recovery phrase → new password)
 const currentStep = ref('username')
@@ -324,13 +325,43 @@ async function verifyRecoveryPhrase() {
   
   try {
     const wordsArray = recoveryPhrase.value.map(word => word.trim().toLowerCase())
-    const success = await auth.verifyRecoveryPhrase(username.value, wordsArray)
     
-    if (success) {
-      currentStep.value = 'new-password'
+    // Check if user exists with this username and recovery phrase
+    const { data, error } = await supabase
+      .from('Users')
+      .select('id, email')
+      .or(`username.eq.${username.value},email.eq.${username.value}`)
+      .eq('is_active', true)
+      .single()
+    
+    if (error || !data) {
+      throw new Error('User not found')
     }
+    
+    // Store the email for the reset password step
+    const userEmail = data.email
+    
+    // Check if recovery phrase matches
+    const { data: phraseCheck, error: phraseError } = await supabase
+      .from('Users')
+      .select('id')
+      .eq('id', data.id)
+      .eq('recovery_phrase', wordsArray.join(' '))
+      .single()
+    
+    if (phraseError || !phraseCheck) {
+      throw new Error('Invalid recovery phrase')
+    }
+    
+    // Store the email for later use in resetPassword
+    localStorage.setItem('resetEmail', userEmail)
+    
+    // Success - go to password reset screen
+    currentStep.value = 'new-password'
+    return true
   } catch (error: any) {
     errorMessage.value = error.message || 'Failed to verify recovery phrase'
+    return false
   } finally {
     isLoading.value = false
   }
@@ -376,9 +407,22 @@ async function resetPassword() {
   successMessage.value = ''
   
   try {
-    const success = await auth.resetPassword(newPassword.value)
+    // Get the user's email stored during verification step
+    const userEmail = localStorage.getItem('resetEmail')
+    if (!userEmail) {
+      throw new Error('Session expired. Please restart the recovery process.')
+    }
+    
+    // Get the recovery phrase as a string
+    const recoveryPhraseString = recoveryPhrase.value.join(' ')
+    
+    // Call the reset password function with all required parameters
+    const success = await auth.resetPassword(userEmail, recoveryPhraseString, newPassword.value)
     
     if (success) {
+      // Clean up stored email
+      localStorage.removeItem('resetEmail')
+      
       resetComplete.value = true
       successMessage.value = 'Your password has been successfully reset.'
     }
