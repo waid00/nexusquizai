@@ -151,13 +151,13 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
+import { supabase } from '@/api/supabase'
 
 const router = useRouter()
 const activeTab = ref('created')
 const isLoading = ref(true)
 const createdQuizzes = ref<any[]>([])
 const quizAttempts = ref<any[]>([])
-const dbInitialized = ref(false)
 
 // On component mount, fetch user's quizzes and attempts
 onMounted(async () => {
@@ -172,12 +172,9 @@ onMounted(async () => {
     quizAttempts.value = []
     console.log('MyQuizzes component mounted, fetching fresh quiz data')
     
-    // Try to initialize the database
-    await initializeDatabase()
-    
-    // Fetch data
+    // Fetch data from Supabase
     await Promise.all([
-      fetchCreatedQuizzes(true), // Force a fresh fetch
+      fetchCreatedQuizzes(), 
       fetchQuizAttempts()
     ])
   } catch (error) {
@@ -187,225 +184,125 @@ onMounted(async () => {
   }
 })
 
-// Initialize database and handle schema issues
-async function initializeDatabase() {
-  try {
-    // Import DB modules
-    const { getDB } = await import('@/db/index')
-    await getDB()
-    dbInitialized.value = true
-  } catch (error) {
-    console.error('Database initialization error:', error)
-    if (error instanceof Error && error.message.includes('Missing required tables')) {
-      console.log('Detected missing tables, attempting to reset database')
-      await resetAndReinitializeDatabase()
-    } else {
-      throw error
-    }
-  }
-}
-
-// Reset and reinitialize the database if needed
-async function resetAndReinitializeDatabase() {
-  try {
-    const { resetDB } = await import('@/db/index')
-    await resetDB()
-    console.log('Database has been reset and reinitialized')
-    dbInitialized.value = true
-  } catch (error) {
-    console.error('Failed to reset database:', error)
-    throw error
-  }
-}
-
 // Fetch quizzes created by the user
-async function fetchCreatedQuizzes(forceRefresh = false) {
-  if (!dbInitialized.value) {
-    console.log('Database not initialized, initializing first')
-    await initializeDatabase()
-  }
-
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
-  
+async function fetchCreatedQuizzes() {
   try {
-    console.log('Fetching quizzes for user ID:', auth.state.user!.userId, 'forceRefresh:', forceRefresh);
+    console.log('Fetching quizzes for user ID:', auth.state.user!.userId);
     
-    // First, check if there are any quizzes at all for this user
-    const countCheck = db.exec(`
-      SELECT COUNT(*) 
-      FROM Quizzes 
-      WHERE owner_id = ?
-    `, [auth.state.user!.userId]);
+    // Get full quiz data in a single query with counts using Supabase's relationships
+    const { data: quizzes, error } = await supabase
+      .from('Quizzes')
+      .select(`
+        id,
+        title,
+        description,
+        difficulty,
+        created_at,
+        is_public,
+        Questions:Questions(count),
+        QuizAttempts:QuizAttempts(count),
+        QuizUpvotes:QuizUpvotes(count)
+      `)
+      .eq('owner_id', auth.state.user!.userId)
+      .eq('is_deleted', false)
+      .order('created_at', { ascending: false });
     
-    const totalQuizCount = countCheck[0]?.values[0][0] || 0;
-    console.log('Total quizzes for this user:', totalQuizCount);
-    
-    // Get all quizzes created by the user, handling potential missing tables
-    try {
-      const result = db.exec(`
-        SELECT 
-          q.quiz_id,
-          q.title,
-          q.description,
-          q.difficulty,
-          q.created_at,
-          q.published_at,
-          q.is_public,
-          IFNULL(q.is_deleted, 0) as is_deleted,
-          (SELECT COUNT(*) FROM Questions WHERE quiz_id = q.quiz_id) as questionCount,
-          (SELECT COUNT(*) FROM QuizAttempts WHERE quiz_id = q.quiz_id) as attemptCount,
-          IFNULL((SELECT COUNT(*) FROM QuizUpvotes WHERE quiz_id = q.quiz_id), 0) as upvoteCount,
-          IFNULL((SELECT COUNT(*) FROM QuizUpvotes WHERE quiz_id = q.quiz_id AND user_id = ?), 0) as hasUserUpvoted
-        FROM Quizzes q
-        WHERE q.owner_id = ?
-        ORDER BY q.created_at DESC
-      `, [auth.state.user!.userId, auth.state.user!.userId]);
-      
-      console.log('Query results:', result.length > 0 ? result[0].values.length : 0, 'rows');
-      
-      if (result.length > 0 && result[0].values.length > 0) {
-        // Convert the result to an array of objects - only include non-deleted quizzes
-        const quizzes = result[0].values
-          .filter(row => row[7] === 0 || row[7] === null) // Include quizzes with is_deleted = 0 OR null
-          .map((row) => {
-            const quiz = {
-              quizId: row[0],
-              title: row[1],
-              description: row[2],
-              difficulty: row[3],
-              createdAt: row[4],
-              publishedAt: row[5],
-              isPublic: row[6] === 1,
-              questionCount: row[8],
-              attemptCount: row[9],
-              upvoteCount: row[10],
-              hasUserUpvoted: row[11] === 1
-            };
-            console.log('Found quiz:', quiz.quizId, quiz.title, 'is_deleted status:', row[7]);
-            return quiz;
-          });
-        
-        // Assign the filtered quizzes to our ref
-        createdQuizzes.value = quizzes;
-        console.log('Parsed created quizzes:', createdQuizzes.value.length);
-      } else {
-        console.log('No quizzes found for user');
-        createdQuizzes.value = [];
-      }
-    } catch (queryError) {
-      console.error('Query error in fetchCreatedQuizzes:', queryError);
-      
-      // If error is about missing QuizUpvotes table, try a simplified query
-      if (queryError instanceof Error && queryError.message.includes('no such table: QuizUpvotes')) {
-        console.log('QuizUpvotes table missing, using fallback query');
-        
-        // Fallback query without upvotes
-        const fallbackResult = db.exec(`
-          SELECT 
-            q.quiz_id,
-            q.title,
-            q.description,
-            q.difficulty,
-            q.created_at,
-            q.published_at,
-            q.is_public,
-            IFNULL(q.is_deleted, 0) as is_deleted,
-            (SELECT COUNT(*) FROM Questions WHERE quiz_id = q.quiz_id) as questionCount,
-            (SELECT COUNT(*) FROM QuizAttempts WHERE quiz_id = q.quiz_id) as attemptCount
-          FROM Quizzes q
-          WHERE q.owner_id = ?
-          ORDER BY q.created_at DESC
-        `, [auth.state.user!.userId]);
-        
-        if (fallbackResult.length > 0 && fallbackResult[0].values.length > 0) {
-          const quizzes = fallbackResult[0].values
-            .filter(row => row[7] === 0 || row[7] === null)
-            .map((row) => {
-              const quiz = {
-                quizId: row[0],
-                title: row[1],
-                description: row[2],
-                difficulty: row[3],
-                createdAt: row[4],
-                publishedAt: row[5],
-                isPublic: row[6] === 1,
-                questionCount: row[8],
-                attemptCount: row[9],
-                upvoteCount: 0,
-                hasUserUpvoted: false
-              };
-              return quiz;
-            });
-          
-          createdQuizzes.value = quizzes;
-          console.log('Fallback query successful, found', quizzes.length, 'quizzes');
-          
-          // Reset the database to fix the missing table
-          await resetAndReinitializeDatabase();
-        } else {
-          createdQuizzes.value = [];
-        }
-      } else {
-        throw queryError;
-      }
+    if (error) {
+      console.error('Error fetching quizzes:', error);
+      throw error;
     }
+    
+    if (!quizzes || quizzes.length === 0) {
+      console.log('No quizzes found for this user');
+      createdQuizzes.value = [];
+      return;
+    }
+    
+    console.log('Fetched quizzes:', quizzes);
+    
+    // Get user upvotes in a separate query
+    const { data: userUpvotes, error: upvoteError } = await supabase
+      .from('QuizUpvotes')
+      .select('quiz_id')
+      .eq('user_id', auth.state.user!.userId);
+    
+    if (upvoteError) {
+      console.error('Error fetching user upvotes:', upvoteError);
+    }
+    
+    // Format the quiz data
+    createdQuizzes.value = quizzes.map(quiz => {
+      return {
+        quizId: quiz.id,
+        title: quiz.title || 'Untitled Quiz',
+        description: quiz.description || 'No description available',
+        difficulty: typeof quiz.difficulty === 'string' ? quiz.difficulty.toLowerCase() : 'medium',
+        createdAt: quiz.created_at,
+        isPublic: quiz.is_public,
+        questionCount: quiz.Questions?.length || 0,
+        attemptCount: quiz.QuizAttempts?.length || 0,
+        upvoteCount: quiz.QuizUpvotes?.length || 0,
+        hasUserUpvoted: userUpvotes ? userUpvotes.some((uv: any) => uv.quiz_id === quiz.id) : false
+      };
+    });
+    
+    console.log('Processed quizzes:', createdQuizzes.value);
   } catch (error) {
     console.error('Error fetching created quizzes:', error);
-    throw error;
+    createdQuizzes.value = [];
   }
 }
 
 // Fetch quiz attempts by the user
 async function fetchQuizAttempts() {
-  if (!dbInitialized.value) {
-    console.log('Database not initialized, initializing first')
-    await initializeDatabase()
-  }
-
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
-  
   try {
-    // Get all quiz attempts by the user
-    const result = db.exec(`
-      SELECT 
-        a.attempt_id as attemptId,
-        a.quiz_id as quizId,
-        q.title as quizTitle,
-        a.score,
-        a.total_questions as totalQuestions,
-        a.elapsed_time as elapsedTime,
-        a.completed_at as completedAt,
-        a.is_passed as isPassed
-      FROM QuizAttempts a
-      JOIN Quizzes q ON a.quiz_id = q.quiz_id
-      WHERE a.user_id = ?
-      ORDER BY a.completed_at DESC
-    `, [auth.state.user!.userId])
+    console.log('Fetching quiz attempts for user ID:', auth.state.user!.userId);
     
-    if (result.length > 0 && result[0].values.length > 0) {
-      // Convert the result to an array of objects
-      quizAttempts.value = result[0].values.map((row: any[]) => {
-        return {
-          attemptId: row[0],
-          quizId: row[1],
-          quizTitle: row[2],
-          score: row[3],
-          totalQuestions: row[4],
-          elapsedTime: row[5],
-          completedAt: row[6],
-          isPassed: row[7] === 1
-        }
-      })
-      console.log('Found', quizAttempts.value.length, 'quiz attempts');
-    } else {
-      console.log('No quiz attempts found for user');
-      quizAttempts.value = [];
+    const { data, error } = await supabase
+      .from('QuizAttempts')
+      .select(`
+        id,
+        quiz_id,
+        score,
+        total_questions,
+        elapsed_time,
+        completed_at,
+        is_passed,
+        Quizzes (
+          title
+        )
+      `)
+      .eq('user_id', auth.state.user!.userId)
+      .order('completed_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching quiz attempts:', error);
+      throw error;
     }
+    
+    if (!data || data.length === 0) {
+      console.log('No quiz attempts found for this user');
+      quizAttempts.value = [];
+      return;
+    }
+    
+    console.log('Fetched quiz attempts:', data);
+    
+    quizAttempts.value = data.map(attempt => ({
+      attemptId: attempt.id,
+      quizId: attempt.quiz_id,
+      quizTitle: attempt.Quizzes?.title || 'Untitled Quiz',
+      score: attempt.score || 0,
+      totalQuestions: attempt.total_questions || 1,
+      elapsedTime: attempt.elapsed_time || 0,
+      completedAt: attempt.completed_at,
+      isPassed: attempt.is_passed || false
+    }));
+    
+    console.log('Processed quiz attempts:', quizAttempts.value);
   } catch (error) {
-    console.error('Error fetching quiz attempts:', error)
-    throw error
+    console.error('Error fetching quiz attempts:', error);
+    quizAttempts.value = [];
   }
 }
 
@@ -449,26 +346,15 @@ function viewAttemptDetails(attemptId: number) {
 // Toggle quiz privacy status
 async function toggleQuizPrivacy(quiz: any) {
   try {
-    const { getDB, saveDB } = await import('@/db/index')
-    const db = await getDB()
-    
-    // Update the quiz privacy status
-    db.run(`
-      UPDATE Quizzes
-      SET is_public = ?, updated_at = datetime('now')
-      WHERE quiz_id = ? AND owner_id = ?
-    `, [
-      quiz.isPublic ? 0 : 1, 
-      quiz.quizId, 
-      auth.state.user!.userId
-    ])
-    
-    // Save changes to the database
-    await saveDB()
-    
-    // Update the local state
+    const { data, error } = await supabase
+      .from('Quizzes')
+      .update({ is_public: !quiz.isPublic })
+      .eq('id', quiz.quizId) // Changed from 'quiz_id' to 'id'
+      .eq('owner_id', auth.state.user!.userId)
+
+    if (error) throw error
+
     quiz.isPublic = !quiz.isPublic
-    
   } catch (error) {
     console.error('Error toggling quiz privacy:', error)
   }
@@ -477,48 +363,30 @@ async function toggleQuizPrivacy(quiz: any) {
 // Toggle upvote status
 async function toggleUpvote(quiz: any) {
   try {
-    const { getDB, saveDB } = await import('@/db/index')
-    const db = await getDB()
-    
-    // Check if the user is the owner of the quiz - prevent upvoting own quizzes
-    const ownershipCheck = db.exec(`
-      SELECT owner_id FROM Quizzes WHERE quiz_id = ?
-    `, [quiz.quizId])
-    
-    if (ownershipCheck.length > 0 && ownershipCheck[0].values.length > 0) {
-      const ownerId = ownershipCheck[0].values[0][0]
-      
-      if (ownerId === auth.state.user!.userId) {
-        console.log('Users cannot upvote their own quizzes')
-        return
-      }
-    }
-    
-    // Continue with original upvote logic
     if (quiz.hasUserUpvoted) {
-      // Remove upvote
-      db.run(`
-        DELETE FROM QuizUpvotes
-        WHERE quiz_id = ? AND user_id = ?
-      `, [quiz.quizId, auth.state.user!.userId])
-      
+      const { error } = await supabase
+        .from('QuizUpvotes')
+        .delete()
+        .eq('quiz_id', quiz.quizId)
+        .eq('user_id', auth.state.user!.userId)
+
+      if (error) throw error
+
       quiz.upvoteCount -= 1
     } else {
-      // Add upvote
-      db.run(`
-        INSERT INTO QuizUpvotes (quiz_id, user_id, created_at)
-        VALUES (?, ?, datetime('now'))
-      `, [quiz.quizId, auth.state.user!.userId])
-      
+      const { error } = await supabase
+        .from('QuizUpvotes')
+        .insert({
+          quiz_id: quiz.quizId,
+          user_id: auth.state.user!.userId
+        })
+
+      if (error) throw error
+
       quiz.upvoteCount += 1
     }
-    
-    // Save changes to the database
-    await saveDB()
-    
-    // Update the local state
+
     quiz.hasUserUpvoted = !quiz.hasUserUpvoted
-    
   } catch (error) {
     console.error('Error toggling upvote:', error)
   }
@@ -672,6 +540,7 @@ async function toggleUpvote(quiz: any) {
   text-overflow: ellipsis;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   max-width: 200px;
   word-break: break-word;
@@ -712,6 +581,7 @@ async function toggleUpvote(quiz: any) {
   line-height: 1.4;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }

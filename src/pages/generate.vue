@@ -275,6 +275,16 @@ import mammoth from 'mammoth'
 import { chat, type ChatCompletionRequestMessage } from '@/api/openai'
 import ModeToggle from '@/components/ModeToggle.vue'
 import { auth } from '@/store/auth'
+import { supabase } from '@/api/supabase'
+import { 
+  createQuiz, 
+  createQuestion, 
+  createAnswerOptions,
+  createQuizAttempt,
+  createAttemptAnswers,
+  getCategories,
+  updateQuiz
+} from '@/api/supabase'
 
 const router = useRouter()
 
@@ -505,373 +515,273 @@ async function submitQuiz() {
 }
 
 async function saveQuizAttempt(title: string, score: number, totalQuestions: number, elapsedTime: number) {
-  const { getDB, saveDB } = await import('@/db/index')
-  const db = await getDB()
-  
   try {
     console.log('Starting saveQuizAttempt with:', { title, userId: auth.state.user!.userId });
     
-    // 1. Check if any categories exist, create default if not
-    const categoryCheck = db.exec('SELECT category_id FROM Categories LIMIT 1');
-    let categoryId = 1; // Default category ID
-    
-    if (categoryCheck.length === 0 || categoryCheck[0].values.length === 0) {
-      // Create a default category if none exists
-      db.run(`
-        INSERT INTO Categories (category_name, description)
-        VALUES ('General', 'General category for all quizzes')
-      `);
-      
-      const newCategoryResult = db.exec("SELECT last_insert_rowid()");
-      categoryId = newCategoryResult[0].values[0][0] as number;
-      console.log('Created default category with ID:', categoryId);
-    } else {
-      categoryId = categoryCheck[0].values[0][0] as number;
+    if (!currentQuizId.value) {
+      // Quiz doesn't exist yet, create it first
+      currentQuizId.value = await saveQuizToDatabase(title, totalQuestions);
     }
     
-    // 2. First check if the quiz already exists
-    let quizId: number;
-    const quizResult = db.exec(`
-      SELECT quiz_id 
-      FROM Quizzes 
-      WHERE title = ? AND owner_id = ?
-    `, [title, auth.state.user!.userId])
+    // Calculate pass/fail status
+    const isPassed = score / totalQuestions >= 0.6;
     
-    if (quizResult.length === 0 || quizResult[0].values.length === 0) {
-      // Convert difficulty to proper case to match DB constraint
-      const difficultyProperCase = difficulty.value.charAt(0).toUpperCase() + difficulty.value.slice(1).toLowerCase()
-      
-      console.log('Creating new quiz:', {
-        title,
-        difficulty: difficultyProperCase,
-        userId: auth.state.user!.userId,
-        categoryId
-      })
-      
-      // Create a new quiz with explicit values for all fields
-      db.run(`
-        INSERT INTO Quizzes (
-          owner_id, 
-          category_id, 
-          title, 
-          description, 
-          difficulty, 
-          is_public, 
-          created_at, 
-          updated_at,
-          published_at,
-          is_deleted
-        ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'), 0)
-      `, [
-        auth.state.user!.userId, 
-        categoryId, 
-        title, 
-        `Generated quiz with ${totalQuestions} questions`, 
-        difficultyProperCase,
-        1 // is_public = true
-      ])
-      
-      // Get the ID of the newly inserted quiz
-      const newQuizResult = db.exec("SELECT last_insert_rowid()")
-      quizId = newQuizResult[0].values[0][0] as number
-      console.log('Created quiz with ID:', quizId)
-      
-      // Insert questions and answer options
-      for (let i = 0; i < questions.value.length; i++) {
-        const question = questions.value[i]
-        
-        // Insert question - use proper case for difficulty
-        db.run(`
-          INSERT INTO Questions (
-            quiz_id, 
-            question_text, 
-            question_type, 
-            difficulty, 
-            points,
-            created_at,
-            is_active
-          ) VALUES (?, ?, ?, ?, 1, datetime('now'), 1)
-        `, [
-          quizId, 
-          question.question, 
-          type.value === 'mcq' ? 'multiple_choice' : 
-            type.value === 'tf' ? 'true_false' : 'fill_blank', 
-          difficultyProperCase
-        ])
-        
-        // Get the question ID
-        const questionResult = db.exec("SELECT last_insert_rowid()")
-        const questionId = questionResult[0].values[0][0] as number
-        console.log(`Created question #${i+1} with ID:`, questionId)
-        
-        // Insert answer options
-        if (question.options && Array.isArray(question.options)) {
-          for (let j = 0; j < question.options.length; j++) {
-            db.run(`
-              INSERT INTO AnswerOptions (
-                question_id, 
-                answer_text, 
-                is_correct, 
-                created_at
-              ) VALUES (?, ?, ?, datetime('now'))
-            `, [
-              questionId,
-              question.options[j],
-              j === question.answerIndex ? 1 : 0
-            ])
-          }
-          console.log(`Added ${question.options.length} options for question ID ${questionId}`)
-        }
-      }
-    } else {
-      quizId = quizResult[0].values[0][0] as number
-      console.log('Using existing quiz with ID:', quizId)
-    }
+    // Create the quiz attempt
+    const startTime = new Date();
+    startTime.setSeconds(startTime.getSeconds() - elapsedTime);
     
-    // 3. Create the quiz attempt
-    const isPassed = score / totalQuestions >= 0.6 ? 1 : 0
-    db.run(`
-      INSERT INTO QuizAttempts (
-        quiz_id, 
-        user_id, 
-        score, 
-        total_questions, 
-        started_at, 
-        completed_at, 
-        elapsed_time, 
-        is_passed
-      ) VALUES (?, ?, ?, ?, datetime('now', '-' || ? || ' seconds'), datetime('now'), ?, ?)
-    `, [
-      quizId,
-      auth.state.user!.userId,
-      score,
-      totalQuestions,
-      elapsedTime,
-      elapsedTime,
-      isPassed
-    ])
+    const attemptData = {
+      quiz_id: currentQuizId.value,
+      user_id: auth.state.user!.userId,
+      score: score,
+      total_questions: totalQuestions,
+      started_at: startTime.toISOString(),
+      completed_at: new Date().toISOString(),
+      elapsed_time: elapsedTime,
+      is_passed: isPassed
+    };
     
-    // Get the attempt ID
-    const attemptResult = db.exec("SELECT last_insert_rowid()")
-    const attemptId = attemptResult[0].values[0][0] as number
-    console.log('Created attempt with ID:', attemptId)
+    const newAttempt = await createQuizAttempt(attemptData);
+    const attemptId = newAttempt.id;
     
-    // 4. Save the user's answers
+    console.log('Created attempt with ID:', attemptId);
+    
+    // Save the user's answers
+    const answerPromises = [];
+    
     for (let i = 0; i < questions.value.length; i++) {
-      // Get the question ID
-      const questionQuery = db.exec(`
-        SELECT question_id 
-        FROM Questions 
-        WHERE quiz_id = ? AND question_text = ?
-      `, [quizId, questions.value[i].question])
+      const questionId = questions.value[i].questionId; // This will be set when getting questions
+      const userAnswer = userAnswers.value[i];
       
-      if (questionQuery.length > 0 && questionQuery[0].values.length > 0) {
-        const questionId = questionQuery[0].values[0][0] as number
+      if (userAnswer !== undefined && questionId) {
+        const isCorrect = userAnswer === questions.value[i].answerIndex;
         
-        // Get the selected option ID
-        const userAnswer = userAnswers.value[i]
-        if (userAnswer !== undefined) {
-          const optionQuery = db.exec(`
-            SELECT option_id 
-            FROM AnswerOptions 
-            WHERE question_id = ? AND answer_text = ?
-          `, [questionId, questions.value[i].options[userAnswer]])
+        // Get the option ID - we might need to refactor this depending on data structure
+        const optionId = questions.value[i].optionIds ? 
+          questions.value[i].optionIds[userAnswer] : null;
+        
+        if (optionId) {
+          const attemptAnswer = {
+            attempt_id: attemptId,
+            question_id: questionId,
+            selected_option_id: optionId,
+            is_correct: isCorrect
+          };
           
-          if (optionQuery.length > 0 && optionQuery[0].values.length > 0) {
-            const optionId = optionQuery[0].values[0][0] as number
-            const isCorrect = userAnswer === questions.value[i].answerIndex ? 1 : 0
-            
-            // Insert the attempt answer
-            db.run(`
-              INSERT INTO AttemptAnswers (
-                attempt_id, 
-                question_id, 
-                selected_option_id, 
-                is_correct
-              ) VALUES (?, ?, ?, ?)
-            `, [attemptId, questionId, optionId, isCorrect])
-          }
+          answerPromises.push(createAttemptAnswers([attemptAnswer]));
         }
       }
     }
     
-    // 5. Save changes to the database
-    await saveDB()
-    console.log('Quiz attempt saved successfully')
-    
-    // 6. Verify quiz was saved correctly
-    const verifyResult = db.exec(`
-      SELECT quiz_id, title FROM Quizzes 
-      WHERE quiz_id = ? AND owner_id = ?
-    `, [quizId, auth.state.user!.userId])
-    
-    if (verifyResult.length > 0 && verifyResult[0].values.length > 0) {
-      console.log('Verified quiz exists in database after save:', verifyResult[0].values[0])
-    } else {
-      console.error('Failed to verify quiz in database after save')
+    if (answerPromises.length > 0) {
+      await Promise.all(answerPromises);
     }
     
+    console.log('Quiz attempt saved successfully');
+    return true;
   } catch (error) {
-    console.error('Error saving quiz attempt:', error)
-    throw error
+    console.error('Error saving quiz attempt:', error);
+    throw error;
   }
 }
 
 async function saveQuizToDatabase(baseTitle: string, totalQuestions: number) {
-  const { getDB, saveDB } = await import('@/db/index')
-  const db = await getDB()
-  
   try {
-    console.log('Starting saveQuizToDatabase with:', { baseTitle, userId: auth.state.user!.userId });
-    
-    // 1. Check if any categories exist, create default if not
-    const categoryCheck = db.exec('SELECT category_id FROM Categories LIMIT 1');
-    let categoryId = 1; // Default category ID
-    
-    if (categoryCheck.length === 0 || categoryCheck[0].values.length === 0) {
-      // Create a default category if none exists
-      db.run(`
-        INSERT INTO Categories (category_name, description)
-        VALUES ('General', 'General category for all quizzes')
-      `);
-      
-      const newCategoryResult = db.exec("SELECT last_insert_rowid()");
-      categoryId = newCategoryResult[0].values[0][0] as number;
-      console.log('Created default category with ID:', categoryId);
-    } else {
-      categoryId = categoryCheck[0].values[0][0] as number;
+    // First, make sure the user is authenticated
+    if (!auth.state.isAuthenticated) {
+      throw new Error('You must be logged in to save quizzes');
     }
     
-    // 2. Ensure quiz name is unique by adding a suffix if needed
-    let finalTitle = baseTitle.trim() || "Untitled Quiz";
-    let counter = 1;
-    let isUnique = false;
-    
-    while (!isUnique) {
-      // Check if the title already exists in the database for any user
-      const titleCheck = db.exec(`
-        SELECT COUNT(*) FROM Quizzes WHERE title = ? AND is_deleted = 0
-      `, [finalTitle]);
-      
-      const titleExists = titleCheck[0].values[0][0] as number > 0;
-      
-      if (titleExists) {
-        // If title exists, append a counter and try again
-        finalTitle = `${baseTitle}_${counter}`;
-        counter++;
-      } else {
-        isUnique = true;
-      }
+    // Make sure we have a valid user object with ID
+    if (!auth.state.user || !auth.state.user.userId) {
+      console.error('User authenticated but no user data found');
+      throw new Error('User data not found, please log in again');
     }
     
-    console.log('Using unique quiz title:', finalTitle);
-    
-    // Update the quiz name in the UI
-    quizName.value = finalTitle;
-    
-    // 3. Create a new quiz
-    // Convert difficulty to proper case to match DB constraint
-    const difficultyProperCase = difficulty.value.charAt(0).toUpperCase() + difficulty.value.slice(1).toLowerCase();
-    
-    console.log('Creating new quiz:', {
-      title: finalTitle,
-      difficulty: difficultyProperCase,
-      userId: auth.state.user!.userId,
-      categoryId
+    console.log('Attempting to save quiz with user:', { 
+      userId: auth.state.user.userId,
+      username: auth.state.user.username 
     });
     
-    // Create a new quiz with explicit values for all fields
-    db.run(`
-      INSERT INTO Quizzes (
-        owner_id, 
-        category_id, 
-        title, 
-        description, 
-        difficulty, 
-        is_public, 
-        created_at, 
-        updated_at,
-        published_at,
-        is_deleted
-      ) VALUES (?, ?, ?, ?, ?, ?, datetime('now'), datetime('now'), datetime('now'), 0)
-    `, [
-      auth.state.user!.userId, 
-      categoryId, 
-      finalTitle, 
-      `Generated quiz with ${totalQuestions} questions`, 
-      difficultyProperCase,
-      1 // is_public = true
-    ]);
-    
-    // Get the ID of the newly inserted quiz
-    const newQuizResult = db.exec("SELECT last_insert_rowid()");
-    const quizId = newQuizResult[0].values[0][0] as number;
-    console.log('Created quiz with ID:', quizId);
-    
-    // 4. Insert questions and answer options
-    for (let i = 0; i < questions.value.length; i++) {
-      const question = questions.value[i];
+    // Verify the user exists
+    try {
+      const { data: userCheck, error: userCheckError } = await supabase
+        .from('Users')
+        .select('id')
+        .eq('id', auth.state.user.userId)
+        .single();
       
-      // Insert question - use proper case for difficulty
-      db.run(`
-        INSERT INTO Questions (
-          quiz_id, 
-          question_text, 
-          question_type, 
-          difficulty, 
-          points,
-          created_at,
-          is_active
-        ) VALUES (?, ?, ?, ?, 1, datetime('now'), 1)
-      `, [
-        quizId, 
-        question.question, 
-        type.value === 'mcq' ? 'multiple_choice' : 
-          type.value === 'tf' ? 'true_false' : 'fill_blank', 
-        difficultyProperCase
-      ]);
-      
-      // Get the question ID
-      const questionResult = db.exec("SELECT last_insert_rowid()");
-      const questionId = questionResult[0].values[0][0] as number;
-      console.log(`Created question #${i+1} with ID:`, questionId);
-      
-      // Insert answer options
-      if (question.options && Array.isArray(question.options)) {
-        for (let j = 0; j < question.options.length; j++) {
-          db.run(`
-            INSERT INTO AnswerOptions (
-              question_id, 
-              answer_text, 
-              is_correct, 
-              created_at
-            ) VALUES (?, ?, ?, datetime('now'))
-          `, [
-            questionId,
-            question.options[j],
-            j === question.answerIndex ? 1 : 0
-          ]);
-        }
-        console.log(`Added ${question.options.length} options for question ID ${questionId}`);
+      if (userCheckError || !userCheck) {
+        console.error('User ID verification failed:', userCheckError);
+        throw new Error('User not found in database. Please log out and log in again.');
       }
+    } catch (verifyError) {
+      console.error('Error verifying user:', verifyError);
+      throw new Error('Could not verify user in database');
     }
     
-    // 5. Save changes to the database
-    await saveDB();
+    // Get categories with better error handling
+    let categoryId = 1; // Default fallback
     
-    // 6. Verify quiz was saved correctly
-    const verifyResult = db.exec(`
-      SELECT quiz_id, title, is_deleted FROM Quizzes 
-      WHERE quiz_id = ? AND owner_id = ?
-    `, [quizId, auth.state.user!.userId]);
-    
-    if (verifyResult.length > 0 && verifyResult[0].values.length > 0) {
-      console.log('Verified quiz exists in database after save:', verifyResult[0].values[0]);
-    } else {
-      console.error('Failed to verify quiz in database after save');
+    try {
+      // Try to get all categories first to see what's available
+      const { data: categories, error: categoriesError } = await supabase
+        .from('Categories')
+        .select('*');
+      
+      if (categoriesError) {
+        console.error('Error fetching categories:', categoriesError);
+        throw new Error('Failed to fetch quiz categories');
+      }
+      
+      if (!categories || categories.length === 0) {
+        // No categories found - let's create one
+        console.log('No categories found, creating a default category');
+        
+        const { data: newCategory, error: createCategoryError } = await supabase
+          .from('Categories')
+          .insert({
+            category_name: 'General Knowledge',
+            description: 'General questions on various topics'
+          })
+          .select()
+          .single();
+        
+        if (createCategoryError) {
+          console.error('Error creating default category:', createCategoryError);
+          throw new Error('Failed to create default category');
+        }
+        
+        categoryId = newCategory.id;
+        console.log('Created default category with ID:', categoryId);
+      } else {
+        // Categories exist, use the first one
+        categoryId = categories[0].id;
+        console.log('Using existing category ID:', categoryId);
+      }
+    } catch (categoryError) {
+      console.error('Error handling categories:', categoryError);
+      // Continue with default category ID
+      console.log('Using fallback category ID:', categoryId);
     }
     
-    return quizId;
+    // Ensure quiz name is valid
+    let finalTitle = baseTitle.trim() || "Untitled Quiz";
+    quizName.value = finalTitle;
+    
+    // Convert difficulty to proper case
+    const difficultyProperCase = difficulty.value.charAt(0).toUpperCase() + difficulty.value.slice(1).toLowerCase();
+    
+    // Use the owner ID
+    const ownerId = auth.state.user.userId;
+    
+    console.log('Creating quiz with data:', {
+      title: finalTitle,
+      owner_id: ownerId,
+      category_id: categoryId,
+      difficulty: difficultyProperCase
+    });
+    
+    // Create the quiz with additional debugging
+    try {
+      const quizData = {
+        owner_id: ownerId,
+        category_id: categoryId,
+        title: finalTitle,
+        description: `Generated quiz with ${totalQuestions} questions`,
+        difficulty: difficultyProperCase,
+        is_public: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        published_at: new Date().toISOString(),
+        is_deleted: false
+      };
+      
+      const { data: newQuiz, error: quizError } = await supabase
+        .from('Quizzes')
+        .insert(quizData)
+        .select()
+        .single();
+      
+      if (quizError) {
+        console.error('Quiz creation error:', quizError);
+        throw new Error(`Failed to create quiz: ${quizError.message}`);
+      }
+      
+      if (!newQuiz || !newQuiz.id) {
+        throw new Error('Quiz created but no ID returned');
+      }
+      
+      const quizId = newQuiz.id;
+      console.log('Successfully created quiz with ID:', quizId);
+      
+      // Store questions and options
+      for (let i = 0; i < questions.value.length; i++) {
+        const question = questions.value[i];
+        
+        // Create question
+        const questionData = {
+          quiz_id: quizId,
+          question_text: question.question,
+          question_type: type.value === 'mcq' ? 'multiple_choice' : 
+            type.value === 'tf' ? 'true_false' : 'fill_blank',
+          difficulty: difficultyProperCase,
+          points: 1,
+          created_at: new Date().toISOString(),
+          is_active: true
+        };
+        
+        const { data: newQuestion, error: questionError } = await supabase
+          .from('Questions')
+          .insert(questionData)
+          .select()
+          .single();
+          
+        if (questionError) {
+          console.error(`Error creating question #${i+1}:`, questionError);
+          continue;
+        }
+        
+        const questionId = newQuestion.id;
+        
+        // Store the question ID for later reference
+        questions.value[i].questionId = questionId;
+        questions.value[i].optionIds = [];
+        
+        // Add answer options
+        if (question.options && Array.isArray(question.options)) {
+          const optionsData = question.options.map((opt: string, j: number) => ({
+            question_id: questionId,
+            answer_text: opt,
+            is_correct: j === question.answerIndex,
+            created_at: new Date().toISOString()
+          }));
+          
+          const { data: newOptions, error: optionsError } = await supabase
+            .from('AnswerOptions')
+            .insert(optionsData)
+            .select();
+          
+          if (optionsError) {
+            console.error(`Error creating options for question #${i+1}:`, optionsError);
+            continue;
+          }
+          
+          // Store option IDs for later reference
+          if (newOptions && Array.isArray(newOptions)) {
+            questions.value[i].optionIds = newOptions.map((opt: any) => opt.id);
+          }
+        }
+      }
+      
+      return quizId;
+    } catch (dbError: any) {
+      console.error('Database error:', dbError);
+      if (dbError.response && dbError.response.data) {
+        console.error('Error details:', dbError.response.data);
+      }
+      throw dbError;
+    }
   } catch (error) {
     console.error('Error saving quiz:', error);
     throw error;
@@ -900,7 +810,7 @@ async function saveAndViewQuiz() {
   
   try {
     if (!currentQuizId.value) {
-      // If not already saved (shouldn't happen, but just in case), save it first
+      // If not already saved, save it first
       const savedQuizId = await saveQuizToDatabase(quizName.value || "Untitled Quiz", questions.value.length)
       currentQuizId.value = savedQuizId
       console.log("Created new quiz with ID:", savedQuizId)
@@ -908,27 +818,12 @@ async function saveAndViewQuiz() {
       // Quiz already exists, update the name
       console.log("Updating quiz name to:", quizName.value, "for quiz ID:", currentQuizId.value)
       
-      const { getDB, saveDB } = await import('@/db/index')
-      const db = await getDB()
+      // Update the quiz using Supabase
+      await updateQuiz(currentQuizId.value, {
+        title: quizName.value,
+        updated_at: new Date().toISOString()
+      })
       
-      // First check if the quiz exists and belongs to this user
-      const quizCheck = db.exec(`
-        SELECT quiz_id FROM Quizzes 
-        WHERE quiz_id = ? AND owner_id = ?
-      `, [currentQuizId.value, auth.state.user.userId])
-      
-      if (quizCheck.length === 0 || quizCheck[0].values.length === 0) {
-        throw new Error('Quiz not found or you do not have permission to edit it')
-      }
-      
-      // Update the quiz name
-      db.run(`
-        UPDATE Quizzes
-        SET title = ?, updated_at = datetime('now')
-        WHERE quiz_id = ? AND owner_id = ?
-      `, [quizName.value, currentQuizId.value, auth.state.user.userId])
-      
-      await saveDB()
       console.log(`Updated quiz name to: ${quizName.value}`)
     }
     
@@ -1285,4 +1180,4 @@ async function saveAndViewQuiz() {
 }
 </style>
 ```
-````vue
+``````

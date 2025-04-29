@@ -5,7 +5,7 @@ export interface ChatCompletionRequestMessage {
   }
   
   const API_URL = "https://api.openai.com/v1/chat/completions";
-  const API_KEY = import.meta.env.VITE_OPENAI_API_KEY as string;
+  const API_KEY = import.meta.env.VITE_OPENAI_API_KEY || "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";
   
   export async function chat(
     messages: ChatCompletionRequestMessage[]
@@ -29,4 +29,3 @@ export interface ChatCompletionRequestMessage {
     const data = await res.json();
     return data.choices[0].message.content;
   }
-  

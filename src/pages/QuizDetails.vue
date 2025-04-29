@@ -130,6 +130,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
+import { supabase } from '@/api/supabase'
 
 const route = useRoute()
 const router = useRouter()
@@ -211,69 +212,53 @@ onMounted(async () => {
 
 // Load basic quiz details
 async function loadQuizDetails() {
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
+  const { data, error } = await supabase
+    .from('Quizzes')
+    .select('id, title, description, difficulty, created_at, published_at')
+    .eq('id', quizId)
+    .eq('owner_id', auth.state.user!.userId)
+    .single()
   
-  const result = db.exec(`
-    SELECT 
-      quiz_id,
-      title,
-      description,
-      difficulty,
-      created_at as createdAt,
-      published_at as publishedAt
-    FROM Quizzes
-    WHERE quiz_id = ? AND owner_id = ?
-  `, [quizId, auth.state.user!.userId])
-  
-  if (result.length === 0 || result[0].values.length === 0) {
+  if (error || !data) {
     throw new Error('Quiz not found or you do not have permission to view it')
   }
   
   quiz.value = {
-    quizId: result[0].values[0][0],
-    title: result[0].values[0][1],
-    description: result[0].values[0][2],
-    difficulty: result[0].values[0][3],
-    createdAt: result[0].values[0][4],
-    publishedAt: result[0].values[0][5]
+    quizId: data.id,
+    title: data.title,
+    description: data.description,
+    difficulty: data.difficulty,
+    createdAt: data.created_at,
+    publishedAt: data.published_at
   }
 }
 
 // Load questions for this quiz
 async function loadQuestions() {
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
+  const { data, error } = await supabase
+    .from('Questions')
+    .select('id, question_text, question_type, difficulty')
+    .eq('quiz_id', quizId)
+    .order('id', { ascending: true })
   
-  const result = db.exec(`
-    SELECT 
-      question_id,
-      question_text,
-      question_type,
-      difficulty
-    FROM Questions
-    WHERE quiz_id = ?
-    ORDER BY question_id
-  `, [quizId])
+  if (error) throw error
   
-  if (result.length > 0 && result[0].values.length > 0) {
-    questions.value = result[0].values.map((row: any) => ({
-      questionId: row[0],
-      questionText: row[1],
-      questionType: row[2],
-      difficulty: row[3]
+  if (data && data.length > 0) {
+    questions.value = data.map(row => ({
+      questionId: row.id,
+      questionText: row.question_text,
+      questionType: row.question_type,
+      difficulty: row.difficulty
     }))
   }
 }
 
 // Load quiz attempts
 async function loadAttempts() {
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
-  
-  const result = db.exec(`
-    SELECT 
-      attempt_id,
+  const { data, error } = await supabase
+    .from('QuizAttempts')
+    .select(`
+      id,
       user_id,
       score,
       total_questions,
@@ -281,21 +266,22 @@ async function loadAttempts() {
       completed_at,
       elapsed_time,
       is_passed
-    FROM QuizAttempts
-    WHERE quiz_id = ?
-    ORDER BY completed_at DESC
-  `, [quizId])
+    `)
+    .eq('quiz_id', quizId)
+    .order('completed_at', { ascending: false })
   
-  if (result.length > 0 && result[0].values.length > 0) {
-    attempts.value = result[0].values.map((row: any) => ({
-      attemptId: row[0],
-      userId: row[1],
-      score: row[2],
-      totalQuestions: row[3],
-      startedAt: row[4],
-      completedAt: row[5],
-      elapsedTime: row[6],
-      isPassed: row[7] === 1
+  if (error) throw error
+  
+  if (data && data.length > 0) {
+    attempts.value = data.map(row => ({
+      attemptId: row.id,
+      userId: row.user_id,
+      score: row.score,
+      totalQuestions: row.total_questions,
+      startedAt: row.started_at,
+      completedAt: row.completed_at,
+      elapsedTime: row.elapsed_time,
+      isPassed: row.is_passed
     }))
   }
 }
@@ -304,22 +290,33 @@ async function loadAttempts() {
 async function calculateQuestionStats() {
   if (attempts.value.length === 0 || questions.value.length === 0) return
   
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
+  // Initialize questionStats with empty data for all questions
+  questions.value.forEach(question => {
+    questionStats.value[question.questionId] = {
+      total: 0,
+      correct: 0
+    }
+  })
   
+  // For each question, get the stats from AttemptAnswers
   for (const question of questions.value) {
-    const result = db.exec(`
-      SELECT 
-        COUNT(*) as total,
-        SUM(is_correct) as correct
-      FROM AttemptAnswers
-      WHERE question_id = ?
-    `, [question.questionId])
+    const { data, error } = await supabase
+      .from('AttemptAnswers')
+      .select('is_correct')
+      .eq('question_id', question.questionId)
     
-    if (result.length > 0 && result[0].values.length > 0) {
+    if (error) {
+      console.error('Error fetching question stats:', error)
+      continue
+    }
+    
+    if (data && data.length > 0) {
+      const total = data.length
+      const correct = data.filter(answer => answer.is_correct).length
+      
       questionStats.value[question.questionId] = {
-        total: Number(result[0].values[0][0]) || 0,
-        correct: Number(result[0].values[0][1]) || 0
+        total,
+        correct
       }
     }
   }

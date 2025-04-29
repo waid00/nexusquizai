@@ -260,6 +260,7 @@ import '@/assets/auth.css'
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
+import { supabase } from '@/api/supabase'
 
 // Router
 const router = useRouter()

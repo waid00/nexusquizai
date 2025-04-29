@@ -119,6 +119,7 @@ import '@/assets/auth.css'
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
+import { supabase } from '@/api/supabase'
 
 // Router
 const router = useRouter()
@@ -143,7 +144,18 @@ const handleLogin = async () => {
   if (!isFormValid.value) return
   
   auth.clearError()
-  const success = await auth.login(formData.username, formData.password)
+  
+  // Determine if input is email or username and call the appropriate login function
+  const isEmail = formData.username.includes('@')
+  let success
+  
+  if (isEmail) {
+    // If input contains @, treat as email
+    success = await auth.login(formData.username, formData.password)
+  } else {
+    // Otherwise treat as username
+    success = await auth.loginByUsername(formData.username, formData.password)
+  }
   
   if (success) {
     // Redirect to home page

@@ -121,6 +121,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
+import { supabase } from '@/api/supabase'
 
 const route = useRoute()
 const router = useRouter()
@@ -143,8 +144,8 @@ interface QuizOption {
 interface QuizAnswer {
   questionId: number;
   questionText: string;
-  selectedOptionId: number;
-  isCorrect: boolean;
+  selectedOptionId: number | null;
+  isCorrect: boolean | null;
   options: QuizOption[];
 }
 
@@ -175,129 +176,135 @@ onMounted(async () => {
   }
 })
 
-// Load attempt details
+// Load attempt details from Supabase
 async function loadAttemptDetails() {
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
+  const { data, error } = await supabase
+    .from('QuizAttempts')
+    .select(`
+      id,
+      quiz_id,
+      user_id,
+      score,
+      total_questions,
+      started_at,
+      completed_at,
+      elapsed_time,
+      is_passed
+    `)
+    .eq('id', attemptId)
+    .eq('user_id', auth.state.user!.userId)
+    .single();
   
-  const result = db.exec(`
-    SELECT 
-      a.attempt_id,
-      a.quiz_id,
-      a.user_id,
-      a.score,
-      a.total_questions,
-      a.started_at,
-      a.completed_at,
-      a.elapsed_time,
-      a.is_passed
-    FROM QuizAttempts a
-    WHERE a.attempt_id = ? AND a.user_id = ?
-  `, [attemptId, auth.state.user!.userId])
-  
-  if (result.length === 0 || result[0].values.length === 0) {
-    throw new Error('Attempt not found or you do not have permission to view it')
+  if (error || !data) {
+    throw new Error('Attempt not found or you do not have permission to view it');
   }
   
   attempt.value = {
-    attemptId: result[0].values[0][0],
-    quizId: result[0].values[0][1],
-    userId: result[0].values[0][2],
-    score: result[0].values[0][3],
-    totalQuestions: result[0].values[0][4],
-    startedAt: result[0].values[0][5],
-    completedAt: result[0].values[0][6],
-    elapsedTime: result[0].values[0][7],
-    isPassed: result[0].values[0][8] === 1
+    attemptId: data.id,
+    quizId: data.quiz_id,
+    userId: data.user_id,
+    score: data.score,
+    totalQuestions: data.total_questions,
+    startedAt: data.started_at,
+    completedAt: data.completed_at,
+    elapsedTime: data.elapsed_time,
+    isPassed: data.is_passed
   }
 }
 
-// Load quiz details
+// Load quiz details from Supabase
 async function loadQuizDetails() {
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
-  
-  // Wait for attempt data to be loaded
+  // Wait for attempt data to be loaded if needed
   if (!attempt.value) {
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
   
-  const result = db.exec(`
-    SELECT 
-      quiz_id,
+  const { data, error } = await supabase
+    .from('Quizzes')
+    .select(`
+      id,
       title,
       description,
       difficulty
-    FROM Quizzes
-    WHERE quiz_id = ?
-  `, [attempt.value.quizId])
+    `)
+    .eq('id', attempt.value.quizId)
+    .single();
   
-  if (result.length === 0 || result[0].values.length === 0) {
-    throw new Error('Quiz not found')
+  if (error || !data) {
+    throw new Error('Quiz not found');
   }
   
   quiz.value = {
-    quizId: result[0].values[0][0],
-    title: result[0].values[0][1],
-    description: result[0].values[0][2],
-    difficulty: result[0].values[0][3]
+    quizId: data.id,
+    title: data.title,
+    description: data.description,
+    difficulty: data.difficulty
   }
 }
 
-// Load answers for this attempt
+// Load answers for this attempt from Supabase
 async function loadAnswers() {
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
-  
-  // Wait for attempt data to be loaded
+  // Wait for attempt data to be loaded if needed
   if (!attempt.value) {
-    await new Promise(resolve => setTimeout(resolve, 100))
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
   
   // Get all answered questions with their selected options
-  const result = db.exec(`
-    SELECT 
-      q.question_id,
-      q.question_text,
-      a.selected_option_id,
-      a.is_correct
-    FROM AttemptAnswers a
-    JOIN Questions q ON a.question_id = q.question_id
-    WHERE a.attempt_id = ?
-    ORDER BY q.question_id
-  `, [attemptId])
+  const { data, error } = await supabase
+    .from('AttemptAnswers')
+    .select(`
+      id,
+      question_id,
+      selected_option_id,
+      is_correct,
+      Questions!inner (
+        id,
+        question_text
+      )
+    `)
+    .eq('attempt_id', attemptId)
+    .order('question_id');
   
-  if (result.length > 0 && result[0].values.length > 0) {
-    const answersData: QuizAnswer[] = result[0].values.map((row: any) => ({
-      questionId: Number(row[0]),
-      questionText: String(row[1]),
-      selectedOptionId: Number(row[2]),
-      isCorrect: row[3] === 1,
+  if (error) {
+    throw error;
+  }
+  
+  if (data && data.length > 0) {
+    const answersData: QuizAnswer[] = data.map(row => ({
+      questionId: row.question_id,
+      questionText: row.Questions?.question_text || 'Question text unavailable',
+      selectedOptionId: row.selected_option_id,
+      isCorrect: row.is_correct,
       options: [] // Will be filled below
-    }))
+    }));
     
     // For each question, get all possible options
     for (const answer of answersData) {
-      const optionsResult = db.exec(`
-        SELECT 
-          option_id,
+      const { data: optionsData, error: optionsError } = await supabase
+        .from('AnswerOptions')
+        .select(`
+          id,
           answer_text,
           is_correct
-        FROM AnswerOptions
-        WHERE question_id = ?
-        ORDER BY option_id
-      `, [answer.questionId])
+        `)
+        .eq('question_id', answer.questionId)
+        .order('id');
       
-      if (optionsResult.length > 0 && optionsResult[0].values.length > 0) {
-        answer.options = optionsResult[0].values.map((row: any) => ({
-          optionId: Number(row[0]),
-          answerText: String(row[1]),
-          isCorrect: row[2] === 1
-        }))
+      if (optionsError) {
+        console.error('Error fetching options:', optionsError);
+        continue;
+      }
+      
+      if (optionsData && optionsData.length > 0) {
+        answer.options = optionsData.map(opt => ({
+          optionId: opt.id,
+          answerText: opt.answer_text,
+          isCorrect: opt.is_correct
+        }));
       }
     }
     
-    answers.value = answersData
+    answers.value = answersData;
   }
 }
 
@@ -680,3 +687,4 @@ function getCorrectAnswerText(options: QuizOption[]) {
   }
 }
 </style>
+```

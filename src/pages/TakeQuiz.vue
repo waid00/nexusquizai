@@ -110,14 +110,14 @@
             <span class="question-text">{{ q.questionText }}</span>
             <span 
               class="result-indicator" 
-              :class="isAnswerCorrect(i) ? 'correct' : 'incorrect'"
+              :class="getAnswerCorrectness(i) ? 'correct' : 'incorrect'"
             >
-              {{ isAnswerCorrect(i) ? '✓' : '✗' }}
+              {{ getAnswerCorrectness(i) ? '✓' : '✗' }}
             </span>
           </div>
           <ul class="options-list results">
             <li 
-              v-for="opt in getOptionsForQuestion(i)" 
+              v-for="opt in getOptionsForQuestionSync(i)" 
               :key="opt.optionId" 
               :class="[
                 'option-item', 
@@ -131,7 +131,7 @@
             </li>
           </ul>
           <div class="answer-explanation">
-            <p v-if="!isAnswerCorrect(i)">
+            <p v-if="!getAnswerCorrectness(i)">
               Correct answer: {{ getCorrectAnswerText(i) }}
             </p>
           </div>
@@ -147,9 +147,10 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
+import { supabase } from '@/api/supabase'
 
 const route = useRoute()
 const router = useRouter()
@@ -163,6 +164,10 @@ const answerOptions = ref<any[]>([])
 const isLoading = ref(true)
 const quizMode = ref<'take' | 'results'>('take')
 
+// Store question options and correct answers
+const questionOptions = reactive<{[key: number]: any[]}>({})
+const correctAnswers = reactive<{[key: number]: boolean}>({})
+
 // Quiz taking states
 const currentQuestionIndex = ref(0)
 const userAnswers = ref<{[key: number]: number}>({})
@@ -175,6 +180,12 @@ const currentQuestion = computed(() => {
     return questions.value[currentQuestionIndex.value];
   }
   return null;
+})
+
+// Check if all questions are answered
+const allQuestionsAnswered = computed(() => {
+  return questions.value.length > 0 && 
+    questions.value.every((_, i) => userAnswers.value[i] !== undefined);
 })
 
 // Load the quiz data when component mounts
@@ -207,39 +218,39 @@ watch(currentQuestionIndex, (newIndex) => {
   }
 })
 
-// Load quiz data from the database
+// Load quiz data from Supabase
 async function loadQuiz(id: number) {
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
-  
   try {
     // Get quiz details
-    const quizResult = db.exec(`
-      SELECT title, difficulty
-      FROM Quizzes
-      WHERE quiz_id = ?
-    `, [id])
+    const { data: quizData, error: quizError } = await supabase
+      .from('Quizzes')
+      .select('title, difficulty')
+      .eq('id', id)
+      .single()
     
-    if (quizResult.length === 0 || quizResult[0].values.length === 0) {
+    if (quizError || !quizData) {
       throw new Error('Quiz not found')
     }
     
-    quizName.value = quizResult[0].values[0][0] as string
-    difficulty.value = quizResult[0].values[0][1] as string
+    quizName.value = quizData.title
+    difficulty.value = quizData.difficulty
     
     // Get questions for this quiz
-    const questionsResult = db.exec(`
-      SELECT question_id, question_text, question_type
-      FROM Questions
-      WHERE quiz_id = ?
-      ORDER BY question_id
-    `, [id])
+    const { data: questionsData, error: questionsError } = await supabase
+      .from('Questions')
+      .select('id, question_text, question_type')
+      .eq('quiz_id', id)
+      .order('id', { ascending: true })
     
-    if (questionsResult.length > 0 && questionsResult[0].values.length > 0) {
-      questions.value = questionsResult[0].values.map((row: any[]) => ({
-        questionId: row[0],
-        questionText: row[1],
-        questionType: row[2]
+    if (questionsError) {
+      throw questionsError
+    }
+    
+    if (questionsData && questionsData.length > 0) {
+      questions.value = questionsData.map(row => ({
+        questionId: row.id,
+        questionText: row.question_text,
+        questionType: row.question_type
       }))
       
       // Load options for the first question
@@ -255,23 +266,30 @@ async function loadQuiz(id: number) {
 
 // Load answer options for a specific question
 async function loadOptionsForQuestion(questionId: number) {
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
-  
   try {
-    const optionsResult = db.exec(`
-      SELECT option_id, answer_text, is_correct
-      FROM AnswerOptions
-      WHERE question_id = ?
-      ORDER BY option_id
-    `, [questionId])
+    const { data: optionsData, error: optionsError } = await supabase
+      .from('AnswerOptions')
+      .select('id, answer_text, is_correct')
+      .eq('question_id', questionId)
+      .order('id', { ascending: true })
     
-    if (optionsResult.length > 0 && optionsResult[0].values.length > 0) {
-      answerOptions.value = optionsResult[0].values.map((row: any[]) => ({
-        optionId: row[0],
-        answerText: row[1],
-        isCorrect: row[2] === 1
+    if (optionsError) {
+      throw optionsError
+    }
+    
+    if (optionsData && optionsData.length > 0) {
+      answerOptions.value = optionsData.map(row => ({
+        optionId: row.id,
+        answerText: row.answer_text,
+        isCorrect: row.is_correct
       }))
+      
+      // Store options for result display
+      const currentIndex = questions.value.findIndex(q => q.questionId === questionId);
+      if (currentIndex >= 0) {
+        questionOptions[currentIndex] = answerOptions.value;
+      }
+      
     } else {
       answerOptions.value = []
     }
@@ -281,90 +299,123 @@ async function loadOptionsForQuestion(questionId: number) {
 }
 
 // Get options for a specific question (used in results display)
-function getOptionsForQuestion(questionIndex: number) {
-  const { getDB } = import.meta.env.SSR ? null : require('@/db/index')
-  const db = getDB && getDB()
-  
-  if (!db) return []
-  
-  const questionId = questions.value[questionIndex].questionId
-  const optionsResult = db.exec(`
-    SELECT option_id, answer_text, is_correct
-    FROM AnswerOptions
-    WHERE question_id = ?
-    ORDER BY option_id
-  `, [questionId])
-  
-  if (optionsResult.length > 0 && optionsResult[0].values.length > 0) {
-    return optionsResult[0].values.map((row: any[]) => ({
-      optionId: row[0],
-      answerText: row[1],
-      isCorrect: row[2] === 1
-    }))
+async function loadOptionsForQuestionIndex(questionIndex: number) {
+  // If options already loaded, return them
+  if (questionOptions[questionIndex] && questionOptions[questionIndex].length > 0) {
+    return questionOptions[questionIndex];
   }
   
-  return []
+  const questionId = questions.value[questionIndex].questionId;
+  
+  try {
+    const { data, error } = await supabase
+      .from('AnswerOptions')
+      .select('id, answer_text, is_correct')
+      .eq('question_id', questionId)
+      .order('id', { ascending: true })
+    
+    if (error) {
+      console.error('Error fetching options:', error)
+      return []
+    }
+    
+    const options = data.map(row => ({
+      optionId: row.id,
+      answerText: row.answer_text,
+      isCorrect: row.is_correct
+    }))
+    
+    // Store options for later use
+    questionOptions[questionIndex] = options;
+    
+    // Check if answer is correct and store result
+    checkAnswerCorrectness(questionIndex);
+    
+    return options;
+  } catch (error) {
+    console.error('Error in loadOptionsForQuestionIndex:', error)
+    return []
+  }
+}
+
+// Get options synchronously (for template use)
+function getOptionsForQuestionSync(questionIndex: number) {
+  return questionOptions[questionIndex] || [];
+}
+
+// Check if an answer is correct and store the result
+function checkAnswerCorrectness(questionIndex: number) {
+  const options = questionOptions[questionIndex] || [];
+  const selectedOptionId = userAnswers.value[questionIndex];
+  const selectedOption = options.find(opt => opt.optionId === selectedOptionId);
+  correctAnswers[questionIndex] = selectedOption?.isCorrect || false;
+  return correctAnswers[questionIndex];
 }
 
 // Get the correct answer text for a question
 function getCorrectAnswerText(questionIndex: number) {
-  const options = getOptionsForQuestion(questionIndex)
-  const correctOption = options.find((opt: { optionId: number, answerText: string, isCorrect: boolean }) => opt.isCorrect)
+  const options = questionOptions[questionIndex] || []
+  const correctOption = options.find(opt => opt.isCorrect)
   return correctOption ? correctOption.answerText : ''
 }
 
-// Check if an answer is correct
-function isAnswerCorrect(questionIndex: number) {
-  const options = getOptionsForQuestion(questionIndex)
-  const selectedOptionId = userAnswers.value[questionIndex]
-  const selectedOption = options.find((opt: { optionId: number, isCorrect: boolean }) => opt.optionId === selectedOptionId)
-  return selectedOption?.isCorrect || false
+// Get stored answer correctness (synchronous)
+function getAnswerCorrectness(questionIndex: number) {
+  return correctAnswers[questionIndex] || false;
 }
 
 // Navigation
-function nextQuestion() {
-  if (currentQuestionIndex.value < questions.value.length - 1) {
-    currentQuestionIndex.value++
-  }
-}
-
 function prevQuestion() {
   if (currentQuestionIndex.value > 0) {
     currentQuestionIndex.value--
   }
 }
 
-// Select an answer for the current question
-function selectAnswer(questionIndex: number, optionId: number) {
-  userAnswers.value = { ...userAnswers.value, [questionIndex]: optionId }
+function nextQuestion() {
+  if (currentQuestionIndex.value < questions.value.length - 1) {
+    currentQuestionIndex.value++
+  }
 }
 
-// Check if all questions are answered
-const allQuestionsAnswered = computed(() => {
-  return questions.value.length > 0 && 
-    questions.value.every((_, i) => userAnswers.value[i] !== undefined)
-})
+// Select an answer for the current question
+function selectAnswer(questionIndex: number, optionId: number) {
+  userAnswers.value = { ...userAnswers.value, [questionIndex]: optionId };
+  // Check correctness immediately
+  checkAnswerCorrectness(questionIndex);
+}
 
 // Submit the quiz
 async function submitQuiz() {
-  if (!allQuestionsAnswered.value) return
+  if (!allQuestionsAnswered.value) return;
   
   try {
-    // Calculate score
-    let correctCount = 0
-    
+    // Load all question options if not already loaded
+    const optionPromises = [];
     for (let i = 0; i < questions.value.length; i++) {
-      if (isAnswerCorrect(i)) {
-        correctCount++
+      if (!questionOptions[i] || questionOptions[i].length === 0) {
+        optionPromises.push(loadOptionsForQuestionIndex(i));
+      } else {
+        checkAnswerCorrectness(i);
       }
     }
     
-    score.value = correctCount
+    await Promise.all(optionPromises);
+    
+    // Calculate score
+    let correctCount = 0;
+    
+    for (let i = 0; i < questions.value.length; i++) {
+      if (correctAnswers[i]) {
+        correctCount++;
+      }
+    }
+    
+    score.value = correctCount;
     
     // Calculate elapsed time
-    const endTime = new Date()
+    const endTime = new Date();
     const elapsedTimeInSeconds = quizStartTime.value ? 
-      Math.floor((endTime.getTime() - quizStartTime.value.getTime()) / 1000) : 0
+      Math.floor((endTime.getTime() - quizStartTime.value.getTime()) / 1000) : 0;
     
     // Save quiz attempt
     if (auth.state.isAuthenticated && auth.state.user) {
@@ -374,99 +425,97 @@ async function submitQuiz() {
           score.value,
           questions.value.length,
           elapsedTimeInSeconds
-        )
+        );
       } catch (error) {
-        console.error('Failed to save quiz attempt:', error)
+        console.error('Failed to save quiz attempt:', error);
       }
     }
     
-    quizMode.value = 'results'
+    quizMode.value = 'results';
   } catch (error) {
-    console.error('Error submitting quiz:', error)
+    console.error('Error submitting quiz:', error);
   }
 }
 
-// Save quiz attempt to database
+// Save quiz attempt to Supabase
 async function saveQuizAttempt(quizId: number, score: number, totalQuestions: number, elapsedTime: number) {
-  const { getDB, saveDB } = await import('@/db/index')
-  const db = await getDB()
-  
   try {
     // Insert the quiz attempt
-    const isPassed = score / totalQuestions >= 0.6 ? 1 : 0
-    db.run(`
-      INSERT INTO QuizAttempts (
-        quiz_id, 
-        user_id, 
-        score, 
-        total_questions, 
-        started_at, 
-        completed_at, 
-        elapsed_time, 
-        is_passed
-      ) VALUES (?, ?, ?, ?, datetime('now', '-' || ? || ' seconds'), datetime('now'), ?, ?)
-    `, [
-      quizId,
-      auth.state.user!.userId,
-      score,
-      totalQuestions,
-      elapsedTime,
-      elapsedTime,
-      isPassed
-    ])
+    const isPassed = score / totalQuestions >= 0.6;
     
-    // Get the attempt ID
-    const attemptResult = db.exec("SELECT last_insert_rowid()")
-    const attemptId = attemptResult[0].values[0][0] as number
+    const { data: attemptData, error: attemptError } = await supabase
+      .from('QuizAttempts')
+      .insert({
+        quiz_id: quizId,
+        user_id: auth.state.user!.userId,
+        score: score,
+        total_questions: totalQuestions,
+        started_at: new Date(Date.now() - (elapsedTime * 1000)).toISOString(),
+        completed_at: new Date().toISOString(),
+        elapsed_time: elapsedTime,
+        is_passed: isPassed
+      })
+      .select()
+      .single();
+    
+    if (attemptError) {
+      throw attemptError;
+    }
     
     // Save the user's answers
+    const answerPromises = [];
+    
     for (let i = 0; i < questions.value.length; i++) {
-      const questionId = questions.value[i].questionId
-      const selectedOptionId = userAnswers.value[i]
+      const questionId = questions.value[i].questionId;
+      const selectedOptionId = userAnswers.value[i];
       
       if (selectedOptionId !== undefined) {
-        // Get whether the answer is correct
-        const optionsResult = db.exec(`
-          SELECT is_correct
-          FROM AnswerOptions
-          WHERE option_id = ?
-        `, [selectedOptionId])
+        // Get the option to check if it's correct
+        const { data: optionData, error: optionError } = await supabase
+          .from('AnswerOptions')
+          .select('is_correct')
+          .eq('id', selectedOptionId)
+          .single();
         
-        const isCorrect = optionsResult.length > 0 && 
-                         optionsResult[0].values.length > 0 &&
-                         optionsResult[0].values[0][0] === 1 ? 1 : 0
+        if (optionError) {
+          console.error('Error checking option correctness:', optionError);
+          continue;
+        }
         
         // Insert the attempt answer
-        db.run(`
-          INSERT INTO AttemptAnswers (
-            attempt_id, 
-            question_id, 
-            selected_option_id, 
-            is_correct
-          ) VALUES (?, ?, ?, ?)
-        `, [attemptId, questionId, selectedOptionId, isCorrect])
+        const answerPromise = supabase
+          .from('AttemptAnswers')
+          .insert({
+            attempt_id: attemptData.id,
+            question_id: questionId,
+            selected_option_id: selectedOptionId,
+            is_correct: optionData.is_correct
+          });
+        
+        answerPromises.push(answerPromise);
       }
     }
     
-    // Save changes to the database
-    await saveDB()
+    // Wait for all answer inserts to complete
+    await Promise.all(answerPromises);
+    
   } catch (error) {
-    console.error('Error saving quiz attempt:', error)
-    throw error
+    console.error('Error saving quiz attempt:', error);
+    throw error;
   }
 }
 
 // Cancel the quiz and return to My Quizzes
 function cancelQuiz() {
-  router.push('/my-quizzes')
+  router.push('/my-quizzes');
 }
 
 // Retake the quiz
 function retakeQuiz() {
-  userAnswers.value = {}
-  quizStartTime.value = new Date()
-  quizMode.value = 'take'
-  currentQuestionIndex.value = 0
+  userAnswers.value = {};
+  quizStartTime.value = new Date();
+  quizMode.value = 'take';
+  currentQuestionIndex.value = 0;
 }
 </script>
 

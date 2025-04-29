@@ -2,6 +2,9 @@
   <div class="public-quizzes">
     <h2 class="page-title">Explore Quizzes</h2>
     
+    <!-- Supabase Connection Status -->
+    <p class="connection-status">{{ connectionStatus }}</p>
+    
     <!-- Search Bar -->
     <div class="search-container">
       <div class="search-input-wrapper">
@@ -144,6 +147,7 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import debounce from 'lodash.debounce'
+import { getPublicQuizzes, toggleQuizUpvote, checkUserUpvote } from '@/api/supabase'
 
 const router = useRouter()
 const isAuthenticated = computed(() => auth.state.isAuthenticated)
@@ -155,8 +159,8 @@ const displayedQuizzes = ref<any[]>([])
 const pageSize = 6 // Limiting to 6 quizzes per page
 const currentPage = ref(1)
 const canLoadMore = ref(false)
-const dbInitialized = ref(false)
 const totalPages = computed(() => Math.ceil(publicQuizzes.value.length / pageSize))
+const connectionStatus = ref('Connected to Supabase!')
 const displayedPageNumbers = computed(() => {
   const maxVisiblePages = 5 // Number of page buttons to show
   const pages = []
@@ -240,11 +244,13 @@ function clearSearch() {
   filterQuizzes()
 }
 
-// On component mount, initialize database and fetch public quizzes
+// On component mount, fetch public quizzes
 onMounted(async () => {
   try {
-    await initializeDatabase()
-    await fetchPublicQuizzes()
+    const quizzes = await getPublicQuizzes()
+    publicQuizzes.value = quizzes
+    displayedQuizzes.value = quizzes.slice(0, pageSize)
+    canLoadMore.value = quizzes.length > pageSize
   } catch (error) {
     console.error('Error loading public quizzes:', error)
   } finally {
@@ -256,158 +262,6 @@ onMounted(async () => {
 watch(searchQuery, () => {
   onSearchInput()
 })
-
-// Initialize database and handle schema issues
-async function initializeDatabase() {
-  try {
-    // Import DB modules
-    const { getDB } = await import('@/db/index')
-    await getDB()
-    dbInitialized.value = true
-  } catch (error) {
-    console.error('Database initialization error:', error)
-    if (error instanceof Error && error.message.includes('Missing required tables')) {
-      console.log('Detected missing tables, attempting to reset database')
-      await resetAndReinitializeDatabase()
-    } else {
-      throw error
-    }
-  }
-}
-
-// Reset and reinitialize the database if needed
-async function resetAndReinitializeDatabase() {
-  try {
-    const { resetDB } = await import('@/db/index')
-    await resetDB()
-    console.log('Database has been reset and reinitialized')
-    dbInitialized.value = true
-  } catch (error) {
-    console.error('Failed to reset database:', error)
-    throw error
-  }
-}
-
-// Fetch public quizzes from database
-async function fetchPublicQuizzes() {
-  if (!dbInitialized.value) {
-    console.log('Database not initialized, initializing first')
-    await initializeDatabase()
-  }
-
-  const { getDB } = await import('@/db/index')
-  const db = await getDB()
-  
-  try {
-    // First get all public quizzes
-    const result = db.exec(`
-      SELECT 
-        q.quiz_id,
-        q.title,
-        q.description,
-        q.difficulty,
-        q.created_at,
-        u.username as author_name,
-        q.owner_id,
-        (SELECT COUNT(*) FROM Questions WHERE quiz_id = q.quiz_id) as questionCount,
-        (SELECT COUNT(*) FROM QuizAttempts WHERE quiz_id = q.quiz_id) as attemptCount,
-        IFNULL((SELECT COUNT(*) FROM QuizUpvotes WHERE quiz_id = q.quiz_id), 0) as upvoteCount,
-        CASE WHEN ? IS NULL THEN 0 ELSE
-          IFNULL((SELECT COUNT(*) FROM QuizUpvotes WHERE quiz_id = q.quiz_id AND user_id = ?), 0)
-        END as hasUserUpvoted
-      FROM Quizzes q
-      JOIN Users u ON q.owner_id = u.user_id
-      WHERE q.is_public = 1 AND (q.is_deleted = 0 OR q.is_deleted IS NULL)
-      ORDER BY q.created_at DESC
-    `, [
-      auth.state.isAuthenticated && auth.state.user?.userId ? auth.state.user.userId : null,
-      auth.state.isAuthenticated && auth.state.user?.userId ? auth.state.user.userId : null
-    ]);
-    
-    if (result.length > 0 && result[0].values.length > 0) {
-      // Convert the result to an array of quiz objects
-      const quizzes = result[0].values.map(row => {
-        const quiz = {
-          quizId: row[0],
-          title: row[1],
-          description: row[2] || 'No description available',
-          difficulty: typeof row[3] === 'string' ? row[3].toLowerCase() : 'unknown',
-          createdAt: row[4],
-          authorName: row[5],
-          ownerId: row[6],
-          questionCount: row[7],
-          attemptCount: row[8],
-          upvoteCount: row[9],
-          hasUserUpvoted: row[10] === 1,
-          isUserOwner: auth.state.isAuthenticated && auth.state.user?.userId === row[6]
-        };
-        return quiz;
-      });
-      
-      publicQuizzes.value = quizzes;
-      displayedQuizzes.value = quizzes.slice(0, pageSize);
-      canLoadMore.value = quizzes.length > pageSize;
-      console.log(`Loaded ${quizzes.length} public quizzes`);
-    } else {
-      publicQuizzes.value = [];
-      displayedQuizzes.value = [];
-      canLoadMore.value = false;
-    }
-  } catch (error) {
-    console.error('Error fetching public quizzes:', error);
-    
-    // Fall back to a simpler query if there's an error with QuizUpvotes
-    if (error instanceof Error && error.message.includes('no such table: QuizUpvotes')) {
-      console.log('QuizUpvotes table missing, using fallback query');
-      
-      const fallbackResult = db.exec(`
-        SELECT 
-          q.quiz_id,
-          q.title,
-          q.description,
-          q.difficulty,
-          q.created_at,
-          u.username as author_name,
-          q.owner_id,
-          (SELECT COUNT(*) FROM Questions WHERE quiz_id = q.quiz_id) as questionCount,
-          (SELECT COUNT(*) FROM QuizAttempts WHERE quiz_id = q.quiz_id) as attemptCount
-        FROM Quizzes q
-        JOIN Users u ON q.owner_id = u.user_id
-        WHERE q.is_public = 1 AND (q.is_deleted = 0 OR q.is_deleted IS NULL)
-        ORDER BY q.created_at DESC
-      `);
-      
-      if (fallbackResult.length > 0 && fallbackResult[0].values.length > 0) {
-        const quizzes = fallbackResult[0].values.map(row => {
-          const quiz = {
-            quizId: row[0],
-            title: row[1],
-            description: row[2] || 'No description available',
-            difficulty: typeof row[3] === 'string' ? row[3].toLowerCase() : 'unknown',
-            createdAt: row[4],
-            authorName: row[5],
-            ownerId: row[6],
-            questionCount: row[7],
-            attemptCount: row[8],
-            upvoteCount: 0,
-            hasUserUpvoted: false,
-            isUserOwner: auth.state.isAuthenticated && auth.state.user?.userId === row[6]
-          };
-          return quiz;
-        });
-        
-        publicQuizzes.value = quizzes;
-        displayedQuizzes.value = quizzes.slice(0, pageSize);
-        canLoadMore.value = quizzes.length > pageSize;
-        
-        // Reset the database to fix the missing table
-        await resetAndReinitializeDatabase();
-      }
-    } else {
-      throw error;
-    }
-  }
-}
 
 // Change page for pagination
 function changePage(page: number) {
@@ -428,35 +282,11 @@ async function toggleUpvote(quiz: any) {
   }
   
   try {
-    const { getDB, saveDB } = await import('@/db/index');
-    const db = await getDB();
-    
-    if (quiz.hasUserUpvoted) {
-      // Remove upvote
-      db.run(`
-        DELETE FROM QuizUpvotes
-        WHERE quiz_id = ? AND user_id = ?
-      `, [quiz.quizId, auth.state.user!.userId]);
-      
-      quiz.upvoteCount -= 1;
-    } else {
-      // Add upvote
-      db.run(`
-        INSERT INTO QuizUpvotes (quiz_id, user_id, created_at)
-        VALUES (?, ?, datetime('now'))
-      `, [quiz.quizId, auth.state.user!.userId]);
-      
-      quiz.upvoteCount += 1;
-    }
-    
-    // Save changes to the database
-    await saveDB();
-    
-    // Toggle state locally
-    quiz.hasUserUpvoted = !quiz.hasUserUpvoted;
-    
+    await toggleQuizUpvote(quiz.quizId, auth.state.user!.userId)
+    quiz.hasUserUpvoted = !quiz.hasUserUpvoted
+    quiz.upvoteCount += quiz.hasUserUpvoted ? 1 : -1
   } catch (error) {
-    console.error('Error toggling upvote:', error);
+    console.error('Error toggling upvote:', error)
   }
 }
 
@@ -495,6 +325,14 @@ function loadMoreQuizzes() {
   font-weight: 600;
   letter-spacing: 0.5px;
   color: var(--text-main);
+}
+
+/* Supabase connection status */
+.connection-status {
+  text-align: center;
+  margin-bottom: var(--spacing-md);
+  font-size: 1rem;
+  color: var(--text-alt);
 }
 
 /* Search styles */

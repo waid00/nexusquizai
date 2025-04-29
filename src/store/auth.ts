@@ -1,287 +1,444 @@
 // src/store/auth.ts
-import { reactive, readonly } from 'vue'
-import { getDB, saveDB } from '@/db/index'
-import bcrypt from 'bcryptjs'
+import { reactive } from 'vue';
+import { supabase } from '@/api/supabase';
+import bcrypt from 'bcryptjs';
 
-// Predefined word list for recovery phrases - common, easy-to-remember words
-const recoveryWordList = [
-  'apple', 'banana', 'orange', 'grape', 'melon', 'peach', 'cherry', 'lemon', 'kiwi', 'pear',
-  'river', 'ocean', 'mountain', 'forest', 'desert', 'island', 'valley', 'canyon', 'lake', 'hill',
-  'dog', 'cat', 'horse', 'lion', 'tiger', 'bear', 'wolf', 'fox', 'eagle', 'hawk',
-  'red', 'blue', 'green', 'yellow', 'purple', 'orange', 'black', 'white', 'brown', 'pink',
-  'sun', 'moon', 'star', 'cloud', 'rain', 'snow', 'wind', 'storm', 'rainbow', 'sky',
-  'book', 'story', 'poem', 'song', 'movie', 'game', 'puzzle', 'dance', 'paint', 'photo',
-  'king', 'queen', 'knight', 'castle', 'crown', 'throne', 'sword', 'shield', 'armor', 'dragon',
-  'happy', 'brave', 'calm', 'clever', 'gentle', 'honest', 'kind', 'lucky', 'proud', 'wise'
-]
-
-interface User {
-  userId: number
-  username: string
-  email: string
-  roleId: number
+export interface User {
+  userId: number;
+  username: string;
+  email: string;
+  roleId: number;
 }
 
 interface AuthState {
-  user: User | null
-  isAuthenticated: boolean
-  isLoading: boolean
-  error: string | null
-  recoveryPhrase: string[] | null
+  isAuthenticated: boolean;
+  user: User | null;
+  error: string | null;
+  isLoading: boolean;
+  recoveryPhrase: string[] | null;
 }
 
-// Create a reactive state
+// Create reactive auth state
 const state = reactive<AuthState>({
-  user: null,
   isAuthenticated: false,
-  isLoading: false,
+  user: null,
   error: null,
+  isLoading: false,
   recoveryPhrase: null
-})
+});
 
-// Check if we have a user in localStorage on init
-try {
-  const savedUser = localStorage.getItem('user')
+// Load user from localStorage on init
+function init() {
+  const savedUser = localStorage.getItem('user');
   if (savedUser) {
-    const user = JSON.parse(savedUser)
-    state.user = user
-    state.isAuthenticated = true
+    try {
+      const user = JSON.parse(savedUser);
+      state.user = user;
+      state.isAuthenticated = true;
+    } catch (error) {
+      console.error('Failed to parse saved user:', error);
+      localStorage.removeItem('user');
+    }
   }
-} catch (error) {
-  console.error('Failed to restore user session:', error)
-  localStorage.removeItem('user')
 }
 
-// Clear error
+// Clear error message
 function clearError() {
-  state.error = null
+  state.error = null;
 }
 
-// Generate a random recovery phrase
+// Generate recovery phrase
 function generateRecoveryPhrase(): string[] {
-  const phrase: string[] = []
-  const usedIndices = new Set<number>()
-
-  while (phrase.length < 10) {
-    const randomIndex = Math.floor(Math.random() * recoveryWordList.length)
-
-    // Ensure we don't use the same word twice
-    if (!usedIndices.has(randomIndex)) {
-      usedIndices.add(randomIndex)
-      phrase.push(recoveryWordList[randomIndex])
-    }
+  const words = [
+    'apple', 'banana', 'orange', 'grape', 'lemon', 'peach', 'plum', 'berry',
+    'melon', 'cherry', 'mango', 'apricot', 'lime', 'coconut', 'strawberry',
+    'blueberry', 'pear', 'pineapple', 'kiwi', 'papaya', 'avocado', 'fig',
+    'guava', 'pomegranate', 'nectarine', 'tangerine', 'dragonfruit', 'passion',
+    'watermelon', 'cantaloupe', 'honeydew', 'olive', 'grapefruit', 'mandarin',
+    'date', 'blackberry', 'raspberry', 'cranberry', 'mulberry', 'elderberry',
+    'gooseberry', 'boysenberry', 'currant', 'persimmon', 'quince', 'rhubarb',
+    'starfruit', 'tamarind', 'yuzu', 'lychee'
+  ];
+  
+  // Select 10 random words
+  const recoveryPhrase: string[] = [];
+  for (let i = 0; i < 10; i++) {
+    const randomIndex = Math.floor(Math.random() * words.length);
+    recoveryPhrase.push(words[randomIndex]);
   }
-
-  return phrase
+  
+  return recoveryPhrase;
 }
 
-// Register a new user
-async function register(username: string, email: string, password: string): Promise<boolean> {
-  state.isLoading = true
-  state.error = null
-
+// Login user
+async function login(email: string, password: string) {
+  state.isLoading = true;
+  state.error = null;
+  
   try {
-    const db = await getDB()
-
-    // Check if username or email already exist
-    const existingUser = db.exec(`
-      SELECT * FROM Users 
-      WHERE username = '${username}' OR email = '${email}'
-    `)
-
-    if (existingUser.length && existingUser[0].values.length) {
-      throw new Error('Username or email already exists')
+    console.log('Attempting to log in user:', email);
+    
+    // Query the user by email - fixed query format
+    const { data: user, error } = await supabase
+      .from('Users')
+      .select('id, username, email, password_hash, role_id')
+      .eq('email', email.trim())
+      .eq('is_active', true)
+      .single();
+    
+    if (error) {
+      console.error('Error finding user:', error);
+      state.error = 'Invalid email or password';
+      return false;
     }
-
-    // Create role if it doesn't exist (basic user role)
-    db.run(`
-      INSERT OR IGNORE INTO Roles (role_name)
-      VALUES ('user')
-    `)
-
-    // Get the role_id
-    const roles = db.exec('SELECT role_id FROM Roles WHERE role_name = "user"')
-    const roleId = roles[0].values[0][0]
-
-    // Generate a recovery phrase
-    const recoveryPhrase = generateRecoveryPhrase()
-    // Store in state temporarily for display to the user
-    state.recoveryPhrase = recoveryPhrase
-
-    // Join words with space for storage
-    const recoveryPhraseString = recoveryPhrase.join(' ')
-
-    // Hash the password
-    const passwordHash = await bcrypt.hash(password, 10)
-
-    // Insert the new user
-    db.run(`
-      INSERT INTO Users (username, email, password_hash, recovery_phrase, role_id)
-      VALUES ('${username}', '${email}', '${passwordHash}', '${recoveryPhraseString}', ${roleId})
-    `)
-
-    // Save changes to localStorage
-    saveDB()
-
-    return true
-  } catch (err: any) {
-    state.error = err.message
-    return false
-  } finally {
-    state.isLoading = false
-  }
-}
-
-// Login a user
-async function login(usernameOrEmail: string, password: string): Promise<boolean> {
-  state.isLoading = true
-  state.error = null
-
-  try {
-    const db = await getDB()
-
-    // Find the user
-    const results = db.exec(`
-      SELECT user_id, username, email, password_hash, role_id
-      FROM Users 
-      WHERE username = '${usernameOrEmail}' OR email = '${usernameOrEmail}'
-    `)
-
-    if (!results.length || !results[0].values.length) {
-      throw new Error('Invalid username or password')
+    
+    if (!user) {
+      console.error('No user found with email:', email);
+      state.error = 'Invalid email or password';
+      return false;
     }
-
-    const userData = results[0].values[0]
-    const storedPasswordHash = String(userData[3]) // Convert SqlValue to string
-
-    // Compare passwords
-    const isMatch = await bcrypt.compare(password, storedPasswordHash)
-
-    if (!isMatch) {
-      throw new Error('Invalid username or password')
+    
+    console.log('User found, verifying password');
+    
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    if (!isValidPassword) {
+      console.error('Password verification failed');
+      state.error = 'Invalid email or password';
+      return false;
     }
-
-    // Set auth state
-    state.isAuthenticated = true
+    
+    console.log('Password verified successfully');
+    
+    // Set authenticated user
     state.user = {
-      userId: Number(userData[0]), // Convert to number
-      username: String(userData[1]), // Convert to string
-      email: String(userData[2]), // Convert to string
-      roleId: Number(userData[4]) // Convert to number
-    }
-
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+      roleId: user.role_id
+    };
+    
+    state.isAuthenticated = true;
+    
     // Save to localStorage
-    localStorage.setItem('user', JSON.stringify(state.user))
-
-    return true
-  } catch (err: any) {
-    state.error = err.message
-    return false
+    localStorage.setItem('user', JSON.stringify(state.user));
+    
+    console.log('User logged in successfully:', state.user.username);
+    return true;
+  } catch (error) {
+    console.error('Login error:', error);
+    state.error = 'An error occurred during login';
+    return false;
   } finally {
-    state.isLoading = false
+    state.isLoading = false;
   }
 }
 
-// Verify recovery phrase to reset password
-async function verifyRecoveryPhrase(username: string, phrase: string[]): Promise<boolean> {
-  state.isLoading = true
-  state.error = null
-
+// Login by username
+async function loginByUsername(username: string, password: string) {
+  state.isLoading = true;
+  state.error = null;
+  
   try {
-    const db = await getDB()
-
-    // Find the user
-    const results = db.exec(`
-      SELECT user_id, recovery_phrase
-      FROM Users 
-      WHERE username = '${username}' OR email = '${username}'
-    `)
-
-    if (!results.length || !results[0].values.length) {
-      throw new Error('User not found')
+    console.log('Attempting to log in user by username:', username);
+    
+    // Query the user by username
+    const { data, error } = await supabase
+      .from('Users')
+      .select('id, username, email, password_hash, role_id')
+      .eq('username', username.trim())
+      .eq('is_active', true);
+      
+    if (error) {
+      console.error('Error finding user by username:', error);
+      state.error = 'Invalid username or password';
+      return false;
     }
-
-    const userData = results[0].values[0]
-    const storedPhraseString = userData[1] as string
-
-    // Compare recovery phrases (case insensitive)
-    const submittedPhraseString = phrase.join(' ').toLowerCase()
-    const isMatch = submittedPhraseString === storedPhraseString.toLowerCase()
-
-    if (!isMatch) {
-      throw new Error('Invalid recovery phrase')
+    
+    // Handle no results found
+    if (!data || data.length === 0) {
+      console.error('No user found with username:', username);
+      state.error = 'Invalid username or password';
+      return false;
     }
-
-    // Store user ID for the password reset
+    
+    // Get the first user with matching username
+    const user = data[0];
+    console.log('User found, verifying password');
+    
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password_hash);
+    if (!isValidPassword) {
+      console.error('Password verification failed');
+      state.error = 'Invalid username or password';
+      return false;
+    }
+    
+    console.log('Password verified successfully');
+    
+    // Set authenticated user
     state.user = {
-      userId: Number(userData[0]), // Convert to number to ensure it matches the User interface
-      username: '',
-      email: '',
-      roleId: 0
-    }
-
-    return true
-  } catch (err: any) {
-    state.error = err.message
-    return false
+      userId: user.id,
+      username: user.username,
+      email: user.email,
+      roleId: user.role_id
+    };
+    
+    state.isAuthenticated = true;
+    
+    // Save to localStorage
+    localStorage.setItem('user', JSON.stringify(state.user));
+    
+    console.log('User logged in successfully:', state.user.username);
+    return true;
+  } catch (error) {
+    console.error('Login by username error:', error);
+    state.error = 'An error occurred during login';
+    return false;
   } finally {
-    state.isLoading = false
+    state.isLoading = false;
   }
 }
 
-// Reset password using verified recovery phrase
-async function resetPassword(newPassword: string): Promise<boolean> {
-  state.isLoading = true
-  state.error = null
-
+// Register user
+async function register(username: string, email: string, password: string) {
+  state.isLoading = true;
+  state.error = null;
+  
   try {
-    if (!state.user?.userId) {
-      throw new Error('Recovery phrase verification required first')
+    // Check if user already exists
+    try {
+      const { data: existingUser, error: checkError } = await supabase
+        .from('Users')
+        .select('id')
+        .or(`email.eq.${email},username.eq.${username}`)
+        .limit(1);
+      
+      if (checkError) {
+        console.error('Error checking existing user:', checkError);
+      }
+      
+      if (existingUser && existingUser.length > 0) {
+        state.error = 'Username or email already exists';
+        return false;
+      }
+    } catch (checkErr) {
+      console.error('Exception checking existing user:', checkErr);
+      // Continue with registration anyway
     }
-
-    const db = await getDB()
-
-    // Hash the new password
-    const passwordHash = await bcrypt.hash(newPassword, 10)
-
-    // Update the user's password
-    db.run(`
-      UPDATE Users
-      SET password_hash = '${passwordHash}'
-      WHERE user_id = ${state.user.userId}
-    `)
-
-    // Save changes to localStorage
-    saveDB()
-
-    // Reset temporary recovery state
-    state.user = null
-
-    return true
-  } catch (err: any) {
-    state.error = err.message
-    return false
+    
+    // Hash password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    
+    // Generate recovery phrase
+    const recoveryPhrase = generateRecoveryPhrase();
+    state.recoveryPhrase = recoveryPhrase;
+    
+    // First ensure roles exist or get the 'user' role
+    let roleId;
+    
+    try {
+      // First check if any roles exist at all
+      const { data: allRoles, error: rolesError } = await supabase
+        .from('Roles')
+        .select('*');
+        
+      if (rolesError) {
+        console.error('Error checking roles:', rolesError);
+        throw new Error('Could not verify roles in database');
+      }
+      
+      if (!allRoles || allRoles.length === 0) {
+        // No roles exist, create the default ones
+        console.log('No roles found. Creating default roles...');
+        
+        const { data: newRoles, error: createError } = await supabase
+          .from('Roles')
+          .insert([
+            { role_name: 'admin' },
+            { role_name: 'teacher' },
+            { role_name: 'user' }
+          ])
+          .select();
+          
+        if (createError) {
+          console.error('Error creating roles:', createError);
+          throw new Error('Failed to create roles');
+        }
+        
+        // Find the user role we just created
+        const userRole = newRoles.find(r => r.role_name === 'user');
+        roleId = userRole ? userRole.id : 3; // Default to 3 if for some reason the user role isn't found
+      } else {
+        // Roles exist, get the user role
+        const { data: userRole, error: roleError } = await supabase
+          .from('Roles')
+          .select('id')
+          .eq('role_name', 'user')
+          .maybeSingle();
+          
+        if (roleError) {
+          console.error('Error getting user role:', roleError);
+          // Try to get any role rather than failing
+          roleId = allRoles[0].id;
+        } else if (userRole) {
+          roleId = userRole.id;
+        } else {
+          // User role doesn't exist, create it
+          const { data: newRole, error: newRoleError } = await supabase
+            .from('Roles')
+            .insert({ role_name: 'user' })
+            .select()
+            .single();
+            
+          if (newRoleError) {
+            console.error('Error creating user role:', newRoleError);
+            roleId = allRoles[0].id; // Use the first available role
+          } else {
+            roleId = newRole.id;
+          }
+        }
+      }
+    } catch (roleErr) {
+      console.error('Error handling roles:', roleErr);
+      state.error = 'Failed to set up user role';
+      return false;
+    }
+    
+    if (!roleId) {
+      console.error('Could not determine a valid role_id');
+      state.error = 'Account creation failed - no valid role found';
+      return false;
+    }
+    
+    console.log('Creating user with data:', {
+      username,
+      email,
+      role_id: roleId,
+      recovery_phrase: '(redacted for security)'
+    });
+    
+    // Create user with explicit role ID
+    const { data: newUser, error } = await supabase
+      .from('Users')
+      .insert({
+        username,
+        email,
+        password_hash: hashedPassword,
+        recovery_phrase: recoveryPhrase.join(' '),
+        role_id: roleId,
+        created_at: new Date().toISOString(),
+        is_active: true
+      })
+      .select('id, username, email, role_id')
+      .single();
+    
+    if (error) {
+      console.error('User creation error:', error);
+      state.error = `Failed to register user: ${error.message || 'Unknown error'}`;
+      return false;
+    }
+    
+    if (!newUser || !newUser.id) {
+      console.error('User created but no ID returned');
+      state.error = 'User creation failed - no ID returned';
+      return false;
+    }
+    
+    console.log('User created successfully:', {
+      id: newUser.id,
+      username: newUser.username,
+      email: newUser.email,
+      roleId: newUser.role_id
+    });
+    
+    // Set authenticated user
+    state.user = {
+      userId: newUser.id,
+      username: newUser.username,
+      email: newUser.email,
+      roleId: newUser.role_id
+    };
+    
+    state.isAuthenticated = true;
+    
+    // Save to localStorage
+    localStorage.setItem('user', JSON.stringify(state.user));
+    
+    return true;
+  } catch (error) {
+    console.error('Registration error:', error);
+    state.error = 'An error occurred during registration';
+    return false;
   } finally {
-    state.isLoading = false
+    state.isLoading = false;
   }
 }
 
-// Logout
+// Logout user
 function logout() {
-  state.isAuthenticated = false
-  state.user = null
-  state.recoveryPhrase = null
-  localStorage.removeItem('user')
+  state.user = null;
+  state.isAuthenticated = false;
+  localStorage.removeItem('user');
 }
 
-// Export the auth store
-export const auth = {
-  state: readonly(state),
-  register,
-  login,
-  logout,
-  clearError,
-  generateRecoveryPhrase,
-  verifyRecoveryPhrase,
-  resetPassword
+// Reset password
+async function resetPassword(email: string, recoveryPhrase: string, newPassword: string) {
+  state.isLoading = true;
+  state.error = null;
+  
+  try {
+    // Find user by email and recovery phrase
+    const { data: user, error } = await supabase
+      .from('Users')
+      .select('id')
+      .eq('email', email)
+      .eq('recovery_phrase', recoveryPhrase)
+      .eq('is_active', true)
+      .single();
+    
+    if (error) {
+      state.error = 'Invalid email or recovery phrase';
+      return false;
+    }
+    
+    // Hash new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+    
+    // Update password
+    const { error: updateError } = await supabase
+      .from('Users')
+      .update({ password_hash: hashedPassword, recovery_phrase: null })
+      .eq('id', user.id);
+    
+    if (updateError) {
+      state.error = 'Failed to update password';
+      return false;
+    }
+    
+    return true;
+  } catch (error) {
+    console.error('Password reset error:', error);
+    state.error = 'An error occurred during password reset';
+    return false;
+  } finally {
+    state.isLoading = false;
+  }
 }
+
+// Initialize
+init();
+
+// Export auth methods and state
+export const auth = {
+  state,
+  login,
+  loginByUsername,
+  register,
+  logout,
+  resetPassword,
+  clearError,
+  generateRecoveryPhrase
+};
