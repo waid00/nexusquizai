@@ -76,19 +76,24 @@
             </div>
           </div>
           <div class="quiz-card-actions">
-            <div class="upvote-container">
-              <button 
-                class="upvote-btn"
-                :class="{ 'active': quiz.hasUserUpvoted }"
-                @click="toggleUpvote(quiz)"
-                title="Upvote this quiz"
-              >
-                <span class="upvote-icon">⬆</span>
-                <span class="upvote-count">{{ quiz.upvoteCount }}</span>
-              </button>
+            <div class="action-buttons-container">
+              <div class="upvote-container">
+                <button 
+                  class="upvote-btn"
+                  :class="{ 'active': quiz.hasUserUpvoted }"
+                  @click="toggleUpvote(quiz)"
+                  title="Upvote this quiz"
+                >
+                  <span class="upvote-icon">⬆</span>
+                  <span class="upvote-count">{{ quiz.upvoteCount }}</span>
+                </button>
+              </div>
+              <button class="action-btn delete-btn" @click="confirmDeleteQuiz(quiz)">Delete</button>
             </div>
-            <button class="action-btn take-quiz" @click="takeQuiz(quiz.quizId)">Take Quiz</button>
-            <button class="action-btn view-details" @click="viewQuizDetails(quiz.quizId)">View Details</button>
+            <div class="main-buttons-container">
+              <button class="action-btn take-quiz" @click="takeQuiz(quiz.quizId)">Take Quiz</button>
+              <button class="action-btn view-details" @click="viewQuizDetails(quiz.quizId)">View Details</button>
+            </div>
           </div>
         </div>
       </div>
@@ -140,24 +145,48 @@
           <div class="attempt-card-actions">
             <button class="action-btn take-quiz" @click="retakeQuiz(attempt.quizId)">Retake Quiz</button>
             <button class="action-btn view-results" @click="viewAttemptDetails(attempt.attemptId)">View Results</button>
+            <button class="action-btn delete-btn" @click="confirmDeleteAttempt(attempt)">Delete</button>
           </div>
         </div>
       </div>
     </div>
+    
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirmation"
+      :title="confirmationData.title"
+      :message="confirmationData.message"
+      :confirm-text="confirmationData.confirmText"
+      :type="confirmationData.type"
+      @confirm="confirmAction"
+      @cancel="cancelConfirmation"
+    />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
 
 const router = useRouter()
 const activeTab = ref('created')
 const isLoading = ref(true)
 const createdQuizzes = ref<any[]>([])
 const quizAttempts = ref<any[]>([])
+
+// Confirmation modal state
+const showConfirmation = ref(false)
+const confirmationData = reactive({
+  title: '',
+  message: '',
+  confirmText: 'Confirm',
+  type: 'warning',
+  action: '',
+  data: null as any
+})
 
 // On component mount, fetch user's quizzes and attempts
 onMounted(async () => {
@@ -349,7 +378,7 @@ async function toggleQuizPrivacy(quiz: any) {
     const { data, error } = await supabase
       .from('Quizzes')
       .update({ is_public: !quiz.isPublic })
-      .eq('id', quiz.quizId) // Changed from 'quiz_id' to 'id'
+      .eq('id', quiz.quizId)
       .eq('owner_id', auth.state.user!.userId)
 
     if (error) throw error
@@ -390,6 +419,87 @@ async function toggleUpvote(quiz: any) {
   } catch (error) {
     console.error('Error toggling upvote:', error)
   }
+}
+
+// Confirm delete quiz
+function confirmDeleteQuiz(quiz: any) {
+  confirmationData.title = 'Delete Quiz';
+  confirmationData.message = `Are you sure you want to delete the quiz "${quiz.title}"? This action cannot be undone.`;
+  confirmationData.confirmText = 'Delete';
+  confirmationData.type = 'danger';
+  confirmationData.action = 'deleteQuiz';
+  confirmationData.data = quiz;
+  
+  showConfirmation.value = true;
+}
+
+// Delete a quiz (soft delete)
+async function deleteQuiz(quiz: any) {
+  try {
+    const { error } = await supabase
+      .from('Quizzes')
+      .update({ is_deleted: true })
+      .eq('id', quiz.quizId)
+      .eq('owner_id', auth.state.user!.userId)
+
+    if (error) throw error
+
+    // Remove the quiz from the list
+    createdQuizzes.value = createdQuizzes.value.filter(q => q.quizId !== quiz.quizId)
+  } catch (error) {
+    console.error('Error deleting quiz:', error)
+    alert('Failed to delete quiz. Please try again.')
+  }
+}
+
+// Confirm delete attempt
+function confirmDeleteAttempt(attempt: any) {
+  confirmationData.title = 'Delete Attempt';
+  confirmationData.message = `Are you sure you want to delete your attempt for the quiz "${attempt.quizTitle}"? This action cannot be undone.`;
+  confirmationData.confirmText = 'Delete';
+  confirmationData.type = 'danger';
+  confirmationData.action = 'deleteAttempt';
+  confirmationData.data = attempt;
+  
+  showConfirmation.value = true;
+}
+
+// Delete a quiz attempt
+async function deleteAttempt(attempt: any) {
+  try {
+    const { error } = await supabase
+      .from('QuizAttempts')
+      .delete()
+      .eq('id', attempt.attemptId)
+      .eq('user_id', auth.state.user!.userId)
+
+    if (error) throw error
+
+    // Remove the attempt from the list
+    quizAttempts.value = quizAttempts.value.filter(a => a.attemptId !== attempt.attemptId)
+  } catch (error) {
+    console.error('Error deleting attempt:', error)
+    alert('Failed to delete attempt. Please try again.')
+  }
+}
+
+// Handle confirmation modal actions
+function confirmAction() {
+  switch (confirmationData.action) {
+    case 'deleteQuiz':
+      deleteQuiz(confirmationData.data);
+      break;
+    case 'deleteAttempt':
+      deleteAttempt(confirmationData.data);
+      break;
+  }
+  
+  showConfirmation.value = false;
+}
+
+// Cancel confirmation
+function cancelConfirmation() {
+  showConfirmation.value = false;
 }
 </script>
 
@@ -791,5 +901,41 @@ input:checked + .slider:before {
     padding: var(--spacing-xs) var(--spacing-sm);
     font-size: 0.9rem;
   }
+}
+
+/* Action buttons container */
+.action-buttons-container {
+  display: flex;
+  align-items: center;
+}
+
+.main-buttons-container {
+  display: flex;
+  flex: 1;
+  gap: var(--spacing-sm);
+}
+
+/* Delete button */
+.delete-btn {
+  background: rgba(255, 71, 87, 0.15);
+  color: #ff4757;
+  border: 1px solid rgba(255, 71, 87, 0.3);
+  padding: 4px 8px;
+  font-size: 0.85rem;
+}
+
+.delete-btn:hover {
+  background: rgba(255, 71, 87, 0.3);
+}
+
+/* Attempt card actions (with 3 buttons) */
+.attempt-card-actions {
+  display: flex;
+  gap: var(--spacing-sm);
+}
+
+.attempt-card-actions .action-btn {
+  flex: 1;
+  font-size: 0.85rem;
 }
 </style>

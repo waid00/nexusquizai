@@ -85,7 +85,7 @@
                   </td>
                   <td class="actions-cell">
                     <button 
-                      @click="toggleUserStatus(user)" 
+                      @click="confirmToggleUserStatus(user)" 
                       class="action-btn"
                       :class="user.isActive ? 'deactivate-btn' : 'activate-btn'"
                     >
@@ -138,7 +138,7 @@
                   </td>
                   <td class="actions-cell">
                     <button 
-                      @click="toggleQuizStatus(quiz)" 
+                      @click="confirmToggleQuizStatus(quiz)" 
                       class="action-btn"
                       :class="quiz.isDeleted ? 'activate-btn' : 'deactivate-btn'"
                     >
@@ -205,7 +205,7 @@
                         Edit
                       </button>
                       <button 
-                        @click="deleteCategory(category.id)" 
+                        @click="confirmDeleteCategory(category)" 
                         class="action-btn deactivate-btn"
                         :disabled="category.quizCount > 0"
                       >
@@ -277,6 +277,17 @@
         </div>
       </div>
     </div>
+    
+    <!-- Confirmation Modals -->
+    <ConfirmationModal
+      :show="showUserConfirmation"
+      :title="confirmationData.title"
+      :message="confirmationData.message"
+      :confirm-text="confirmationData.confirmText"
+      :type="confirmationData.type"
+      @confirm="confirmAction"
+      @cancel="cancelConfirmation"
+    />
   </div>
 </template>
 
@@ -285,6 +296,7 @@ import { ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { auth } from '@/store/auth';
 import { supabase } from '@/api/supabase';
+import ConfirmationModal from '@/components/ConfirmationModal.vue';
 
 // Router
 const router = useRouter();
@@ -323,6 +335,17 @@ const stats = reactive({
   activeUsers: 0
 });
 const recentActivity = ref<any[]>([]);
+
+// Confirmation modal state
+const showUserConfirmation = ref(false);
+const confirmationData = reactive({
+  title: '',
+  message: '',
+  confirmText: 'Confirm',
+  type: 'warning',
+  action: '',
+  data: null as any
+});
 
 // Check if user is admin and load data
 onMounted(async () => {
@@ -580,6 +603,21 @@ async function updateUserRole(userId: number, roleId: number) {
   }
 }
 
+// Confirm toggle user status
+function confirmToggleUserStatus(user: any) {
+  const newStatus = !user.isActive;
+  const action = newStatus ? 'activate' : 'deactivate';
+  
+  confirmationData.title = newStatus ? 'Activate User' : 'Deactivate User';
+  confirmationData.message = `Are you sure you want to ${action} the user "${user.username}"?`;
+  confirmationData.confirmText = newStatus ? 'Activate' : 'Deactivate';
+  confirmationData.type = newStatus ? 'info' : 'warning';
+  confirmationData.action = 'toggleUserStatus';
+  confirmationData.data = user;
+  
+  showUserConfirmation.value = true;
+}
+
 // Toggle user active status
 async function toggleUserStatus(user: any) {
   try {
@@ -599,6 +637,21 @@ async function toggleUserStatus(user: any) {
     console.error('Error toggling user status:', err);
     alert(`Failed to update user status: ${err.message}`);
   }
+}
+
+// Confirm toggle quiz status
+function confirmToggleQuizStatus(quiz: any) {
+  const newStatus = !quiz.isDeleted;
+  const action = newStatus ? 'delete' : 'restore';
+  
+  confirmationData.title = newStatus ? 'Delete Quiz' : 'Restore Quiz';
+  confirmationData.message = `Are you sure you want to ${action} the quiz "${quiz.title}"?`;
+  confirmationData.confirmText = newStatus ? 'Delete' : 'Restore';
+  confirmationData.type = newStatus ? 'danger' : 'info';
+  confirmationData.action = 'toggleQuizStatus';
+  confirmationData.data = quiz;
+  
+  showUserConfirmation.value = true;
 }
 
 // Toggle quiz deleted status
@@ -691,12 +744,28 @@ function cancelEditCategory(category: any) {
   category.editName = category.name;
 }
 
+// Confirm delete category
+function confirmDeleteCategory(category: any) {
+  if (category.quizCount > 0) {
+    alert('Cannot delete category with associated quizzes');
+    return;
+  }
+  
+  confirmationData.title = 'Delete Category';
+  confirmationData.message = `Are you sure you want to delete the category "${category.name}"?`;
+  confirmationData.confirmText = 'Delete';
+  confirmationData.type = 'danger';
+  confirmationData.action = 'deleteCategory';
+  confirmationData.data = category;
+  
+  showUserConfirmation.value = true;
+}
+
 // Delete category
-async function deleteCategory(categoryId: number) {
+async function deleteCategory(category: any) {
   try {
     // Check if category has quizzes
-    const category = categories.value.find(c => c.id === categoryId);
-    if (category && category.quizCount > 0) {
+    if (category.quizCount > 0) {
       alert('Cannot delete category with associated quizzes');
       return;
     }
@@ -704,17 +773,39 @@ async function deleteCategory(categoryId: number) {
     const { error } = await supabase
       .from('Categories')
       .delete()
-      .eq('id', categoryId);
+      .eq('id', category.id);
     
     if (error) {
       throw new Error(`Failed to delete category: ${error.message}`);
     }
     
-    categories.value = categories.value.filter(c => c.id !== categoryId);
+    categories.value = categories.value.filter(c => c.id !== category.id);
   } catch (err: any) {
     console.error('Error deleting category:', err);
     alert(`Failed to delete category: ${err.message}`);
   }
+}
+
+// Handle confirmation modal actions
+function confirmAction() {
+  switch (confirmationData.action) {
+    case 'toggleUserStatus':
+      toggleUserStatus(confirmationData.data);
+      break;
+    case 'toggleQuizStatus':
+      toggleQuizStatus(confirmationData.data);
+      break;
+    case 'deleteCategory':
+      deleteCategory(confirmationData.data);
+      break;
+  }
+  
+  showUserConfirmation.value = false;
+}
+
+// Cancel confirmation
+function cancelConfirmation() {
+  showUserConfirmation.value = false;
 }
 
 // Format date for display

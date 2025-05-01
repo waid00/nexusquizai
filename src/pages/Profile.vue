@@ -247,32 +247,20 @@
       <div class="section danger-section">
         <h3 class="section-title">Danger Zone</h3>
         <p class="warning-text">Permanently delete your account and all associated data.</p>
-        <button @click="showDeleteConfirmation = true" class="delete-btn">Delete Account</button>
-        
-        <!-- Delete Account Confirmation Modal -->
-        <div v-if="showDeleteConfirmation" class="modal-overlay">
-          <div class="modal-content">
-            <h3 class="modal-title">Delete Account</h3>
-            <p class="modal-text">
-              Are you sure you want to delete your account? This action cannot be undone and will permanently delete:
-            </p>
-            <ul class="deletion-list">
-              <li>Your account information</li>
-              <li>All quizzes you've created</li>
-              <li>All your quiz attempts</li>
-              <li>Your upvotes and stats</li>
-            </ul>
-            
-            <div class="modal-actions">
-              <button @click="showDeleteConfirmation = false" class="cancel-btn">Cancel</button>
-              <button @click="deleteAccount" class="delete-confirm-btn" :disabled="isDeletingAccount">
-                {{ isDeletingAccount ? 'Deleting...' : 'Yes, Delete Account' }}
-              </button>
-            </div>
-          </div>
-        </div>
+        <button @click="confirmDeleteAccount" class="delete-btn">Delete Account</button>
       </div>
     </div>
+    
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirmation"
+      :title="confirmationData.title"
+      :message="confirmationData.message"
+      :confirm-text="confirmationData.confirmText"
+      :type="confirmationData.type"
+      @confirm="confirmAction"
+      @cancel="cancelConfirmation"
+    />
   </div>
 </template>
 
@@ -282,6 +270,7 @@ import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
 import bcrypt from 'bcryptjs'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
 
 // Router for navigation
 const router = useRouter()
@@ -292,7 +281,6 @@ const error = ref('')
 const editMode = ref(false)
 const showPasswordForm = ref(false)
 const passwordSuccess = ref(false)
-const showDeleteConfirmation = ref(false)
 
 // Password visibility toggles
 const showCurrentPassword = ref(false)
@@ -314,6 +302,16 @@ const passwordLength = ref(false)
 const passwordUppercase = ref(false)
 const passwordLowercase = ref(false)
 const passwordNumber = ref(false)
+
+// Confirmation modal state
+const showConfirmation = ref(false)
+const confirmationData = reactive({
+  title: '',
+  message: '',
+  confirmText: 'Confirm',
+  type: 'warning',
+  action: ''
+})
 
 // User data
 const userData = reactive({
@@ -713,6 +711,17 @@ async function updatePassword() {
   }
 }
 
+// Confirm delete account action
+function confirmDeleteAccount() {
+  confirmationData.title = 'Delete Account';
+  confirmationData.message = 'Are you sure you want to delete your account? This action cannot be undone and will permanently delete your account information, all quizzes you\'ve created, all your quiz attempts, and your upvotes and stats.';
+  confirmationData.confirmText = 'Delete Account';
+  confirmationData.type = 'danger';
+  confirmationData.action = 'deleteAccount';
+  
+  showConfirmation.value = true;
+}
+
 // Delete user account
 async function deleteAccount() {
   if (isDeletingAccount.value) return
@@ -738,10 +747,25 @@ async function deleteAccount() {
   } catch (err) {
     console.error('Error deleting account:', err)
     error.value = err instanceof Error ? err.message : 'Failed to delete account'
-    showDeleteConfirmation.value = false
   } finally {
     isDeletingAccount.value = false
   }
+}
+
+// Handle confirmation modal actions
+function confirmAction() {
+  switch (confirmationData.action) {
+    case 'deleteAccount':
+      deleteAccount();
+      break;
+  }
+  
+  showConfirmation.value = false;
+}
+
+// Cancel confirmation
+function cancelConfirmation() {
+  showConfirmation.value = false;
 }
 </script>
 
