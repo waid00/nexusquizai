@@ -201,6 +201,7 @@ export interface Database {
           id: number
           owner_id: number
           category_id: number
+          source_doc_id: number | null
           title: string
           description: string | null
           difficulty: string
@@ -214,6 +215,7 @@ export interface Database {
           id?: number
           owner_id: number
           category_id: number
+          source_doc_id?: number | null
           title: string
           description?: string | null
           difficulty: string
@@ -227,6 +229,7 @@ export interface Database {
           id?: number
           owner_id?: number
           category_id?: number
+          source_doc_id?: number | null
           title?: string
           description?: string | null
           difficulty?: string
@@ -247,6 +250,12 @@ export interface Database {
             foreignKeyName: "Quizzes_owner_id_fkey"
             columns: ["owner_id"]
             referencedRelation: "Users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "Quizzes_source_doc_id_fkey"
+            columns: ["source_doc_id"]
+            referencedRelation: "SourceDocs"
             referencedColumns: ["id"]
           }
         ]
@@ -299,6 +308,40 @@ export interface Database {
           role_name?: string
         }
         Relationships: []
+      }
+      SourceDocs: {
+        Row: {
+          id: number
+          user_id: number
+          content: string
+          title: string
+          file_type: string
+          uploaded_at: string
+        }
+        Insert: {
+          id?: number
+          user_id: number
+          content: string
+          title: string
+          file_type: string
+          uploaded_at?: string
+        }
+        Update: {
+          id?: number
+          user_id?: number
+          content?: string
+          title?: string
+          file_type?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "SourceDocs_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "Users"
+            referencedColumns: ["id"]
+          }
+        ]
       }
       Users: {
         Row: {

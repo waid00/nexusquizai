@@ -241,7 +241,7 @@
             <li 
               v-for="(opt, j) in q.options" 
               :key="j" 
-              :class="[
+              :class="[ 
                 'option-item', 
                 {
                   'user-selected': userAnswers[i] === j,
@@ -283,7 +283,8 @@ import {
   createQuizAttempt,
   createAttemptAnswers,
   getCategories,
-  updateQuiz
+  updateQuiz,
+  createSourceDoc
 } from '@/api/supabase'
 
 const router = useRouter()
@@ -354,10 +355,15 @@ async function onFile(e: Event) {
   isLoading.value = true
   
   try {
+    // Check if user is authenticated before attempting to save
+    const isUserAuthenticated = auth.state.isAuthenticated && auth.state.user && auth.state.user.userId;
+    let fileContent = '';
+    
     if (f.name.toLowerCase().endsWith('.docx')) {
       const buf = await f.arrayBuffer()
       const { value } = await mammoth.extractRawText({ arrayBuffer: buf })
-      extracted.value = value.trim()
+      fileContent = value.trim();
+      extracted.value = fileContent;
       
       // Auto-process the document to extract quiz questions if content is available
       if (extracted.value) {
@@ -371,9 +377,19 @@ async function onFile(e: Event) {
           quizName.value = f.name.replace(/\.docx$/i, '').replace(/[_-]/g, ' ')
           
           // Auto-save if user is logged in
-          if (auth.state.isAuthenticated && auth.state.user) {
+          if (isUserAuthenticated) {
             try {
-              const savedQuizId = await saveQuizToDatabase(quizName.value, questions.value.length)
+              // Save the source document first
+              const sourceDoc = await createSourceDoc({
+                user_id: auth.state.user!.userId,
+                content: fileContent,
+                title: fileName.value,
+                file_type: 'docx'
+              });
+              console.log("Source document saved with ID:", sourceDoc.id);
+              
+              // Then save the quiz
+              const savedQuizId = await saveQuizToDatabase(quizName.value, questions.value.length, sourceDoc.id)
               console.log("Quiz auto-saved with ID:", savedQuizId)
               currentQuizId.value = savedQuizId
             } catch (error) {
@@ -383,7 +399,23 @@ async function onFile(e: Event) {
         }
       }
     } else {
-      extracted.value = (await f.text()).trim()
+      fileContent = await f.text();
+      extracted.value = fileContent.trim();
+      
+      // Save the source document if user is authenticated
+      if (isUserAuthenticated) {
+        try {
+          const sourceDoc = await createSourceDoc({
+            user_id: auth.state.user!.userId,
+            content: fileContent,
+            title: fileName.value,
+            file_type: f.name.split('.').pop() || 'txt'
+          });
+          console.log("Source document saved with ID:", sourceDoc.id);
+        } catch (error) {
+          console.error('Error saving source document:', error);
+        }
+      }
     }
   } catch (error) {
     console.error('Error processing file:', error)
@@ -418,6 +450,31 @@ ${src}
 """`
 
   try {
+    // Save source content if the user is authenticated
+    let sourceDocId = null;
+    if (auth.state.isAuthenticated && auth.state.user) {
+      try {
+        // Determine if we're using a file or text input
+        const isUsingFileContent = extracted.value.trim() === src;
+        const fileType = isUsingFileContent ? (fileName.value.split('.').pop() || 'txt') : 'text';
+        const title = isUsingFileContent ? fileName.value : 'Text Input';
+        
+        // Save to SourceDocs table
+        const sourceDoc = await createSourceDoc({
+          user_id: auth.state.user.userId,
+          content: src,
+          title: title,
+          file_type: fileType
+        });
+        
+        console.log("Source document saved with ID:", sourceDoc.id);
+        sourceDocId = sourceDoc.id;
+      } catch (error) {
+        console.error('Error saving source document:', error);
+        // Continue with generation even if saving fails
+      }
+    }
+    
     const msgs: ChatCompletionRequestMessage[] = [
       { role: 'system', content: systemPrompt },
       { role: 'user',   content: userPrompt }
@@ -453,7 +510,7 @@ ${src}
       // Auto-save the quiz with a default name
       if (auth.state.isAuthenticated && auth.state.user) {
         quizName.value = "Untitled Quiz"
-        const savedQuizId = await saveQuizToDatabase(quizName.value, questions.value.length)
+        const savedQuizId = await saveQuizToDatabase(quizName.value, questions.value.length, sourceDocId)
         console.log("Quiz auto-saved with ID:", savedQuizId)
         currentQuizId.value = savedQuizId
       }
@@ -619,7 +676,7 @@ async function saveQuizAttempt(title: string, score: number, totalQuestions: num
   }
 }
 
-async function saveQuizToDatabase(baseTitle: string, totalQuestions: number) {
+async function saveQuizToDatabase(baseTitle: string, totalQuestions: number, sourceDocId?: number | null) {
   try {
     // First, make sure the user is authenticated
     if (!auth.state.isAuthenticated) {
@@ -713,7 +770,8 @@ async function saveQuizToDatabase(baseTitle: string, totalQuestions: number) {
       title: finalTitle,
       owner_id: ownerId,
       category_id: categoryId,
-      difficulty: difficultyProperCase
+      difficulty: difficultyProperCase,
+      source_doc_id: sourceDocId || null
     });
     
     // Create the quiz with additional debugging
@@ -728,7 +786,8 @@ async function saveQuizToDatabase(baseTitle: string, totalQuestions: number) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         published_at: new Date().toISOString(),
-        is_deleted: false
+        is_deleted: false,
+        source_doc_id: sourceDocId || null
       };
       
       const { data: newQuiz, error: quizError } = await supabase
@@ -1467,4 +1526,3 @@ function processDocumentContent(content: string) {
 }
 </style>
 ```
-````````

@@ -148,6 +148,24 @@ export async function createQuestion(questionData: any) {
   return data;
 }
 
+// Source Documents
+export async function createSourceDoc(docData: { user_id: number, content: string, title: string, file_type: string }) {
+  const { data, error } = await supabase
+    .from('SourceDocs')
+    .insert({
+      user_id: docData.user_id,
+      content: docData.content,
+      title: docData.title,
+      file_type: docData.file_type,
+      uploaded_at: new Date().toISOString()
+    })
+    .select()
+    .single();
+  
+  if (error) throw error;
+  return data;
+}
+
 export async function getQuestionsByQuizId(quizId: number) {
   const { data, error } = await supabase
     .from('Questions')
