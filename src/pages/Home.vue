@@ -79,19 +79,16 @@
             </div>
           </div>
         </div>
-        <div class="quiz-card-footer" @click.stop="viewQuizDetails(quiz)">
-          <div class="quiz-actions">
-            <button class="upvote-btn" 
-              :class="{ active: quiz.hasUserUpvoted }"
-              @click.stop="toggleUpvote(quiz)"
-              title="Upvote this quiz"
-              :disabled="!isAuthenticated || quiz.isUserOwner"
-            >
-              <span class="upvote-icon">⬆</span>
-              <span class="upvote-count">{{ quiz.upvoteCount }}</span>
-            </button>
-          </div>
-        </div>
+        <button 
+          class="quiz-card-footer" 
+          :class="{ active: quiz.hasUserUpvoted }"
+          @click.stop="toggleUpvote(quiz)"
+          :disabled="!isAuthenticated || quiz.isUserOwner"
+        >
+          <span class="upvote-icon">⬆</span>
+          <span class="upvote-count">{{ quiz.upvoteCount }}</span>
+          Upvote
+        </button>
       </div>
     </div>
     
@@ -624,145 +621,72 @@ function viewQuizDetails(quiz: any) {
 }
 
 .quiz-card-footer {
+  width: 100%;
   padding: var(--spacing-xs) var(--spacing-md);
   border-top: 1px solid var(--input-border);
   display: flex;
   align-items: center;
+  justify-content: center;
   background-color: rgba(0, 0, 0, 0.15);
-}
-
-.quiz-actions {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.upvote-btn {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 6px 10px;
-  border-radius: var(--radius-sm);
-  border: 1px solid var(--input-border);
-  background: rgba(0, 0, 0, 0.2);
-  color: var(--text-alt);
+  border: none;
   cursor: pointer;
-  transition: all 0.2s ease;
   font-weight: 500;
-  height: 32px;
+  color: var(--text-alt);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  transition: all 0.2s ease;
+  gap: 5px;
 }
 
-.upvote-btn:hover:not(:disabled) {
-  border-color: var(--accent);
-  color: var(--accent);
-}
-
-.upvote-btn.active {
-  background: rgba(46, 213, 115, 0.1);
-  color: var(--accent);
-  border-color: var(--accent);
-}
-
-.upvote-btn:disabled {
-  opacity: 0.5;
+.quiz-card-footer:disabled {
   cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.quiz-card-footer:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+.quiz-card.easy .quiz-card-footer:hover:not(:disabled) {
+  color: #2ed573;
+}
+
+.quiz-card.medium .quiz-card-footer:hover:not(:disabled) {
+  color: #ffab00;
+}
+
+.quiz-card.hard .quiz-card-footer:hover:not(:disabled) {
+  color: #ff4757;
+}
+
+.quiz-card-footer.active {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+.quiz-card.easy .quiz-card-footer.active {
+  color: #2ed573;
+}
+
+.quiz-card.medium .quiz-card-footer.active {
+  color: #ffab00;
+}
+
+.quiz-card.hard .quiz-card-footer.active {
+  color: #ff4757;
 }
 
 .upvote-icon {
   font-size: 1.1rem;
-  line-height: 1;
+  font-weight: bold;
 }
 
 .upvote-count {
   font-weight: 600;
-  min-width: 20px;
-  text-align: center;
-}
-
-/* Pagination */
-.pagination-container {
-  margin-top: var(--spacing-lg);
-  display: flex;
-  justify-content: center;
-}
-
-.pagination {
-  display: flex;
-  gap: var(--spacing-sm);
-}
-
-.page-btn {
-  padding: 0.6rem 1.2rem;
-  border: 1px solid var(--input-border);
-  background: var(--panel-bg);
-  color: var(--text-main);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-}
-
-.page-btn:hover:not(:disabled) {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-}
-
-.page-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.page-btn.active {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-}
-
-/* Load more */
-.load-more-container {
-  margin-top: var(--spacing-lg);
-  display: flex;
-  justify-content: center;
-}
-
-.load-more-btn {
-  padding: 0.8rem 2rem;
-  border: 1px solid var(--input-border);
-  background: var(--panel-bg);
-  color: var(--text-main);
-  border-radius: var(--radius-md);
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-weight: 500;
-}
-
-.load-more-btn:hover:not(:disabled) {
-  background: var(--accent);
-  color: white;
-  border-color: var(--accent);
-}
-
-.load-more-btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-/* Search highlighting */
-.highlight {
-  background: rgba(46, 204, 113, 0.2);
-  color: #2ecc71;
-  padding: 0 2px;
-  border-radius: 2px;
+  margin: 0 2px;
 }
 
 .text-center {
   text-align: center;
-}
-
-.category-label {
-  font-weight: 500;
-  color: var(--text-alt);
+  width: 100%;
+  display: block;
 }
 </style>
