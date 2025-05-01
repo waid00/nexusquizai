@@ -349,13 +349,47 @@ async function onFile(e: Event) {
   const f = (e.target as HTMLInputElement).files?.[0]
   if (!f) return
   fileName.value = f.name
-  text.value     = ''
-  if (f.name.toLowerCase().endsWith('.docx')) {
-    const buf = await f.arrayBuffer()
-    const { value } = await mammoth.extractRawText({ arrayBuffer: buf })
-    extracted.value = value.trim()
-  } else {
-    extracted.value = (await f.text()).trim()
+  text.value = ''
+  
+  isLoading.value = true
+  
+  try {
+    if (f.name.toLowerCase().endsWith('.docx')) {
+      const buf = await f.arrayBuffer()
+      const { value } = await mammoth.extractRawText({ arrayBuffer: buf })
+      extracted.value = value.trim()
+      
+      // Auto-process the document to extract quiz questions if content is available
+      if (extracted.value) {
+        const extractedQuestions = processDocumentContent(extracted.value)
+        
+        if (extractedQuestions && extractedQuestions.length > 0) {
+          questions.value = extractedQuestions
+          console.log('Extracted questions automatically:', questions.value)
+          
+          // Set a default quiz name based on the filename
+          quizName.value = f.name.replace(/\.docx$/i, '').replace(/[_-]/g, ' ')
+          
+          // Auto-save if user is logged in
+          if (auth.state.isAuthenticated && auth.state.user) {
+            try {
+              const savedQuizId = await saveQuizToDatabase(quizName.value, questions.value.length)
+              console.log("Quiz auto-saved with ID:", savedQuizId)
+              currentQuizId.value = savedQuizId
+            } catch (error) {
+              console.error('Error auto-saving extracted quiz:', error)
+            }
+          }
+        }
+      }
+    } else {
+      extracted.value = (await f.text()).trim()
+    }
+  } catch (error) {
+    console.error('Error processing file:', error)
+    alert('Error processing the file. Please try a different file or paste content directly.')
+  } finally {
+    isLoading.value = false
   }
 }
 
@@ -835,6 +869,259 @@ async function saveAndViewQuiz() {
     alert('Failed to save the quiz. Please try again.')
   }
 }
+
+/**
+ * Process document content to extract quiz questions
+ * Looks for patterns typically found in educational documents:
+ * - Multiple choice questions with lettered options (A, B, C, D)
+ * - True/False questions
+ * - Fill-in-the-blank questions with underscores
+ */
+function processDocumentContent(content: string) {
+  if (!content) return [];
+  
+  // Initialize array to hold extracted questions
+  const questions: any[] = [];
+  
+  // Split text into lines
+  const lines = content.split('\n').filter(line => line.trim() !== '');
+  
+  // Process for question patterns
+  for (let i = 0; i < lines.length; i++) {
+    let line = lines[i].trim();
+    
+    // Pattern 1: Check for numbered/lettered questions
+    const questionPattern = /^([0-9]+[\.\)]|[A-Z][\.\)])\s+(.+)$/;
+    const questionMatch = line.match(questionPattern);
+    
+    if (questionMatch) {
+      const questionText = questionMatch[2].trim();
+      
+      // Look for a question mark to confirm it's likely a question
+      if (questionText.includes('?')) {
+        const questionObj: any = {
+          question: questionText,
+          options: [],
+          explanation: "Auto-extracted from document."
+        };
+        
+        let optionIndex = 0;
+        let j = i + 1;
+        const options: string[] = [];
+        let correctAnswerIndex = -1;
+        
+        // Look ahead for option patterns
+        while (j < lines.length && j < i + 6) {
+          const optionLine = lines[j].trim();
+          
+          // Check for multiple choice options: A), B), C), etc.
+          const optionPattern = /^([A-Z])[\.\)]\s+(.+)$/;
+          const optionMatch = optionLine.match(optionPattern);
+          
+          if (optionMatch) {
+            const optionText = optionMatch[2].trim();
+            
+            // Check for correct answer markers like *, (correct), etc.
+            const isCorrect = optionLine.includes('*') || 
+                             optionLine.toLowerCase().includes('(correct)') ||
+                             optionLine.toLowerCase().includes('[correct]');
+            
+            // Clean the option text
+            const cleanOption = optionText
+              .replace(/\*|\(correct\)|\[correct\]/gi, '')
+              .trim();
+            
+            options.push(cleanOption);
+            
+            if (isCorrect) {
+              correctAnswerIndex = optionIndex;
+            }
+            
+            optionIndex++;
+            j++;
+          } 
+          // Check for True/False pattern
+          else if (optionLine.toLowerCase().includes('true') && 
+                   j + 1 < lines.length && 
+                   lines[j + 1].trim().toLowerCase().includes('false')) {
+            
+            // True False question has been identified
+            questionObj.options = ['True', 'False'];
+            
+            // Check which one is marked correct
+            const trueIsCorrect = optionLine.includes('*') || 
+                                 optionLine.toLowerCase().includes('(correct)');
+            const falseIsCorrect = lines[j + 1].trim().includes('*') || 
+                                  lines[j + 1].trim().toLowerCase().includes('(correct)');
+            
+            if (trueIsCorrect) {
+              questionObj.answerIndex = 0;
+            } else if (falseIsCorrect) {
+              questionObj.answerIndex = 1;
+            } else {
+              // Default to first option if no correct answer is marked
+              questionObj.answerIndex = 0;
+            }
+            
+            questions.push(questionObj);
+            i = j + 1; // Move main loop past these options
+            break;
+          } else {
+            break;
+          }
+        }
+        
+        // If we found multiple choice options
+        if (options.length > 0) {
+          questionObj.options = options;
+          
+          // If no correct answer was marked, default to first option
+          questionObj.answerIndex = correctAnswerIndex >= 0 ? correctAnswerIndex : 0;
+          
+          questions.push(questionObj);
+          i = j - 1; // Move main loop past these options
+        }
+        // Check for fill-in-the-blank style questions
+        else if (questionText.includes('___') || questionText.includes('....')) {
+          questionObj.type = 'fill_blank';
+          
+          // Look for the answer on the next line
+          if (j < lines.length) {
+            const answerLine = lines[j].trim();
+            if (answerLine.toLowerCase().startsWith('answer:') || 
+                answerLine.toLowerCase().startsWith('a:')) {
+              
+              const answer = answerLine
+                .replace(/^(answer:|a:)/i, '')
+                .trim();
+              
+              questionObj.answerText = answer;
+              
+              questions.push(questionObj);
+              i = j; // Move past the answer line
+            }
+          }
+        }
+      }
+    }
+    
+    // Pattern 2: Check for explicitly labeled "Question" lines
+    else if (line.toLowerCase().startsWith('question') || line.toLowerCase().includes('q:')) {
+      const questionText = line
+        .replace(/^question|q:/i, '')
+        .trim();
+      
+      if (questionText) {
+        const questionObj: any = {
+          question: questionText,
+          explanation: "Auto-extracted from document."
+        };
+        
+        // Look for "Answer" in the next few lines
+        let j = i + 1;
+        
+        while (j < lines.length && j < i + 5) {
+          const nextLine = lines[j].trim();
+          
+          if (nextLine.toLowerCase().startsWith('a)') || 
+              nextLine.toLowerCase().startsWith('a.')) {
+            // Start of multiple choice options detected
+            const options: string[] = [];
+            let correctIndex = -1;
+            let optionIndex = 0;
+            
+            // Process each option
+            while (j < lines.length && options.length < 5) {
+              const optionLine = lines[j].trim();
+              const optionMatch = optionLine.match(/^([a-d])[\.\)]\s+(.+)$/i);
+              
+              if (optionMatch) {
+                const optionText = optionMatch[2].trim();
+                const isCorrect = optionLine.includes('*') || 
+                                 optionLine.toLowerCase().includes('(correct)');
+                
+                options.push(optionText.replace(/\*|\(correct\)/gi, '').trim());
+                
+                if (isCorrect) {
+                  correctIndex = optionIndex;
+                }
+                
+                optionIndex++;
+                j++;
+              } else {
+                break;
+              }
+            }
+            
+            if (options.length > 0) {
+              questionObj.options = options;
+              questionObj.answerIndex = correctIndex >= 0 ? correctIndex : 0;
+              questions.push(questionObj);
+              i = j - 1;
+              break;
+            }
+          }
+          else if (nextLine.toLowerCase().startsWith('answer') || 
+                  nextLine.toLowerCase() === 'a:') {
+            // Answer found (likely for fill-in-blank or short answer)
+            const answer = nextLine
+              .replace(/^(answer:|a:)/i, '')
+              .trim();
+            
+            // If answer is True or False, treat as True/False question
+            if (answer.toLowerCase() === 'true' || answer.toLowerCase() === 'false') {
+              questionObj.options = ['True', 'False'];
+              questionObj.answerIndex = answer.toLowerCase() === 'true' ? 0 : 1;
+            } else {
+              // Treat as fill-in-blank
+              questionObj.type = 'fill_blank';
+              questionObj.answerText = answer;
+            }
+            
+            questions.push(questionObj);
+            i = j;
+            break;
+          }
+          
+          j++;
+        }
+      }
+    }
+  }
+  
+  // Format the extracted questions to match the expected structure
+  return questions.map(q => {
+    // Ensure all questions have required fields
+    if (!q.options) {
+      q.options = ['Option 1', 'Option 2', 'Option 3', 'Option 4'];
+      q.answerIndex = 0;
+    }
+    
+    if (q.type === 'fill_blank' && q.answerText) {
+      // For fill-in-blank, create plausible wrong answers
+      const correctAnswer = q.answerText;
+      
+      // Create options array with the correct answer and some variations
+      q.options = [
+        correctAnswer,
+        correctAnswer.length > 3 ? correctAnswer.slice(0, -2) + (correctAnswer.endsWith('s') ? '' : 's') : 'Blank',
+        correctAnswer.length > 4 ? correctAnswer.replace(/[aeiou]/i, '*') : 'Unknown',
+        'None of the above'
+      ];
+      
+      q.answerIndex = 0; // First option is correct
+      delete q.answerText;
+    }
+    
+    // Convert question to correct expected format
+    return {
+      question: q.question,
+      options: q.options,
+      answerIndex: q.answerIndex,
+      explanation: q.explanation || "Auto-extracted from document content."
+    };
+  });
+}
 </script>
 
 <style scoped>
@@ -1180,4 +1467,4 @@ async function saveAndViewQuiz() {
 }
 </style>
 ```
-``````
+````````
