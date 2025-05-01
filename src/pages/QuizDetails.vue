@@ -59,6 +59,7 @@
           <!-- Owner-specific actions -->
           <div v-if="isOwner" class="owner-actions">
             <button class="edit-quiz-btn" @click="editQuiz">Edit Quiz</button>
+            <button class="action-btn take-quiz" @click="takeQuiz">Try Quiz</button>
             <button class="delete-quiz-btn" @click="confirmDeleteQuiz">Delete Quiz</button>
           </div>
           
@@ -330,7 +331,7 @@ const editQuiz = () => {
 }
 
 const takeQuiz = () => {
-  router.push(`/take-quiz/${quizId}`)
+  router.push(`/quiz/${quizId}`)
 }
 
 // Upvote handling
@@ -851,13 +852,13 @@ function calculateStats() {
   flex: 1;
 }
 
-.take-quiz-btn, .edit-quiz-btn {
+.take-quiz-btn, .edit-quiz-btn, .try-quiz-btn {
   background: var(--accent);
   color: white;
   flex: 1;
 }
 
-.take-quiz-btn:hover, .edit-quiz-btn:hover {
+.take-quiz-btn:hover, .edit-quiz-btn:hover, .try-quiz-btn:hover {
   background: color-mix(in srgb, var(--accent) 80%, white);
 }
 
