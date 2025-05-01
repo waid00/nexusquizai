@@ -2,9 +2,6 @@
   <div class="public-quizzes">
     <h2 class="page-title">Explore Quizzes</h2>
     
-    <!-- Supabase Connection Status -->
-    <p class="connection-status">{{ connectionStatus }}</p>
-    
     <!-- Search Bar -->
     <div class="search-container">
       <div class="search-input-wrapper">
@@ -58,8 +55,9 @@
           <span class="quiz-badge" :class="quiz.difficulty">{{ quiz.difficulty }}</span>
         </div>
         <div class="quiz-card-body">
-          <p class="quiz-description">
-            <span v-html="highlightMatch(quiz.description)"></span>
+          <p class="quiz-description text-center">
+            <span class="category-label">Category: </span>
+            <span v-html="highlightMatch(quiz.categoryName)"></span>
           </p>
           
           <div class="quiz-stats">
@@ -575,6 +573,27 @@ function viewQuizDetails(quiz: any) {
   font-size: 0.95rem;
 }
 
+.quiz-description span:last-child {
+  font-weight: 500;
+}
+
+.quiz-card.easy .quiz-description span:last-child {
+  color: #2ed573;
+}
+
+.quiz-card.medium .quiz-description span:last-child {
+  color: #ffab00;
+}
+
+.quiz-card.hard .quiz-description span:last-child {
+  color: #ff4757;
+}
+
+.quiz-description span:last-child {
+  color: var(--accent);
+  font-weight: 500;
+}
+
 .quiz-stats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -736,5 +755,14 @@ function viewQuizDetails(quiz: any) {
   color: #2ecc71;
   padding: 0 2px;
   border-radius: 2px;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.category-label {
+  font-weight: 500;
+  color: var(--text-alt);
 }
 </style>

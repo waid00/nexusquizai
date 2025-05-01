@@ -57,7 +57,8 @@ export async function getPublicQuizzes() {
       Users (username),
       Questions (count),
       QuizAttempts!quiz_id (count),
-      QuizUpvotes!quiz_id (count)
+      QuizUpvotes!quiz_id (count),
+      Categories (category_name)
     `)
     .eq('is_public', true)
     .eq('is_deleted', false)
@@ -76,6 +77,7 @@ export async function getPublicQuizzes() {
     questionCount: quiz.Questions?.length || 0,
     attemptCount: quiz.QuizAttempts?.length || 0,
     upvoteCount: quiz.QuizUpvotes?.length || 0,
+    categoryName: quiz.Categories?.category_name || 'Uncategorized',
     hasUserUpvoted: false, // This will be set on the client based on current user
     isUserOwner: false // This will be set on the client based on current user
   }));
