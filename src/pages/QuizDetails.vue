@@ -59,12 +59,14 @@
           <!-- Owner-specific actions -->
           <div v-if="isOwner" class="owner-actions">
             <button class="edit-quiz-btn" @click="editQuiz">Edit Quiz</button>
+            <button class="delete-quiz-btn" @click="confirmDeleteQuiz">Delete Quiz</button>
           </div>
           
           <!-- Non-owner actions -->
           <div v-else class="solver-actions">
             <button class="take-quiz-btn" @click="takeQuiz">Take Quiz</button>
             <button 
+              v-if="auth.state.isAuthenticated"
               class="upvote-btn" 
               :class="{ active: hasUserUpvoted }"
               @click="toggleUpvote"
@@ -72,6 +74,15 @@
               <span class="upvote-icon">⬆</span>
               <span class="upvote-count">{{ upvoteCount }}</span>
               Upvote
+            </button>
+            <button 
+              v-else
+              class="upvote-btn" 
+              @click="promptLogin"
+            >
+              <span class="upvote-icon">⬆</span>
+              <span class="upvote-count">{{ upvoteCount }}</span>
+              Login to Upvote
             </button>
           </div>
           
@@ -227,7 +238,16 @@
         </div>
       </div>
 
-
+      <!-- Confirmation Modal -->
+      <ConfirmationModal
+        :show="showConfirmation"
+        :title="confirmationData.title"
+        :message="confirmationData.message"
+        :confirm-text="confirmationData.confirmText"
+        :type="confirmationData.type"
+        @confirm="confirmAction"
+        @cancel="cancelConfirmation"
+      />
     </div>
   </div>
 </template>
@@ -238,6 +258,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
 import { toggleQuizUpvote, checkUserUpvote } from '@/api/supabase'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -256,6 +277,23 @@ const upvoteCount = ref(0)
 const hasUserUpvoted = ref(false)
 const userAttempts = ref<any[]>([])
 
+// Stats data
+const avgScore = ref(0)
+const avgCorrect = ref(0)
+const passRate = ref(0)
+const passCount = ref(0)
+const avgTime = ref(0)
+
+// Confirmation modal state
+const showConfirmation = ref(false)
+const confirmationData = reactive({
+  title: '',
+  message: '',
+  confirmText: 'Confirm',
+  type: 'warning',
+  action: ''
+})
+
 // Computed properties for view logic
 const isOwner = computed(() => {
   return auth.state.isAuthenticated && 
@@ -271,46 +309,138 @@ const hasAttempted = computed(() => {
 // Stats computed properties
 const attemptCount = computed(() => attempts.value.length)
 
-const avgScore = computed(() => {
-  if (attempts.value.length === 0) return 0
-  const totalPercentage = attempts.value.reduce((acc, attempt) => {
-    return acc + (attempt.score / attempt.totalQuestions * 100)
-  }, 0)
-  return Math.round(totalPercentage / attempts.value.length)
-})
+// Format a date string
+const formatDate = (dateString: string) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  return date.toLocaleDateString()
+}
 
-const avgCorrect = computed(() => {
-  if (attempts.value.length === 0) return 0
-  const totalCorrect = attempts.value.reduce((acc, attempt) => {
-    return acc + attempt.score
-  }, 0)
-  return Math.round((totalCorrect / attempts.value.length) * 10) / 10
-})
+// Format time in seconds to minutes:seconds
+const formatTime = (seconds: number) => {
+  if (!seconds) return '0:00'
+  const mins = Math.floor(seconds / 60)
+  const secs = Math.floor(seconds % 60)
+  return `${mins}:${secs.toString().padStart(2, '0')}`
+}
 
-const passCount = computed(() => {
-  return attempts.value.filter(attempt => attempt.isPassed).length
-})
+// Navigation functions
+const editQuiz = () => {
+  router.push(`/edit-quiz/${quizId}`)
+}
 
-const passRate = computed(() => {
-  if (attempts.value.length === 0) return 0
-  return Math.round((passCount.value / attempts.value.length) * 100)
-})
+const takeQuiz = () => {
+  router.push(`/take-quiz/${quizId}`)
+}
 
-const avgTime = computed(() => {
-  if (attempts.value.length === 0) return 0
-  const totalTime = attempts.value.reduce((acc, attempt) => {
-    return acc + attempt.elapsedTime
-  }, 0)
-  return Math.round(totalTime / attempts.value.length)
-})
-
-// Load quiz data
-onMounted(async () => {
-  if (!auth.state.isAuthenticated || !auth.state.user) {
-    router.push('/login')
+// Upvote handling
+const toggleUpvote = async () => {
+  if (!auth.state.isAuthenticated) {
+    promptLogin()
     return
   }
   
+  try {
+    const result = await toggleQuizUpvote(quizId, auth.state.user!.userId)
+    hasUserUpvoted.value = !hasUserUpvoted.value
+    upvoteCount.value = hasUserUpvoted.value ? upvoteCount.value + 1 : upvoteCount.value - 1
+  } catch (error) {
+    console.error('Error toggling upvote:', error)
+  }
+}
+
+const promptLogin = () => {
+  router.push('/login?redirect=' + encodeURIComponent(route.fullPath))
+}
+
+// Question display helpers
+const toggleQuestionExpand = (questionId: number) => {
+  expandedQuestions[questionId] = !expandedQuestions[questionId]
+}
+
+const formatQuestionType = (type: string) => {
+  if (type === 'multiple_choice') return 'Multiple Choice'
+  if (type === 'true_false') return 'True/False'
+  if (type === 'fill_blank') return 'Fill in the Blank'
+  return type
+}
+
+// Answer handling functions
+const getAnswerOptions = (questionId: number) => {
+  return answerOptions.value[questionId] || []
+}
+
+const getCorrectTrueFalseAnswer = (questionId: number) => {
+  const question = questions.value.find(q => q.questionId === questionId)
+  return question?.correctAnswer === 'true'
+}
+
+const getBlankAnswer = (questionId: number) => {
+  const question = questions.value.find(q => q.questionId === questionId)
+  return question?.correctAnswer || 'N/A'
+}
+
+// Statistics functions
+const calculateSuccessRate = (questionId: number) => {
+  const stats = questionStats.value[questionId]
+  if (!stats || stats.total === 0) return 0
+  return Math.round((stats.correct / stats.total) * 100)
+}
+
+const getSuccessRateClass = (rate: number) => {
+  if (rate >= 70) return 'high'
+  if (rate >= 40) return 'medium'
+  return 'low'
+}
+
+// Confirm delete quiz
+function confirmDeleteQuiz() {
+  confirmationData.title = 'Delete Quiz';
+  confirmationData.message = `Are you sure you want to delete "${quiz.value.title}"? This action cannot be undone.`;
+  confirmationData.confirmText = 'Delete';
+  confirmationData.type = 'danger';
+  confirmationData.action = 'deleteQuiz';
+  
+  showConfirmation.value = true;
+}
+
+// Delete a quiz (soft delete)
+async function deleteQuiz() {
+  try {
+    const { error } = await supabase
+      .from('Quizzes')
+      .update({ is_deleted: true })
+      .eq('id', quizId)
+      .eq('owner_id', auth.state.user!.userId)
+
+    if (error) throw error
+
+    // Redirect to my quizzes page
+    router.push('/my-quizzes');
+  } catch (error) {
+    console.error('Error deleting quiz:', error)
+    alert('Failed to delete quiz. Please try again.')
+  }
+}
+
+// Handle confirmation modal actions
+function confirmAction() {
+  switch (confirmationData.action) {
+    case 'deleteQuiz':
+      deleteQuiz();
+      break;
+  }
+  
+  showConfirmation.value = false;
+}
+
+// Cancel confirmation
+function cancelConfirmation() {
+  showConfirmation.value = false;
+}
+
+// Load quiz data
+onMounted(async () => {
   if (isNaN(quizId)) {
     errorMessage.value = 'Invalid quiz ID'
     isLoading.value = false
@@ -318,30 +448,68 @@ onMounted(async () => {
   }
   
   try {
-    // Load all quiz data
-    await Promise.all([
-      loadQuizDetails(),
-      loadQuestions(),
-      loadAttempts(),
-      loadUpvotes()
-    ])
+    // First check if the quiz exists and is public or user is the owner
+    const { data: quizAccessData, error: accessError } = await supabase
+      .from('Quizzes')
+      .select('id, owner_id, is_public, is_deleted')
+      .eq('id', quizId)
+      .single()
+    
+    if (accessError || !quizAccessData) {
+      throw new Error('Quiz not found')
+    }
+    
+    // Check if quiz is deleted
+    if (quizAccessData.is_deleted) {
+      throw new Error('This quiz has been deleted')
+    }
+    
+    // Check access permissions
+    const isOwner = auth.state.isAuthenticated && 
+                    auth.state.user && 
+                    quizAccessData.owner_id === auth.state.user.userId
+    
+    const isPublic = quizAccessData.is_public
+    
+    // If quiz is not public and user is not the owner, redirect
+    if (!isPublic && !isOwner) {
+      errorMessage.value = 'This quiz is private and you do not have permission to view it'
+      isLoading.value = false
+      return
+    }
+    
+    // Load quiz details
+    await loadQuizDetails()
+    
+    // Load questions
+    await loadQuestions()
+    
+    // Load attempts
+    await loadAttempts()
+    
+    // Load upvotes
+    await loadUpvotes()
     
     // Check if current user has upvoted this quiz
     if (auth.state.isAuthenticated && auth.state.user) {
       const hasUpvoted = await checkUserUpvote(quizId, auth.state.user.userId)
       hasUserUpvoted.value = hasUpvoted
+      
+      // Check if user has attempted this quiz
+      userAttempts.value = attempts.value.filter(a => 
+        a.userId === auth.state.user?.userId
+      )
     }
     
     // Load answer options for all questions
     await loadAnswerOptions()
     
-    // Calculate question success rates
+    // Calculate question stats
     calculateQuestionStats()
     
-    // Check if user has attempted this quiz
-    if (auth.state.user) {
-      userAttempts.value = attempts.value.filter(a => a.userId === auth.state.user?.userId)
-    }
+    // Calculate stats for display
+    calculateStats()
+    
   } catch (error: any) {
     console.error('Error loading quiz details:', error)
     errorMessage.value = error.message || 'Failed to load quiz details'
@@ -512,101 +680,31 @@ async function calculateQuestionStats() {
   }
 }
 
-// Toggle upvote for this quiz
-async function toggleUpvote() {
-  if (!auth.state.isAuthenticated || !auth.state.user) {
-    router.push('/login')
-    return
-  }
+// Calculate aggregate stats
+function calculateStats() {
+  if (attempts.value.length === 0) return
   
-  try {
-    await toggleQuizUpvote(quizId, auth.state.user.userId)
-    hasUserUpvoted.value = !hasUserUpvoted.value
-    upvoteCount.value += hasUserUpvoted.value ? 1 : -1
-  } catch (error) {
-    console.error('Error toggling upvote:', error)
-  }
-}
-
-// Toggle question expansion
-function toggleQuestionExpand(questionId: number) {
-  expandedQuestions[questionId] = !expandedQuestions[questionId]
-}
-
-// Helper methods for answer display
-function getAnswerOptions(questionId: number) {
-  return answerOptions.value[questionId] || []
-}
-
-function getCorrectTrueFalseAnswer(questionId: number) {
-  const options = answerOptions.value[questionId] || []
-  const correctOption = options.find(opt => opt.isCorrect)
-  if (correctOption) {
-    return correctOption.optionText.toLowerCase() === 'true'
-  }
-  return null
-}
-
-function getBlankAnswer(questionId: number) {
-  const options = answerOptions.value[questionId] || []
-  const correctOption = options.find(opt => opt.isCorrect)
-  return correctOption ? correctOption.optionText : 'No answer provided'
-}
-
-// Format date for display
-function formatDate(dateString: string) {
-  const date = new Date(dateString)
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
-  })
-}
-
-// Format time in minutes and seconds
-function formatTime(seconds: number) {
-  const minutes = Math.floor(seconds / 60)
-  const remainingSeconds = seconds % 60
-  return `${minutes}m ${remainingSeconds}s`
-}
-
-// Calculate success rate for a question
-function calculateSuccessRate(questionId: number) {
-  const stats = questionStats.value[questionId]
-  if (!stats || stats.total === 0) return 0
-  return Math.round((stats.correct / stats.total) * 100)
-}
-
-// Get class for success rate bar color
-function getSuccessRateClass(rate: number) {
-  if (rate >= 75) return 'high'
-  if (rate >= 40) return 'medium'
-  return 'low'
-}
-
-// Format question type
-function formatQuestionType(type: string) {
-  switch (type) {
-    case 'multiple_choice': return 'Multiple Choice'
-    case 'true_false': return 'True/False'
-    case 'fill_blank': return 'Fill in the Blank'
-    default: return type
-  }
-}
-
-// Navigation functions
-function takeQuiz() {
-  router.push(`/quiz/${quizId}`)
-}
-
-function editQuiz() {
-  // This would navigate to an edit page if you had one
-  router.push(`/quiz/${quizId}/edit`)
-}
-
-function viewAttempts() {
-  // View all attempts for this quiz (for owner)
-  router.push(`/quiz/${quizId}/attempts`)
+  // Average score
+  const totalPercentage = attempts.value.reduce((acc, attempt) => {
+    return acc + (attempt.score / attempt.totalQuestions * 100)
+  }, 0)
+  avgScore.value = Math.round(totalPercentage / attempts.value.length)
+  
+  // Average correct answers
+  const totalCorrect = attempts.value.reduce((acc, attempt) => {
+    return acc + attempt.score
+  }, 0)
+  avgCorrect.value = Math.round((totalCorrect / attempts.value.length) * 10) / 10
+  
+  // Pass count and rate
+  passCount.value = attempts.value.filter(attempt => attempt.isPassed).length
+  passRate.value = Math.round((passCount.value / attempts.value.length) * 100)
+  
+  // Average time
+  const totalTime = attempts.value.reduce((acc, attempt) => {
+    return acc + attempt.elapsedTime
+  }, 0)
+  avgTime.value = Math.round(totalTime / attempts.value.length)
 }
 </script>
 
@@ -753,7 +851,27 @@ function viewAttempts() {
   flex: 1;
 }
 
-.take-quiz-btn, .edit-quiz-btn, .view-attempts-btn, .back-btn, .btn, .upvote-btn {
+.take-quiz-btn, .edit-quiz-btn {
+  background: var(--accent);
+  color: white;
+  flex: 1;
+}
+
+.take-quiz-btn:hover, .edit-quiz-btn:hover {
+  background: color-mix(in srgb, var(--accent) 80%, white);
+}
+
+.delete-quiz-btn {
+  background: rgba(255, 71, 87, 0.9);
+  color: white;
+  flex: 1;
+}
+
+.delete-quiz-btn:hover {
+  background: rgba(255, 71, 87, 1);
+}
+
+.view-attempts-btn, .back-btn, .btn, .upvote-btn {
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -763,16 +881,6 @@ function viewAttempts() {
   border: none;
   transition: all 0.2s ease;
   min-width: 120px;
-}
-
-.take-quiz-btn, .edit-quiz-btn {
-  background: var(--accent);
-  color: white;
-  flex: 1;
-}
-
-.take-quiz-btn:hover, .edit-quiz-btn:hover {
-  background: color-mix(in srgb, var(--accent) 80%, white);
 }
 
 .view-attempts-btn {

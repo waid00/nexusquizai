@@ -139,7 +139,12 @@
       </ul>
 
       <div class="quiz-actions">
-        <router-link to="/my-quizzes" class="return-btn">Back to My Quizzes</router-link>
+        <template v-if="auth.state.isAuthenticated">
+          <router-link to="/my-quizzes" class="return-btn">Back to My Quizzes</router-link>
+        </template>
+        <template v-else>
+          <router-link to="/" class="return-btn">Back to Home</router-link>
+        </template>
         <button class="retake-btn" @click="retakeQuiz">Retake Quiz</button>
       </div>
     </div>
@@ -190,22 +195,46 @@ const allQuestionsAnswered = computed(() => {
 
 // Load the quiz data when component mounts
 onMounted(async () => {
-  if (!auth.state.isAuthenticated || !auth.state.user) {
-    router.push('/login')
-    return
-  }
-  
   if (isNaN(quizId)) {
-    router.push('/my-quizzes')
+    router.push('/')
     return
   }
   
   try {
+    // First check if the quiz exists and is public or user is the owner
+    const { data: quizAccessData, error: accessError } = await supabase
+      .from('Quizzes')
+      .select('id, owner_id, is_public, is_deleted')
+      .eq('id', quizId)
+      .single()
+    
+    if (accessError || !quizAccessData) {
+      throw new Error('Quiz not found')
+    }
+    
+    // Check if quiz is deleted
+    if (quizAccessData.is_deleted) {
+      throw new Error('This quiz has been deleted')
+    }
+    
+    // Check access permissions
+    const isOwner = auth.state.isAuthenticated && 
+                    auth.state.user && 
+                    quizAccessData.owner_id === auth.state.user.userId
+    
+    const isPublic = quizAccessData.is_public
+    
+    // If quiz is not public and user is not the owner, redirect
+    if (!isPublic && !isOwner) {
+      router.push('/')
+      return
+    }
+    
     await loadQuiz(quizId)
     quizStartTime.value = new Date()
   } catch (error) {
     console.error('Error loading quiz:', error)
-    router.push('/my-quizzes')
+    router.push('/')
   } finally {
     isLoading.value = false
   }
@@ -505,9 +534,13 @@ async function saveQuizAttempt(quizId: number, score: number, totalQuestions: nu
   }
 }
 
-// Cancel the quiz and return to My Quizzes
+// Cancel the quiz and return to appropriate page
 function cancelQuiz() {
-  router.push('/my-quizzes');
+  if (auth.state.isAuthenticated) {
+    router.push('/my-quizzes');
+  } else {
+    router.push('/');
+  }
 }
 
 // Retake the quiz

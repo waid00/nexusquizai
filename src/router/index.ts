@@ -39,14 +39,12 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/quiz/:id',
     name: 'TakeQuiz',
-    component: () => import('@/pages/TakeQuiz.vue'),
-    meta: { requiresAuth: true }
+    component: () => import('@/pages/TakeQuiz.vue')
   },
   {
     path: '/quiz/:id/details',
     name: 'QuizDetails',
-    component: () => import('@/pages/QuizDetails.vue'),
-    meta: { requiresAuth: true }
+    component: () => import('@/pages/QuizDetails.vue')
   },
   {
     path: '/attempt/:id',

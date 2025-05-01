@@ -88,7 +88,6 @@
                   <span class="upvote-count">{{ quiz.upvoteCount }}</span>
                 </button>
               </div>
-              <button class="action-btn delete-btn" @click="confirmDeleteQuiz(quiz)">Delete</button>
             </div>
             <div class="main-buttons-container">
               <button class="action-btn take-quiz" @click="takeQuiz(quiz.quizId)">Take Quiz</button>

@@ -24,9 +24,6 @@
             </button>
             <div class="dropdown-menu" :class="{ 'show': showUserMenu }">
               <router-link to="/profile" class="dropdown-item">Profile</router-link>
-              <router-link v-if="isAdmin" to="/admin" class="dropdown-item admin-item">
-                Admin Dashboard
-              </router-link>
               <div class="dropdown-divider"></div>
               <button @click="logout" class="dropdown-item logout-btn">Logout</button>
             </div>
@@ -52,7 +49,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
@@ -105,6 +102,17 @@ async function checkUserRole() {
     }
   }
 }
+
+// Watch for authentication state changes
+watch(() => auth.state.isAuthenticated, (isAuthenticated) => {
+  if (isAuthenticated) {
+    // If user logged in, check their role
+    checkUserRole()
+  } else {
+    // If user logged out, reset role
+    userRole.value = null
+  }
+}, { immediate: true })
 
 // Add/remove click listener for dropdown
 onMounted(() => {

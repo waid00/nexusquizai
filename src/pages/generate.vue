@@ -442,12 +442,29 @@ async function generate() {
   }
 
   isLoading.value = true
-  const systemPrompt = 'You output ONLY a JSON array of quiz objects. Each object must have a question, options array, answerIndex (zero-based index of correct answer in options array), and explanation field explaining why this answer is correct. No extra text.'
-  const userPrompt   = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this text. Respond with a valid JSON array only:
-
-"""
-${src}
-"""`
+  
+  // Enhanced system prompt with specific instructions for true/false questions
+  const systemPrompt = type.value === 'tf' 
+    ? 'You output ONLY a JSON array of true/false quiz objects. Each object must have a question field ending with "True or False?", options array ALWAYS containing exactly ["True", "False"], answerIndex (0 for True, 1 for False), and explanation field explaining why this answer is correct. No extra text.'
+    : 'You output ONLY a JSON array of quiz objects. Each object must have a question, options array, answerIndex (zero-based index of correct answer in options array), and explanation field explaining why this answer is correct. No extra text.'
+  
+  // Enhanced user prompt with specific examples for true/false questions
+  let userPrompt = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this text. Respond with a valid JSON array only:`
+  
+  // Add example for true/false questions
+  if (type.value === 'tf') {
+    userPrompt += `\n\nFor true/false questions, make sure each question ends with "True or False?" and has exactly ["True", "False"] as options. Example:
+[
+  {
+    "question": "The Earth orbits around the Sun. True or False?",
+    "options": ["True", "False"],
+    "answerIndex": 0,
+    "explanation": "This is correct. The Earth does orbit around the Sun in our solar system."
+  }
+]`
+  }
+  
+  userPrompt += `\n\n"""\n${src}\n"""`
 
   try {
     // Save source content if the user is authenticated

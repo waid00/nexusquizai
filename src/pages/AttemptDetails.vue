@@ -163,8 +163,11 @@ onMounted(async () => {
   }
   
   try {
+    // First load the attempt details
+    await loadAttemptDetails()
+    
+    // Then load the quiz details and answers
     await Promise.all([
-      loadAttemptDetails(),
       loadQuizDetails(),
       loadAnswers()
     ])
