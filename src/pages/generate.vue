@@ -74,6 +74,23 @@
           </div>
         </div>
       </div>
+      
+      <!-- Generated Quiz Category Section (appears after generation) -->
+      <div v-if="questions.length > 0" class="section category-section">
+        <h3 class="section-title">Quiz Category</h3>
+        <div class="category-selection">
+          <p class="category-info">AI has suggested this category based on your content:</p>
+          <select v-model="suggestedCategory" class="select-input">
+            <option 
+              v-for="category in categories" 
+              :key="category.id" 
+              :value="category.id"
+            >
+              {{ category.category_name }}
+            </option>
+          </select>
+        </div>
+      </div>
 
       <!-- 5) Generate button -->
       <div class="button-container">
@@ -269,7 +286,7 @@
 
 <script setup lang="ts">
 import '@/assets/generate.css'
-import { ref, watch, computed } from 'vue'
+import { ref, watch, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import mammoth from 'mammoth'
 import { chat, type ChatCompletionRequestMessage } from '@/api/openai'
@@ -298,6 +315,8 @@ const count       = ref(5)
 const difficulty  = ref<'easy'|'medium'|'hard'>('medium')
 const isLoading   = ref(false)
 const questions   = ref<any[]>([])
+const categories  = ref<any[]>([])
+const suggestedCategory = ref<number>(1) // Default to General Knowledge
 
 // Quiz taking states
 const quizMode = ref<'create' | 'take' | 'results'>('create')
@@ -321,6 +340,25 @@ const currentQuestion = computed(() => {
   }
   return null
 })
+
+// Load available categories when component mounts
+onMounted(async () => {
+  try {
+    const { data, error } = await supabase
+      .from('Categories')
+      .select('id, category_name, description')
+      .order('id', { ascending: true });
+    
+    if (error) {
+      console.error('Error loading categories:', error);
+    } else if (data) {
+      categories.value = data;
+      console.log('Loaded categories:', categories.value);
+    }
+  } catch (err) {
+    console.error('Failed to load categories:', err);
+  }
+});
 
 // Navigation functions for one-by-one question display
 function nextQuestion() {
@@ -443,25 +481,55 @@ async function generate() {
 
   isLoading.value = true
   
-  // Enhanced system prompt with specific instructions for true/false questions
-  const systemPrompt = type.value === 'tf' 
-    ? 'You output ONLY a JSON array of true/false quiz objects. Each object must have a question field ending with "True or False?", options array ALWAYS containing exactly ["True", "False"], answerIndex (0 for True, 1 for False), and explanation field explaining why this answer is correct. No extra text.'
-    : 'You output ONLY a JSON array of quiz objects. Each object must have a question, options array, answerIndex (zero-based index of correct answer in options array), and explanation field explaining why this answer is correct. No extra text.'
+  // First get available categories for the AI to classify the content
+  let categoryOptions = 'General Knowledge'; // Default fallback
+  if (categories.value.length > 0) {
+    categoryOptions = categories.value.map(cat => `${cat.id}. ${cat.category_name}`).join(', ');
+  }
   
-  // Enhanced user prompt with specific examples for true/false questions
-  let userPrompt = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this text. Respond with a valid JSON array only:`
+  // Enhanced system prompt with specific instructions for true/false questions and category selection
+  const systemPrompt = type.value === 'tf' 
+    ? `You output ONLY a JSON object with two fields: "questions" and "category". 
+       The "questions" field contains an array of true/false quiz objects. Each object must have a question field ending with "True or False?", options array ALWAYS containing exactly ["True", "False"], answerIndex (0 for True, 1 for False), and explanation field explaining why this answer is correct.
+       The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
+       No extra text.`
+    : `You output ONLY a JSON object with two fields: "questions" and "category".
+       The "questions" field contains an array of quiz objects. Each object must have a question, options array, answerIndex (zero-based index of correct answer in options array), and explanation field explaining why this answer is correct.
+       The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
+       No extra text.`
+  
+  // Enhanced user prompt with specific examples for true/false questions and category selection
+  let userPrompt = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this text. Analyze the content to determine the most appropriate category from the options above. Respond with a valid JSON object only:`
   
   // Add example for true/false questions
   if (type.value === 'tf') {
     userPrompt += `\n\nFor true/false questions, make sure each question ends with "True or False?" and has exactly ["True", "False"] as options. Example:
-[
-  {
-    "question": "The Earth orbits around the Sun. True or False?",
-    "options": ["True", "False"],
-    "answerIndex": 0,
-    "explanation": "This is correct. The Earth does orbit around the Sun in our solar system."
-  }
-]`
+{
+  "questions": [
+    {
+      "question": "The Earth orbits around the Sun. True or False?",
+      "options": ["True", "False"],
+      "answerIndex": 0,
+      "explanation": "This is correct. The Earth does orbit around the Sun in our solar system."
+    }
+  ],
+  "category": 2
+}
+`
+  } else {
+    userPrompt += `\n\nExample format:
+{
+  "questions": [
+    {
+      "question": "What is the capital of France?",
+      "options": ["Paris", "London", "Berlin", "Madrid"],
+      "answerIndex": 0,
+      "explanation": "Paris is the capital city of France."
+    }
+  ],
+  "category": 1
+}
+`
   }
   
   userPrompt += `\n\n"""\n${src}\n"""`
@@ -500,7 +568,7 @@ async function generate() {
     
     console.log('Raw API response:', raw)
     
-    // Try to safely extract the JSON array
+    // Try to safely extract the JSON
     raw = raw.trim()
     
     // Remove any code fence markers (```json or ```)
@@ -508,188 +576,53 @@ async function generate() {
     raw = raw.replace(/\s*```$/g, '')
     raw = raw.trim()
     
-    // Find the opening and closing brackets of the JSON array
-    const start = raw.indexOf('[')
-    const end = raw.lastIndexOf(']')
-    
-    if (start === -1 || end === -1 || start > end) {
-      throw new Error('No valid JSON array found in the response')
-    }
-    
-    // Extract just the array portion
-    const jsonText = raw.substring(start, end + 1)
-    console.log('Extracted JSON:', jsonText)
-    
+    // Parse the JSON response (now expecting an object with questions array and category)
     try {
-      questions.value = JSON.parse(jsonText)
-      console.log('Parsed questions:', questions.value)
+      const parsedResponse = JSON.parse(raw);
+      console.log('Parsed response:', parsedResponse);
       
-      // Auto-save the quiz with a default name
-      if (auth.state.isAuthenticated && auth.state.user) {
-        quizName.value = "Untitled Quiz"
-        const savedQuizId = await saveQuizToDatabase(quizName.value, questions.value.length, sourceDocId)
-        console.log("Quiz auto-saved with ID:", savedQuizId)
-        currentQuizId.value = savedQuizId
+      // Extract questions array and category
+      if (parsedResponse.questions && Array.isArray(parsedResponse.questions)) {
+        questions.value = parsedResponse.questions;
+        console.log('Parsed questions:', questions.value);
+        
+        // Extract and validate category
+        if (parsedResponse.category !== undefined) {
+          // Find the category by ID in our categories array
+          const categoryId = Number(parsedResponse.category);
+          const foundCategory = categories.value.find(cat => cat.id === categoryId);
+          
+          if (foundCategory) {
+            suggestedCategory.value = foundCategory.id;
+            console.log('Suggested category:', foundCategory.category_name, '(ID:', foundCategory.id, ')');
+          } else {
+            // If category ID is invalid, use default
+            suggestedCategory.value = categories.value.length > 0 ? categories.value[0].id : 1;
+            console.log('Invalid category ID returned, using default:', suggestedCategory.value);
+          }
+        }
+        
+        // Auto-save the quiz with a default name
+        if (auth.state.isAuthenticated && auth.state.user) {
+          quizName.value = "Untitled Quiz";
+          const savedQuizId = await saveQuizToDatabase(quizName.value, questions.value.length, sourceDocId);
+          console.log("Quiz auto-saved with ID:", savedQuizId);
+          currentQuizId.value = savedQuizId;
+        }
+      } else {
+        throw new Error('No questions array found in the response');
       }
-      
     } catch (error) {
-      const jsonError = error as Error
-      console.error('JSON parse error:', jsonError)
-      throw new Error(`Failed to parse JSON: ${jsonError.message}`)
+      const jsonError = error as Error;
+      console.error('JSON parse error:', jsonError);
+      throw new Error(`Failed to parse JSON: ${jsonError.message}`);
     }
   } catch (err) {
-    const error = err as Error
-    console.error('Generation error:', error)
-    alert(`Error: ${error.message || 'Failed to generate questions'}`)
+    const error = err as Error;
+    console.error('Generation error:', error);
+    alert(`Error: ${error.message || 'Failed to generate questions'}`);
   } finally {
-    isLoading.value = false
-  }
-}
-
-function remove(i: number) {
-  questions.value.splice(i, 1)
-}
-
-function exportCSV() {
-  const rows = questions.value.map((q,i) => {
-    const opts = q.options?.join('|') || ''
-    return `"${i+1}","${q.question}","${opts}","${q.options?.[q.answerIndex]}"`
-  })
-  const csv = ['No,Question,Options,Answer', ...rows].join('\n')
-  const blob = new Blob([csv], { type: 'text/csv' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url; a.download = 'quiz.csv'; a.click()
-  URL.revokeObjectURL(url)
-}
-
-async function startQuiz() {
-  if (!quizName.value.trim()) {
-    quizName.value = "Untitled Quiz"
-  }
-  
-  // Save the quiz to the database before taking it
-  if (auth.state.isAuthenticated && auth.state.user) {
-    try {
-      // Save the quiz to the database
-      await saveQuizToDatabase(quizName.value, questions.value.length)
-      console.log("Quiz saved to database before starting it")
-    } catch (error) {
-      console.error("Error saving quiz before starting:", error)
-    }
-  }
-  
-  quizMode.value = 'take'
-  quizStartTime.value = new Date()
-  userAnswers.value = Array(questions.value.length).fill(undefined)
-}
-
-function selectAnswer(questionIndex: number, optionIndex: number) {
-  userAnswers.value[questionIndex] = optionIndex
-}
-
-function cancelQuiz() {
-  quizMode.value = 'create'
-  userAnswers.value = []
-  quizStartTime.value = null
-}
-
-async function submitQuiz() {
-  // Calculate score
-  score.value = userAnswers.value.reduce((acc, ans, i) => {
-    return acc + (ans === questions.value[i].answerIndex ? 1 : 0)
-  }, 0)
-  
-  // Calculate elapsed time
-  const endTime = new Date()
-  const elapsedTimeInSeconds = quizStartTime.value ? 
-    Math.floor((endTime.getTime() - quizStartTime.value.getTime()) / 1000) : 0
-  
-  // Save to database if user is authenticated
-  if (auth.state.isAuthenticated && auth.state.user) {
-    try {
-      await saveQuizAttempt(
-        quizName.value, 
-        score.value, 
-        questions.value.length, 
-        elapsedTimeInSeconds
-      )
-    } catch (error) {
-      console.error('Failed to save quiz attempt:', error)
-    }
-  }
-  
-  quizMode.value = 'results'
-}
-
-async function saveQuizAttempt(title: string, score: number, totalQuestions: number, elapsedTime: number) {
-  try {
-    console.log('Starting saveQuizAttempt with:', { title, userId: auth.state.user!.userId });
-    
-    if (!currentQuizId.value) {
-      // Quiz doesn't exist yet, create it first
-      currentQuizId.value = await saveQuizToDatabase(title, totalQuestions);
-    }
-    
-    // Calculate pass/fail status
-    const isPassed = score / totalQuestions >= 0.6;
-    
-    // Create the quiz attempt
-    const startTime = new Date();
-    startTime.setSeconds(startTime.getSeconds() - elapsedTime);
-    
-    const attemptData = {
-      quiz_id: currentQuizId.value,
-      user_id: auth.state.user!.userId,
-      score: score,
-      total_questions: totalQuestions,
-      started_at: startTime.toISOString(),
-      completed_at: new Date().toISOString(),
-      elapsed_time: elapsedTime,
-      is_passed: isPassed
-    };
-    
-    const newAttempt = await createQuizAttempt(attemptData);
-    const attemptId = newAttempt.id;
-    
-    console.log('Created attempt with ID:', attemptId);
-    
-    // Save the user's answers
-    const answerPromises = [];
-    
-    for (let i = 0; i < questions.value.length; i++) {
-      const questionId = questions.value[i].questionId; // This will be set when getting questions
-      const userAnswer = userAnswers.value[i];
-      
-      if (userAnswer !== undefined && questionId) {
-        const isCorrect = userAnswer === questions.value[i].answerIndex;
-        
-        // Get the option ID - we might need to refactor this depending on data structure
-        const optionId = questions.value[i].optionIds ? 
-          questions.value[i].optionIds[userAnswer] : null;
-        
-        if (optionId) {
-          const attemptAnswer = {
-            attempt_id: attemptId,
-            question_id: questionId,
-            selected_option_id: optionId,
-            is_correct: isCorrect
-          };
-          
-          answerPromises.push(createAttemptAnswers([attemptAnswer]));
-        }
-      }
-    }
-    
-    if (answerPromises.length > 0) {
-      await Promise.all(answerPromises);
-    }
-    
-    console.log('Quiz attempt saved successfully');
-    return true;
-  } catch (error) {
-    console.error('Error saving quiz attempt:', error);
-    throw error;
+    isLoading.value = false;
   }
 }
 
@@ -728,50 +661,10 @@ async function saveQuizToDatabase(baseTitle: string, totalQuestions: number, sou
       throw new Error('Could not verify user in database');
     }
     
-    // Get categories with better error handling
-    let categoryId = 1; // Default fallback
+    // Use the AI-suggested category (if available)
+    let categoryId = suggestedCategory.value;
     
-    try {
-      // Try to get all categories first to see what's available
-      const { data: categories, error: categoriesError } = await supabase
-        .from('Categories')
-        .select('*');
-      
-      if (categoriesError) {
-        console.error('Error fetching categories:', categoriesError);
-        throw new Error('Failed to fetch quiz categories');
-      }
-      
-      if (!categories || categories.length === 0) {
-        // No categories found - let's create one
-        console.log('No categories found, creating a default category');
-        
-        const { data: newCategory, error: createCategoryError } = await supabase
-          .from('Categories')
-          .insert({
-            category_name: 'General Knowledge',
-            description: 'General questions on various topics'
-          })
-          .select()
-          .single();
-        
-        if (createCategoryError) {
-          console.error('Error creating default category:', createCategoryError);
-          throw new Error('Failed to create default category');
-        }
-        
-        categoryId = newCategory.id;
-        console.log('Created default category with ID:', categoryId);
-      } else {
-        // Categories exist, use the first one
-        categoryId = categories[0].id;
-        console.log('Using existing category ID:', categoryId);
-      }
-    } catch (categoryError) {
-      console.error('Error handling categories:', categoryError);
-      // Continue with default category ID
-      console.log('Using fallback category ID:', categoryId);
-    }
+    console.log('Using category ID:', categoryId, 'from suggestedCategory');
     
     // Ensure quiz name is valid
     let finalTitle = baseTitle.trim() || "Untitled Quiz";
@@ -896,6 +789,82 @@ async function saveQuizToDatabase(baseTitle: string, totalQuestions: number, sou
     console.error('Error saving quiz:', error);
     throw error;
   }
+}
+
+function remove(i: number) {
+  questions.value.splice(i, 1)
+}
+
+function exportCSV() {
+  const rows = questions.value.map((q,i) => {
+    const opts = q.options?.join('|') || ''
+    return `"${i+1}","${q.question}","${opts}","${q.options?.[q.answerIndex]}"`
+  })
+  const csv = ['No,Question,Options,Answer', ...rows].join('\n')
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url; a.download = 'quiz.csv'; a.click()
+  URL.revokeObjectURL(url)
+}
+
+async function startQuiz() {
+  if (!quizName.value.trim()) {
+    quizName.value = "Untitled Quiz"
+  }
+  
+  // Save the quiz to the database before taking it
+  if (auth.state.isAuthenticated && auth.state.user) {
+    try {
+      // Save the quiz to the database
+      await saveQuizToDatabase(quizName.value, questions.value.length)
+      console.log("Quiz saved to database before starting it")
+    } catch (error) {
+      console.error("Error saving quiz before starting:", error)
+    }
+  }
+  
+  quizMode.value = 'take'
+  quizStartTime.value = new Date()
+  userAnswers.value = Array(questions.value.length).fill(undefined)
+}
+
+function selectAnswer(questionIndex: number, optionIndex: number) {
+  userAnswers.value[questionIndex] = optionIndex
+}
+
+function cancelQuiz() {
+  quizMode.value = 'create'
+  userAnswers.value = []
+  quizStartTime.value = null
+}
+
+async function submitQuiz() {
+  // Calculate score
+  score.value = userAnswers.value.reduce((acc, ans, i) => {
+    return acc + (ans === questions.value[i].answerIndex ? 1 : 0)
+  }, 0)
+  
+  // Calculate elapsed time
+  const endTime = new Date()
+  const elapsedTimeInSeconds = quizStartTime.value ? 
+    Math.floor((endTime.getTime() - quizStartTime.value.getTime()) / 1000) : 0
+  
+  // Save to database if user is authenticated
+  if (auth.state.isAuthenticated && auth.state.user) {
+    try {
+      await saveQuizAttempt(
+        quizName.value, 
+        score.value, 
+        questions.value.length, 
+        elapsedTimeInSeconds
+      )
+    } catch (error) {
+      console.error('Failed to save quiz attempt:', error)
+    }
+  }
+  
+  quizMode.value = 'results'
 }
 
 function resetQuiz() {
@@ -1197,6 +1166,77 @@ function processDocumentContent(content: string) {
       explanation: q.explanation || "Auto-extracted from document content."
     };
   });
+}
+
+async function saveQuizAttempt(title: string, score: number, totalQuestions: number, elapsedTime: number) {
+  try {
+    console.log('Starting saveQuizAttempt with:', { title, userId: auth.state.user!.userId });
+    
+    if (!currentQuizId.value) {
+      // Quiz doesn't exist yet, create it first
+      currentQuizId.value = await saveQuizToDatabase(title, totalQuestions);
+    }
+    
+    // Calculate pass/fail status
+    const isPassed = score / totalQuestions >= 0.6;
+    
+    // Create the quiz attempt
+    const startTime = new Date();
+    startTime.setSeconds(startTime.getSeconds() - elapsedTime);
+    
+    const attemptData = {
+      quiz_id: currentQuizId.value,
+      user_id: auth.state.user!.userId,
+      score: score,
+      total_questions: totalQuestions,
+      started_at: startTime.toISOString(),
+      completed_at: new Date().toISOString(),
+      elapsed_time: elapsedTime,
+      is_passed: isPassed
+    };
+    
+    const newAttempt = await createQuizAttempt(attemptData);
+    const attemptId = newAttempt.id;
+    
+    console.log('Created attempt with ID:', attemptId);
+    
+    // Save the user's answers
+    const answerPromises = [];
+    
+    for (let i = 0; i < questions.value.length; i++) {
+      const questionId = questions.value[i].questionId; // This will be set when getting questions
+      const userAnswer = userAnswers.value[i];
+      
+      if (userAnswer !== undefined && questionId) {
+        const isCorrect = userAnswer === questions.value[i].answerIndex;
+        
+        // Get the option ID - we might need to refactor this depending on data structure
+        const optionId = questions.value[i].optionIds ? 
+          questions.value[i].optionIds[userAnswer] : null;
+        
+        if (optionId) {
+          const attemptAnswer = {
+            attempt_id: attemptId,
+            question_id: questionId,
+            selected_option_id: optionId,
+            is_correct: isCorrect
+          };
+          
+          answerPromises.push(createAttemptAnswers([attemptAnswer]));
+        }
+      }
+    }
+    
+    if (answerPromises.length > 0) {
+      await Promise.all(answerPromises);
+    }
+    
+    console.log('Quiz attempt saved successfully');
+    return true;
+  } catch (error) {
+    console.error('Error saving quiz attempt:', error);
+    throw error;
+  }
 }
 </script>
 
@@ -1534,6 +1574,22 @@ function processDocumentContent(content: string) {
   padding: var(--spacing-sm);
   background: rgba(95, 121, 149, 0.1);
   border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+}
+
+/* Category section styles */
+.category-section {
+  margin-top: var(--spacing-md);
+  background: var(--panel-bg);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  border-left: 3px solid #8a5cf7;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.category-info {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--text-alt);
   font-size: 0.9rem;
 }
 
