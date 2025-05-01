@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import type { RouteRecordRaw } from 'vue-router'
 import { auth } from '@/store/auth'
+import { supabase } from '@/api/supabase'
 
 // Import your pages (filenames must match!)
 import Home from '@/pages/Home.vue'
@@ -20,7 +21,8 @@ const routes: RouteRecordRaw[] = [
   {
     path: '/generate',
     name: 'Generate',
-    component: Generate
+    component: Generate,
+    meta: { requiresAuth: true }
   },
   {
     path: '/my-quizzes',
@@ -53,6 +55,12 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/admin',
+    name: 'Admin',
+    component: () => import('@/pages/Admin.vue'),
+    meta: { requiresAuth: true, requiresAdmin: true }
+  },
+  {
     path: '/login',
     name: 'Login',
     component: Login,
@@ -78,16 +86,43 @@ const router = createRouter({
 })
 
 // Navigation guard
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   // Check for protected routes
   if (to.matched.some(record => record.meta.requiresAuth)) {
     if (!auth.state.isAuthenticated) {
       // Redirect to login page if not authenticated
       next({ name: 'Login', query: { redirect: to.fullPath } })
+    }
+    // Check for admin-only routes
+    else if (to.matched.some(record => record.meta.requiresAdmin)) {
+      // Get user role if already authenticated
+      try {
+        // If roleId is undefined, we can assume they're not an admin
+        if (!auth.state.user?.roleId) {
+          next({ name: 'Home' });
+          return;
+        }
+        
+        const { data: roleData, error: roleError } = await supabase
+          .from('Roles')
+          .select('role_name')
+          .eq('id', auth.state.user.roleId)
+          .single();
+        
+        if (roleError || !roleData || roleData.role_name !== 'admin') {
+          // Redirect non-admin users to home
+          next({ name: 'Home' })
+        } else {
+          next()
+        }
+      } catch (error) {
+        console.error('Error checking admin role:', error)
+        next({ name: 'Home' })
+      }
     } else {
       next()
     }
-  } 
+  }
   // Check for guest-only routes (login, register, etc.)
   else if (to.matched.some(record => record.meta.guestOnly)) {
     if (auth.state.isAuthenticated) {

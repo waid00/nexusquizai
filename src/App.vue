@@ -10,6 +10,7 @@
         <router-link to="/">Home</router-link>
         <router-link to="/generate">Generate</router-link>
         <router-link v-if="auth.state.isAuthenticated" to="/my-quizzes">My Quizzes</router-link>
+        <router-link v-if="isAdmin" to="/admin" class="admin-link">Admin</router-link>
       </nav>
       
       <div class="auth-controls">
@@ -23,6 +24,9 @@
             </button>
             <div class="dropdown-menu" :class="{ 'show': showUserMenu }">
               <router-link to="/profile" class="dropdown-item">Profile</router-link>
+              <router-link v-if="isAdmin" to="/admin" class="dropdown-item admin-item">
+                Admin Dashboard
+              </router-link>
               <div class="dropdown-divider"></div>
               <button @click="logout" class="dropdown-item logout-btn">Logout</button>
             </div>
@@ -48,13 +52,20 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
+import { supabase } from '@/api/supabase'
 
 const router = useRouter()
 const showUserMenu = ref(false)
 const userMenu = ref<HTMLElement | null>(null)
+const userRole = ref<string | null>(null)
+
+// Check if user is admin
+const isAdmin = computed(() => {
+  return userRole.value === 'admin'
+})
 
 // Toggle user dropdown menu
 function toggleUserMenu() {
@@ -72,12 +83,33 @@ function handleClickOutside(e: MouseEvent) {
 function logout() {
   auth.logout()
   showUserMenu.value = false
+  userRole.value = null
   router.push('/')
+}
+
+// Check user role
+async function checkUserRole() {
+  if (auth.state.isAuthenticated && auth.state.user) {
+    try {
+      const { data, error } = await supabase
+        .from('Roles')
+        .select('role_name')
+        .eq('id', auth.state.user.roleId)
+        .single()
+      
+      if (!error && data) {
+        userRole.value = data.role_name
+      }
+    } catch (err) {
+      console.error('Error fetching user role:', err)
+    }
+  }
 }
 
 // Add/remove click listener for dropdown
 onMounted(() => {
   document.addEventListener('click', handleClickOutside)
+  checkUserRole()
 })
 
 onUnmounted(() => {
@@ -148,6 +180,20 @@ header nav a {
 header nav a.router-link-active,
 header nav a:hover {
   color: var(--accent);
+}
+
+/* Admin link styling */
+header nav a.admin-link {
+  color: #ff9500;
+}
+
+header nav a.admin-link:hover,
+header nav a.admin-link.router-link-active {
+  color: #ffb347;
+}
+
+header nav a.admin-link::after {
+  background: #ff9500;
 }
 
 /* sliding underline */
@@ -284,6 +330,15 @@ header nav a:hover::after {
   height: 1px;
   background: var(--input-border);
   margin: 0.25rem 0;
+}
+
+.admin-item {
+  color: #ff9500;
+}
+
+.admin-item:hover {
+  background: rgba(255, 149, 0, 0.1);
+  color: #ffb347;
 }
 
 .logout-btn {
