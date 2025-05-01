@@ -5,7 +5,23 @@ import type { Database } from '../types/supabase';
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || "https://wfhtxqqgfuirvowgigoq.supabase.co";
 const supabaseKey = import.meta.env.VITE_SUPABASE_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndmaHR4cXFnZnVpcnZvd2dpZ29xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDU4Njk4NDMsImV4cCI6MjA2MTQ0NTg0M30.int8s_elI_4Gut2O2wWMzONnGkYTchz43uabH-sBwmI";
 
-export const supabase = createClient<Database>(supabaseUrl, supabaseKey);
+// Create client with explicit options for auth
+export const supabase = createClient<Database>(
+  supabaseUrl,
+  supabaseKey,
+  {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    },
+    global: {
+      headers: {
+        apikey: supabaseKey
+      }
+    }
+  }
+);
 
 // Users
 export async function getUsers() {
@@ -245,15 +261,24 @@ export async function toggleQuizUpvote(quizId: number, userId: number) {
 }
 
 export async function checkUserUpvote(quizId: number, userId: number) {
-  const { data, error } = await supabase
-    .from('QuizUpvotes')
-    .select('*')
-    .eq('quiz_id', quizId)
-    .eq('user_id', userId)
-    .single();
-  
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 is the "not found" error
-  return !!data; // Returns true if upvote exists, false otherwise
+  try {
+    // Use count instead of select to avoid 406 errors
+    const { count, error } = await supabase
+      .from('QuizUpvotes')
+      .select('*', { count: 'exact', head: true })
+      .eq('quiz_id', quizId)
+      .eq('user_id', userId);
+    
+    if (error) {
+      console.error('Error checking upvote:', error);
+      return false;
+    }
+    
+    return count ? count > 0 : false;
+  } catch (err) {
+    console.error('Exception checking upvote:', err);
+    return false;
+  }
 }
 
 // Categories

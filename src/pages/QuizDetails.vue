@@ -19,7 +19,7 @@
         </svg>
       </div>
       <p>{{ errorMessage }}</p>
-      <router-link to="/my-quizzes" class="btn">Back to My Quizzes</router-link>
+      <router-link to="/" class="btn">Back to Home</router-link>
     </div>
 
     <!-- Quiz Details View -->
@@ -50,31 +50,39 @@
           <p>{{ quiz.description || 'No description provided for this quiz.' }}</p>
         </div>
 
+        <div class="author-info">
+          <h3>Created by</h3>
+          <div class="author-name">{{ quiz.authorName }}</div>
+        </div>
+
         <div class="quiz-actions">
-          <button class="take-quiz-btn" @click="takeQuiz">Take Quiz</button>
-          <router-link to="/my-quizzes" class="back-btn">Back to My Quizzes</router-link>
+          <!-- Owner-specific actions -->
+          <div v-if="isOwner" class="owner-actions">
+            <button class="edit-quiz-btn" @click="editQuiz">Edit Quiz</button>
+          </div>
+          
+          <!-- Non-owner actions -->
+          <div v-else class="solver-actions">
+            <button class="take-quiz-btn" @click="takeQuiz">Take Quiz</button>
+            <button 
+              class="upvote-btn" 
+              :class="{ active: hasUserUpvoted }"
+              @click="toggleUpvote"
+            >
+              <span class="upvote-icon">⬆</span>
+              <span class="upvote-count">{{ upvoteCount }}</span>
+              Upvote
+            </button>
+          </div>
+          
+          <router-link to="/" class="back-btn">Back to Home</router-link>
         </div>
       </div>
 
-      <!-- Questions Preview -->
-      <div class="questions-preview">
-        <h3>Quiz Questions</h3>
-        
-        <ul class="question-list">
-          <li v-for="(question, index) in questions" :key="question.questionId" class="question-item">
-            <div class="question-number">{{ index + 1 }}</div>
-            <div class="question-content">
-              <div class="question-text">{{ question.questionText }}</div>
-              <div class="question-type-badge" :class="question.questionType">
-                {{ formatQuestionType(question.questionType) }}
-              </div>
-            </div>
-          </li>
-        </ul>
-      </div>
 
-      <!-- Quiz Stats -->
-      <div v-if="attemptCount > 0" class="quiz-stats">
+
+            <!-- Quiz Stats (visible to owners or after attempting) -->
+            <div v-if="attemptCount > 0 && (isOwner || hasAttempted)" class="quiz-stats">
         <h3>Quiz Statistics</h3>
         
         <div class="stats-grid">
@@ -119,18 +127,117 @@
         </div>
       </div>
       
-      <div v-else class="no-attempts">
+      <div v-else-if="attemptCount === 0" class="no-attempts">
         <p>This quiz hasn't been taken yet. Be the first to take it!</p>
       </div>
+      <!-- Questions Preview -->
+      <div class="questions-preview">
+        <h3>Quiz Questions</h3>
+        
+        <ul class="question-list">
+          <li 
+            v-for="(question, index) in questions" 
+            :key="question.questionId" 
+            class="question-item"
+            :class="{ expanded: expandedQuestions[question.questionId] }"
+            @click="toggleQuestionExpand(question.questionId)"
+          >
+            <div class="question-header">
+              <div class="question-number">{{ index + 1 }}</div>
+              <div class="question-content">
+                <div class="question-text">{{ question.questionText }}</div>
+                <div class="question-type-badge" :class="question.questionType">
+                  {{ formatQuestionType(question.questionType) }}
+                </div>
+              </div>
+              <button class="expand-btn">
+                <svg 
+                  xmlns="http://www.w3.org/2000/svg" 
+                  width="16" 
+                  height="16" 
+                  fill="currentColor" 
+                  :class="{'rotate-icon': expandedQuestions[question.questionId]}"
+                  viewBox="0 0 16 16"
+                >
+                  <path fill-rule="evenodd" d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z"/>
+                </svg>
+              </button>
+            </div>
+            
+            <!-- Expanded content with answer options -->
+            <div v-if="expandedQuestions[question.questionId]" class="question-details">
+              <div class="answer-options">
+                <template v-if="question.questionType === 'multiple_choice'">
+                  <div 
+                    v-for="option in getAnswerOptions(question.questionId)" 
+                    :key="option.optionId" 
+                    class="answer-option"
+                    :class="{ correct: option.isCorrect && (isOwner || hasAttempted) }"
+                  >
+                    <div class="option-marker">
+                      <span v-if="option.isCorrect && (isOwner || hasAttempted)" class="correct-marker">✓</span>
+                      <span v-else class="option-letter">{{ option.optionLetter }}</span>
+                    </div>
+                    <div class="option-text">{{ option.optionText }}</div>
+                  </div>
+                </template>
+                
+                <template v-else-if="question.questionType === 'true_false'">
+                  <div 
+                    class="answer-option"
+                    :class="{ correct: getCorrectTrueFalseAnswer(question.questionId) === true && (isOwner || hasAttempted) }"
+                  >
+                    <div class="option-marker">
+                      <span v-if="getCorrectTrueFalseAnswer(question.questionId) === true && (isOwner || hasAttempted)" class="correct-marker">✓</span>
+                      <span v-else class="option-letter">T</span>
+                    </div>
+                    <div class="option-text">True</div>
+                  </div>
+                  <div 
+                    class="answer-option"
+                    :class="{ correct: getCorrectTrueFalseAnswer(question.questionId) === false && (isOwner || hasAttempted) }"
+                  >
+                    <div class="option-marker">
+                      <span v-if="getCorrectTrueFalseAnswer(question.questionId) === false && (isOwner || hasAttempted)" class="correct-marker">✓</span>
+                      <span v-else class="option-letter">F</span>
+                    </div>
+                    <div class="option-text">False</div>
+                  </div>
+                </template>
+                
+                <template v-else-if="question.questionType === 'fill_blank'">
+                  <div class="answer-option fill-blank">
+                    <div class="option-text">
+                      <span v-if="isOwner || hasAttempted">
+                        Answer: <span class="correct-answer">{{ getBlankAnswer(question.questionId) }}</span>
+                      </span>
+                      <span v-else>
+                        The answer will be revealed after you take the quiz.
+                      </span>
+                    </div>
+                  </div>
+                </template>
+              </div>
+            </div>
+          </li>
+        </ul>
+        
+        <div v-if="!isOwner && !hasAttempted" class="answer-note">
+          <p>Correct answers will be shown after you attempt the quiz.</p>
+        </div>
+      </div>
+
+
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
+import { toggleQuizUpvote, checkUserUpvote } from '@/api/supabase'
 
 const route = useRoute()
 const router = useRouter()
@@ -140,9 +247,26 @@ const quizId = parseInt(route.params.id as string)
 const quiz = ref<any>(null)
 const questions = ref<any[]>([])
 const attempts = ref<any[]>([])
+const answerOptions = ref<{[key: number]: any[]}>({})
 const questionStats = ref<{[key: number]: {correct: number, total: number}}>({})
 const isLoading = ref(true)
 const errorMessage = ref('')
+const expandedQuestions = reactive<{[key: number]: boolean}>({})
+const upvoteCount = ref(0)
+const hasUserUpvoted = ref(false)
+const userAttempts = ref<any[]>([])
+
+// Computed properties for view logic
+const isOwner = computed(() => {
+  return auth.state.isAuthenticated && 
+         auth.state.user && 
+         quiz.value && 
+         quiz.value.ownerId === auth.state.user.userId
+})
+
+const hasAttempted = computed(() => {
+  return userAttempts.value.length > 0
+})
 
 // Stats computed properties
 const attemptCount = computed(() => attempts.value.length)
@@ -194,14 +318,30 @@ onMounted(async () => {
   }
   
   try {
+    // Load all quiz data
     await Promise.all([
       loadQuizDetails(),
       loadQuestions(),
-      loadAttempts()
+      loadAttempts(),
+      loadUpvotes()
     ])
+    
+    // Check if current user has upvoted this quiz
+    if (auth.state.isAuthenticated && auth.state.user) {
+      const hasUpvoted = await checkUserUpvote(quizId, auth.state.user.userId)
+      hasUserUpvoted.value = hasUpvoted
+    }
+    
+    // Load answer options for all questions
+    await loadAnswerOptions()
     
     // Calculate question success rates
     calculateQuestionStats()
+    
+    // Check if user has attempted this quiz
+    if (auth.state.user) {
+      userAttempts.value = attempts.value.filter(a => a.userId === auth.state.user?.userId)
+    }
   } catch (error: any) {
     console.error('Error loading quiz details:', error)
     errorMessage.value = error.message || 'Failed to load quiz details'
@@ -214,13 +354,21 @@ onMounted(async () => {
 async function loadQuizDetails() {
   const { data, error } = await supabase
     .from('Quizzes')
-    .select('id, title, description, difficulty, created_at, published_at')
+    .select(`
+      id, 
+      title, 
+      description, 
+      difficulty, 
+      created_at, 
+      published_at,
+      owner_id,
+      Users (username)
+    `)
     .eq('id', quizId)
-    .eq('owner_id', auth.state.user!.userId)
     .single()
   
   if (error || !data) {
-    throw new Error('Quiz not found or you do not have permission to view it')
+    throw new Error('Quiz not found')
   }
   
   quiz.value = {
@@ -229,7 +377,9 @@ async function loadQuizDetails() {
     description: data.description,
     difficulty: data.difficulty,
     createdAt: data.created_at,
-    publishedAt: data.published_at
+    publishedAt: data.published_at,
+    ownerId: data.owner_id,
+    authorName: data.Users?.username || 'Unknown'
   }
 }
 
@@ -250,6 +400,34 @@ async function loadQuestions() {
       questionType: row.question_type,
       difficulty: row.difficulty
     }))
+  }
+}
+
+// Load answer options for all questions
+async function loadAnswerOptions() {
+  for (const question of questions.value) {
+    const { data, error } = await supabase
+      .from('AnswerOptions')
+      .select('*')
+      .eq('question_id', question.questionId)
+      .order('id', { ascending: true })
+    
+    if (error) {
+      console.error('Error loading answer options:', error)
+      continue
+    }
+    
+    if (data && data.length > 0) {
+      // Transform data and assign letter labels (A, B, C, D...)
+      const options = data.map((option, index) => ({
+        optionId: option.id,
+        optionText: option.answer_text,
+        optionLetter: String.fromCharCode(65 + index), // A, B, C, etc.
+        isCorrect: option.is_correct
+      }))
+      
+      answerOptions.value[question.questionId] = options
+    }
   }
 }
 
@@ -283,6 +461,18 @@ async function loadAttempts() {
       elapsedTime: row.elapsed_time,
       isPassed: row.is_passed
     }))
+  }
+}
+
+// Load upvote count
+async function loadUpvotes() {
+  const { count, error } = await supabase
+    .from('QuizUpvotes')
+    .select('id', { count: 'exact', head: true })
+    .eq('quiz_id', quizId)
+  
+  if (!error) {
+    upvoteCount.value = count || 0
   }
 }
 
@@ -320,6 +510,47 @@ async function calculateQuestionStats() {
       }
     }
   }
+}
+
+// Toggle upvote for this quiz
+async function toggleUpvote() {
+  if (!auth.state.isAuthenticated || !auth.state.user) {
+    router.push('/login')
+    return
+  }
+  
+  try {
+    await toggleQuizUpvote(quizId, auth.state.user.userId)
+    hasUserUpvoted.value = !hasUserUpvoted.value
+    upvoteCount.value += hasUserUpvoted.value ? 1 : -1
+  } catch (error) {
+    console.error('Error toggling upvote:', error)
+  }
+}
+
+// Toggle question expansion
+function toggleQuestionExpand(questionId: number) {
+  expandedQuestions[questionId] = !expandedQuestions[questionId]
+}
+
+// Helper methods for answer display
+function getAnswerOptions(questionId: number) {
+  return answerOptions.value[questionId] || []
+}
+
+function getCorrectTrueFalseAnswer(questionId: number) {
+  const options = answerOptions.value[questionId] || []
+  const correctOption = options.find(opt => opt.isCorrect)
+  if (correctOption) {
+    return correctOption.optionText.toLowerCase() === 'true'
+  }
+  return null
+}
+
+function getBlankAnswer(questionId: number) {
+  const options = answerOptions.value[questionId] || []
+  const correctOption = options.find(opt => opt.isCorrect)
+  return correctOption ? correctOption.optionText : 'No answer provided'
 }
 
 // Format date for display
@@ -363,9 +594,19 @@ function formatQuestionType(type: string) {
   }
 }
 
-// Take this quiz
+// Navigation functions
 function takeQuiz() {
   router.push(`/quiz/${quizId}`)
+}
+
+function editQuiz() {
+  // This would navigate to an edit page if you had one
+  router.push(`/quiz/${quizId}/edit`)
+}
+
+function viewAttempts() {
+  // View all attempts for this quiz (for owner)
+  router.push(`/quiz/${quizId}/attempts`)
 }
 </script>
 
@@ -417,8 +658,8 @@ function takeQuiz() {
 
 /* Quiz details layout */
 .quiz-details-container {
-  display: grid;
-  grid-template-columns: 1fr;
+  display: flex;
+  flex-direction: column;
   gap: var(--spacing-lg);
 }
 
@@ -477,12 +718,12 @@ function takeQuiz() {
   color: #ff4757;
 }
 
-/* Quiz description */
-.quiz-description {
+/* Quiz description & author */
+.quiz-description, .author-info {
   margin-bottom: var(--spacing-md);
 }
 
-.quiz-description h3 {
+.quiz-description h3, .author-info h3 {
   font-size: 1.1rem;
   margin-bottom: var(--spacing-sm);
   color: var(--text-main);
@@ -493,14 +734,26 @@ function takeQuiz() {
   line-height: 1.5;
 }
 
+.author-name {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
 /* Quiz actions */
 .quiz-actions {
   display: flex;
   gap: var(--spacing-md);
   margin-top: var(--spacing-md);
+  flex-wrap: wrap;
 }
 
-.take-quiz-btn, .back-btn, .btn {
+.owner-actions, .solver-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  flex: 1;
+}
+
+.take-quiz-btn, .edit-quiz-btn, .view-attempts-btn, .back-btn, .btn, .upvote-btn {
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-sm);
   cursor: pointer;
@@ -508,16 +761,29 @@ function takeQuiz() {
   text-decoration: none;
   text-align: center;
   border: none;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.take-quiz-btn, .edit-quiz-btn {
+  background: var(--accent);
+  color: white;
   flex: 1;
 }
 
-.take-quiz-btn {
-  background: var(--accent);
-  color: white;
+.take-quiz-btn:hover, .edit-quiz-btn:hover {
+  background: color-mix(in srgb, var(--accent) 80%, white);
 }
 
-.take-quiz-btn:hover {
-  background: color-mix(in srgb, var(--accent) 80%, white);
+.view-attempts-btn {
+  background: var(--input-bg);
+  color: var(--text-main);
+  border: 1px solid var(--input-border);
+  flex: 1;
+}
+
+.view-attempts-btn:hover {
+  background: var(--panel-bg);
 }
 
 .back-btn, .btn {
@@ -528,6 +794,37 @@ function takeQuiz() {
 
 .back-btn:hover, .btn:hover {
   background: var(--panel-bg);
+}
+
+.upvote-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(0, 0, 0, 0.2);
+  color: var(--text-alt);
+  border: 1px solid var(--input-border);
+  flex: 1;
+}
+
+.upvote-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.upvote-btn.active {
+  background: rgba(46, 213, 115, 0.1);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.upvote-icon {
+  font-size: 1.1rem;
+}
+
+.upvote-count {
+  font-weight: 600;
+  margin-right: 4px;
 }
 
 /* Questions preview */
@@ -545,17 +842,18 @@ function takeQuiz() {
 }
 
 .question-item {
-  display: flex;
-  align-items: flex-start;
-  padding: var(--spacing-sm);
   margin-bottom: var(--spacing-sm);
   background: var(--input-bg);
   border-radius: var(--radius-sm);
-  transition: transform 0.2s ease;
+  transition: all 0.2s ease;
+  overflow: hidden;
 }
 
-.question-item:hover {
-  transform: translateX(5px);
+.question-header {
+  display: flex;
+  align-items: flex-start;
+  padding: var(--spacing-sm);
+  cursor: pointer;
 }
 
 .question-number {
@@ -594,6 +892,100 @@ function takeQuiz() {
   color: var(--text-alt);
   flex-shrink: 0;
   white-space: nowrap;
+}
+
+.expand-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-alt);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  margin-left: auto;
+  transition: transform 0.3s ease;
+}
+
+.rotate-icon {
+  transform: rotate(180deg);
+}
+
+/* Answer options display */
+.question-details {
+  padding: 0 var(--spacing-sm) var(--spacing-sm) calc(24px + var(--spacing-sm) * 2);
+  animation: slideDown 0.3s ease-out;
+}
+
+.answer-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+}
+
+.answer-option {
+  display: flex;
+  align-items: center;
+  padding: var(--spacing-xs) var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: var(--radius-sm);
+  transition: background 0.2s ease;
+}
+
+.answer-option:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.answer-option.correct {
+  background: rgba(46, 213, 115, 0.1);
+  border: 1px solid rgba(46, 213, 115, 0.3);
+}
+
+.option-marker {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  margin-right: var(--spacing-sm);
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+
+.correct-marker {
+  color: #2ed573;
+}
+
+.option-letter {
+  color: var(--text-alt);
+}
+
+.option-text {
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+.fill-blank .option-text {
+  padding: var(--spacing-xs) 0;
+}
+
+.correct-answer {
+  font-weight: 600;
+  color: #2ed573;
+}
+
+.answer-note {
+  margin-top: var(--spacing-md);
+  padding: var(--spacing-sm);
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--text-alt);
+  text-align: center;
 }
 
 /* Quiz stats */
@@ -699,23 +1091,24 @@ function takeQuiz() {
   to { transform: rotate(360deg); }
 }
 
-/* Responsive layout */
+@keyframes slideDown {
+  from { opacity: 0; max-height: 0; }
+  to { opacity: 1; max-height: 500px; }
+}
+
+/* Responsive layout - remove the side-by-side layout since we're now stacking vertically */
 @media (min-width: 768px) {
-  .quiz-details-container {
-    grid-template-columns: 1fr 1fr;
-  }
-  
+
   .info-panel {
-    grid-column: 1;
+    width: 100%;
   }
   
   .questions-preview {
-    grid-column: 2;
-    grid-row: 1;
+    width: 100%;
   }
   
   .quiz-stats, .no-attempts {
-    grid-column: span 2;
+    width: 100%;
   }
 }
 
@@ -732,6 +1125,14 @@ function takeQuiz() {
     flex-direction: column;
     align-items: flex-start;
     gap: var(--spacing-xs);
+  }
+  
+  .quiz-actions, .owner-actions, .solver-actions {
+    flex-direction: column;
+  }
+  
+  .back-btn {
+    width: 100%;
   }
 }
 </style>

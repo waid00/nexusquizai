@@ -49,6 +49,7 @@
         :key="quiz.quizId" 
         class="quiz-card"
         :class="quiz.difficulty"
+        @click="viewQuizDetails(quiz)"
       >
         <div class="quiz-card-header">
           <h3 class="quiz-title">
@@ -71,8 +72,8 @@
               <span class="stat-value">{{ quiz.attemptCount }}</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">Upvotes</span>
-              <span class="stat-value">{{ quiz.upvoteCount }}</span>
+              <span class="stat-label">User </span>
+              <span class="author-name">{{ quiz.authorName }}</span>
             </div>
             <div class="stat-item">
               <span class="stat-label">Created</span>
@@ -80,23 +81,16 @@
             </div>
           </div>
         </div>
-        <div class="quiz-card-footer">
-          <div class="quiz-author">
-            <span class="by-text">By: </span>
-            <span class="author-name">{{ quiz.authorName }}</span>
-          </div>
+        <div class="quiz-card-footer" @click.stop="viewQuizDetails(quiz)">
           <div class="quiz-actions">
             <button class="upvote-btn" 
               :class="{ active: quiz.hasUserUpvoted }"
-              @click="toggleUpvote(quiz)"
+              @click.stop="toggleUpvote(quiz)"
               title="Upvote this quiz"
               :disabled="!isAuthenticated || quiz.isUserOwner"
             >
               <span class="upvote-icon">⬆</span>
               <span class="upvote-count">{{ quiz.upvoteCount }}</span>
-            </button>
-            <button class="take-quiz-btn" @click="takeQuiz(quiz.quizId)">
-              Take Quiz
             </button>
           </div>
         </div>
@@ -309,6 +303,11 @@ function loadMoreQuizzes() {
     isLoadingMore.value = false;
   }
 }
+
+// View quiz details
+function viewQuizDetails(quiz: any) {
+  router.push(`/quiz/${quiz.quizId}/details`);
+}
 </script>
 
 <style scoped>
@@ -488,6 +487,8 @@ function loadMoreQuizzes() {
   display: flex;
   flex-direction: column;
   border-top: 3px solid;
+  max-width: 100%;
+  cursor: pointer; /* Add hand cursor on hover */
 }
 
 .quiz-card.easy {
@@ -579,6 +580,7 @@ function loadMoreQuizzes() {
   grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-xs);
   margin-top: auto;
+  margin-bottom: var(--spacing-xs);
 }
 
 .stat-item {
@@ -596,37 +598,25 @@ function loadMoreQuizzes() {
   margin-bottom: 4px;
 }
 
-.stat-value {
+.stat-value, .author-name {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-main);
 }
 
 .quiz-card-footer {
-  padding: var(--spacing-md);
+  padding: var(--spacing-xs) var(--spacing-md);
   border-top: 1px solid var(--input-border);
   display: flex;
-  justify-content: space-between;
   align-items: center;
-}
-
-.quiz-author {
-  font-size: 0.9rem;
-  color: var(--text-alt);
-}
-
-.by-text {
-  color: var(--text-alt);
-}
-
-.author-name {
-  color: var(--text-main);
-  font-weight: 500;
+  background-color: rgba(0, 0, 0, 0.15);
 }
 
 .quiz-actions {
   display: flex;
-  gap: var(--spacing-sm);
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
 }
 
 .upvote-btn {
@@ -636,10 +626,12 @@ function loadMoreQuizzes() {
   padding: 6px 10px;
   border-radius: var(--radius-sm);
   border: 1px solid var(--input-border);
-  background: var(--input-bg);
+  background: rgba(0, 0, 0, 0.2);
   color: var(--text-alt);
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  height: 32px;
 }
 
 .upvote-btn:hover:not(:disabled) {
@@ -659,23 +651,14 @@ function loadMoreQuizzes() {
 }
 
 .upvote-icon {
-  font-size: 1rem;
+  font-size: 1.1rem;
+  line-height: 1;
 }
 
-.take-quiz-btn {
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  background: var(--accent);
-  color: white;
-  border: none;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.3s ease;
-}
-
-.take-quiz-btn:hover {
-  background: color-mix(in srgb, var(--accent) 85%, white);
-  transform: translateY(-2px);
+.upvote-count {
+  font-weight: 600;
+  min-width: 20px;
+  text-align: center;
 }
 
 /* Pagination */

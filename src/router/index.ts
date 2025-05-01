@@ -9,6 +9,7 @@ import Login from '@/pages/Login.vue'
 import Register from '@/pages/Register.vue'
 import ForgotPassword from '@/pages/ForgotPassword.vue'
 import MyQuizzes from '@/pages/MyQuizzes.vue'
+import Profile from '@/pages/Profile.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -25,6 +26,12 @@ const routes: RouteRecordRaw[] = [
     path: '/my-quizzes',
     name: 'MyQuizzes',
     component: MyQuizzes,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: Profile,
     meta: { requiresAuth: true }
   },
   {

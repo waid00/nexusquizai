@@ -9,6 +9,7 @@
       <nav>
         <router-link to="/">Home</router-link>
         <router-link to="/generate">Generate</router-link>
+        <router-link v-if="auth.state.isAuthenticated" to="/my-quizzes">My Quizzes</router-link>
       </nav>
       
       <div class="auth-controls">
@@ -22,7 +23,6 @@
             </button>
             <div class="dropdown-menu" :class="{ 'show': showUserMenu }">
               <router-link to="/profile" class="dropdown-item">Profile</router-link>
-              <router-link to="/my-quizzes" class="dropdown-item">My Quizzes</router-link>
               <div class="dropdown-divider"></div>
               <button @click="logout" class="dropdown-item logout-btn">Logout</button>
             </div>
