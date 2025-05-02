@@ -36,6 +36,7 @@
           v-for="quiz in createdQuizzes" 
           :key="quiz.quizId" 
           class="quiz-card"
+          :class="quiz.difficulty"
         >
           <div class="quiz-card-header">
             <h3 class="quiz-title">{{ quiz.title }}</h3>
@@ -65,34 +66,36 @@
                 <span class="stat-label">Attempts</span>
                 <span class="stat-value">{{ quiz.attemptCount }}</span>
               </div>
-              <div class="stat-item">
-                <span class="stat-label">Upvotes</span>
-                <span class="stat-value">{{ quiz.upvoteCount }}</span>
-              </div>
-              <div class="stat-item">
+              <div class="stat-item created-date">
                 <span class="stat-label">Created</span>
                 <span class="stat-value">{{ formatDate(quiz.createdAt) }}</span>
               </div>
             </div>
           </div>
-          <div class="quiz-card-actions">
-            <div class="action-buttons-container">
-              <div class="upvote-container">
-                <button 
-                  class="upvote-btn"
-                  :class="{ 'active': quiz.hasUserUpvoted }"
-                  @click="toggleUpvote(quiz)"
-                  title="Upvote this quiz"
-                >
-                  <span class="upvote-icon">⬆</span>
-                  <span class="upvote-count">{{ quiz.upvoteCount }}</span>
-                </button>
-              </div>
-            </div>
-            <div class="main-buttons-container">
-              <button class="action-btn take-quiz" @click="takeQuiz(quiz.quizId)">Take Quiz</button>
-              <button class="action-btn view-details" @click="viewQuizDetails(quiz.quizId)">View Details</button>
-            </div>
+          
+          <div class="quiz-card-footer-container">
+            <button 
+              class="quiz-card-footer upvote"
+              :class="{ active: quiz.hasUserUpvoted }"
+              @click.stop="toggleUpvote(quiz)"
+            >
+              <span class="upvote-icon">⬆</span>
+              <span class="upvote-count">{{ quiz.upvoteCount }}</span>
+            </button>
+            
+            <button 
+              class="quiz-card-footer take-quiz"
+              @click.stop="takeQuiz(quiz.quizId)"
+            >
+              Attempt
+            </button>
+            
+            <button 
+              class="quiz-card-footer view-details"
+              @click.stop="viewQuizDetails(quiz.quizId)"
+            >
+              Details
+            </button>
           </div>
         </div>
       </div>
@@ -616,7 +619,7 @@ function cancelConfirmation() {
   }
 }
 
-.quiz-card, .attempt-card {
+.quiz-card {
   background: var(--panel-bg);
   border-radius: var(--radius-md);
   overflow: hidden;
@@ -625,10 +628,23 @@ function cancelConfirmation() {
   height: 100%;
   display: flex;
   flex-direction: column;
+  border-top: 3px solid;
 }
 
-.quiz-card:hover, .attempt-card:hover {
-  transform: translateY(-3px);
+.quiz-card.easy {
+  border-top-color: #2ed573;
+}
+
+.quiz-card.medium {
+  border-top-color: #ffab00;
+}
+
+.quiz-card.hard {
+  border-top-color: #ff4757;
+}
+
+.quiz-card:hover {
+  transform: translateY(-5px);
   box-shadow: var(--shadow-md);
 }
 
@@ -753,10 +769,15 @@ input:checked + .slider:before {
   transform: translateX(14px);
 }
 
-.quiz-stats, .attempt-stats {
+.quiz-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+  grid-template-columns: 1fr 1fr;
   gap: var(--spacing-xs);
+}
+
+.quiz-stats .created-date {
+  grid-column: 1 / 3;
+  margin-top: var(--spacing-xs);
 }
 
 .stat-item {
@@ -778,87 +799,99 @@ input:checked + .slider:before {
   color: var(--text-main);
 }
 
-.quiz-card-actions, .attempt-card-actions {
-  padding: var(--spacing-md);
-  border-top: 1px solid var(--input-border);
+.stat-item.created-date .stat-label {
+  font-weight: bold;
+}
+
+.quiz-card-footer-container {
   display: flex;
-  justify-content: space-between;
-  gap: var(--spacing-sm);
+  flex-direction: row;
+  border-top: 1px solid var(--input-border);
+  margin-top: auto;
 }
 
-.action-btn {
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: center;
-  text-decoration: none;
+.quiz-card-footer {
   flex: 1;
-}
-
-.take-quiz {
-  background: var(--accent);
-  color: white;
+  padding: var(--spacing-xs) var(--spacing-xs);
   border: none;
-}
-
-.take-quiz:hover {
-  background: rgba(46, 204, 113, 0.8);
-}
-
-.view-details, .view-results {
-  background: var(--input-bg);
-  color: var(--text-main);
-  border: 1px solid var(--input-border);
-}
-
-.view-details:hover, .view-results:hover {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-/* Upvote button styling */
-.upvote-container {
+  background-color: rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--text-alt);
+  transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-right: var(--spacing-sm);
-}
-
-.upvote-btn {
-  background: var(--input-bg);
-  border: 1px solid var(--input-border);
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 8px;
+  gap: 5px;
+  border-radius: 0;
   font-size: 0.9rem;
-  color: var(--text-alt);
-  transition: all 0.3s ease;
+  height: 38px; /* Increased from 32px to 38px (1.2 times larger) */
 }
 
-.upvote-btn:hover {
-  background: rgba(46, 213, 115, 0.1);
-  color: var(--text-main);
+.quiz-card-footer:hover {
+  background-color: rgba(0, 0, 0, 0.25);
 }
 
-.upvote-btn.active {
-  background: rgba(46, 213, 115, 0.15);
-  color: var(--accent);
-  border-color: var(--accent);
+.quiz-card-footer.upvote {
+  border-radius: 0 0 0 var(--radius-md);
+  border-right: 1px solid var(--input-border);
 }
 
+.quiz-card-footer.view-details {
+  border-radius: 0 0 var(--radius-md) 0;
+  border-left: 1px solid var(--input-border);
+}
+
+.quiz-card-footer.take-quiz {
+  background: var(--accent);
+  color: white;
+}
+
+.quiz-card-footer.take-quiz:hover {
+  background: color-mix(in srgb, var(--accent) 90%, white);
+}
+
+.quiz-card.easy .quiz-card-footer.take-quiz {
+  background: #2ed573;
+  color: black;
+}
+
+.quiz-card.medium .quiz-card-footer.take-quiz {
+  background: #ffab00;
+  color: black;
+}
+
+.quiz-card.hard .quiz-card-footer.take-quiz {
+  background: #ff4757;
+  color: black;
+}
+
+.quiz-card.easy .quiz-card-footer.take-quiz:hover {
+  background: color-mix(in srgb, #2ed573 90%, white);
+}
+
+.quiz-card.medium .quiz-card-footer.take-quiz:hover {
+  background: color-mix(in srgb, #ffab00 90%, white);
+}
+
+.quiz-card.hard .quiz-card-footer.take-quiz:hover {
+  background: color-mix(in srgb, #ff4757 90%, white);
+}
+
+/* Bottom border radius for the last footer button */
+.quiz-card-footer:last-child {
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+}
+
+/* Upvote icon and count */
 .upvote-icon {
   font-size: 1.1rem;
   font-weight: bold;
 }
 
 .upvote-count {
-  font-size: 0.9rem;
   font-weight: 600;
+  margin: 0 2px;
 }
 
 /* Attempts specific styling */
@@ -869,7 +902,19 @@ input:checked + .slider:before {
 }
 
 .attempt-card {
-  position: relative;
+  background: var(--panel-bg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.attempt-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 
 .pass-status {

@@ -74,7 +74,7 @@
   
   /* Content input areas */
   .content-section {
-    margin-bottom: var(--spacing-xl);
+    margin-bottom: var(--spacing-md);
     margin-top: var(--spacing-xl);
     display: flex;
     flex-direction: column;
@@ -238,6 +238,8 @@
   /* Generate button */
   .generate-btn {
     padding: var(--spacing-sm) var(--spacing-xl);
+    margin-top: var(--spacing-xl);
+    margin-bottom: var(--spacing-md);
     background: var(--accent);
     color: #fff;
     border: none;

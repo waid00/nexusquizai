@@ -41,7 +41,32 @@
         </div>
       </div>
 
-      <!-- 4) Quiz parameters -->
+      <!-- 4) Required Prompt Section (Moved from below) -->
+      <div class="section prompt-section">
+        <h3 class="section-title">Quiz Prompt <span class="required-marker">*</span></h3>
+        
+        <div class="prompt-container">
+          <div class="prompt-controls">
+            <div class="prompt-toggle">
+              <input type="checkbox" id="auto-generate-prompt" v-model="autoGeneratePrompt" />
+              <label for="auto-generate-prompt">Auto-generate prompt from content</label>
+            </div>
+            <button @click="resetPrompt" class="reset-btn">Reset</button>
+          </div>
+          
+          <textarea
+            v-model="customPrompt"
+            :placeholder="autoGeneratePrompt ? 'AI will generate a prompt automatically...' : 'Enter specific instructions for how the AI should generate questions...'"
+            class="prompt-input"
+            :disabled="autoGeneratePrompt"
+            :required="!autoGeneratePrompt"
+          ></textarea>
+          
+          <p class="prompt-info">This prompt guides how questions are created. Be specific about what aspects of the content to focus on.</p>
+        </div>
+      </div>
+      
+      <!-- 5) Quiz parameters (Moved down) -->
       <div class="section parameters-section">
         <h3 class="section-title">Quiz Parameters</h3>
         <div class="controls">
@@ -75,6 +100,19 @@
         </div>
       </div>
       
+      <!-- 6) Generate button -->
+      <div class="button-container">
+        <button
+          class="generate-btn"
+          @click="generate"
+          :disabled="isLoading || (!autoGeneratePrompt && !customPrompt.trim())"
+        >
+          {{ isLoading ? 'Generating…' : 'Generate Quiz' }}
+        </button>
+      </div>
+
+      <!-- 7) Results & Export -->
+
       <!-- Generated Quiz Category Section (appears after generation) -->
       <div v-if="questions.length > 0" class="section category-section">
         <h3 class="section-title">Quiz Category</h3>
@@ -91,23 +129,11 @@
           </select>
         </div>
       </div>
-
-      <!-- 5) Generate button -->
-      <div class="button-container">
-        <button
-          class="generate-btn"
-          @click="generate"
-          :disabled="isLoading"
-        >
-          {{ isLoading ? 'Generating…' : 'Generate Quiz' }}
-        </button>
-      </div>
-
-      <!-- 6) Results & Export -->
       <div v-if="questions.length" class="section results-section">
         <div class="results-header">
           <h3 class="section-title">Your Quiz</h3>
           <div class="action-buttons">
+            <button class="edit-quiz-btn" @click="editEntireQuiz">Edit Quiz</button>
             <button class="export-btn" @click="exportCSV">Export CSV</button>
             <button class="save-quiz-btn" @click="saveAndViewQuiz">Save Quiz</button>
             <button class="take-quiz-btn" @click="startQuiz">Take Quiz</button>
@@ -141,7 +167,6 @@
                 <span v-if="j === q.answerIndex" class="correct-indicator">✓</span>
               </li>
             </ul>
-            <button class="remove-btn" @click="remove(i)">Remove</button>
           </li>
         </ul>
       </div>
@@ -281,6 +306,17 @@
         <button class="retake-btn" @click="retakeQuiz">Retake Quiz</button>
       </div>
     </div>
+
+    <!-- Confirmation Modal -->
+    <ConfirmationModal
+      :show="showConfirmation"
+      :title="confirmationData.title"
+      :message="confirmationData.message"
+      :confirm-text="confirmationData.confirmText"
+      :type="confirmationData.type"
+      @confirm="confirmAction"
+      @cancel="cancelConfirmation"
+    />
   </div>
 </template>
 
@@ -291,6 +327,7 @@ import { useRouter } from 'vue-router'
 import mammoth from 'mammoth'
 import { chat, type ChatCompletionRequestMessage } from '@/api/openai'
 import ModeToggle from '@/components/ModeToggle.vue'
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
 import { 
@@ -326,6 +363,33 @@ const quizStartTime = ref<Date | null>(null)
 const score = ref(0)
 const currentQuestionIndex = ref(0)
 const currentQuizId = ref<number | null>(null)
+
+// Confirmation modal states
+const showConfirmation = ref(false)
+const confirmationData = ref({
+  title: '',
+  message: '',
+  confirmText: '',
+  type: 'warning' // Initialize with a valid type value
+})
+const confirmActionCallback = ref<() => void>(() => {})
+
+// Custom prompt states
+const autoGeneratePrompt = ref(false)
+const customPrompt = ref('')
+
+// Default prompt templates for reset functionality
+const defaultPromptTemplates = {
+  mcq: "Generate professional multiple-choice questions that test knowledge and comprehension. Include 4 answer options per question with one correct answer. Explain why the correct answer is right.",
+  tf: "Create true/false questions that assess factual knowledge. Each question should clearly state a proposition that is definitively true or false.",
+  fill: "Create fill-in-the-blank questions that test specific knowledge of terms, concepts, or facts."
+}
+
+// Reset prompt to default based on current quiz type
+function resetPrompt() {
+  customPrompt.value = defaultPromptTemplates[type.value] || ''
+  autoGeneratePrompt.value = false
+}
 
 // Computed property to check if all questions are answered
 const allQuestionsAnswered = computed(() => {
@@ -382,6 +446,66 @@ watch(isFileMode, (mode) => {
     if (fi) fi.value = ''
   }
 })
+
+// Watch for when the text content or file content changes
+watch([text, extracted, autoGeneratePrompt], async ([newText, newExtracted, shouldGenerate]) => {
+  // Only auto-generate if the option is enabled and we have content
+  if (shouldGenerate && (newText.trim() || newExtracted.trim())) {
+    const content = newExtracted.trim() || newText.trim();
+    
+    if (content) {
+      // Show a temporary message while generating
+      customPrompt.value = "Analyzing content to create the best prompt...";
+      
+      try {
+        // Generate a prompt using the content
+        const generatedPrompt = await generatePromptFromContent(content);
+        if (generatedPrompt) {
+          customPrompt.value = generatedPrompt;
+        }
+      } catch (error) {
+        console.error("Error auto-generating prompt:", error);
+        customPrompt.value = "Failed to generate prompt. Please try again or enter your own.";
+      }
+    }
+  }
+});
+
+// Function to generate a prompt from the content
+async function generatePromptFromContent(content: string): Promise<string> {
+  try {
+    // If content is too long, trim it
+    const trimmedContent = content.length > 2000 
+      ? content.substring(0, 2000) + "..."
+      : content;
+    
+    // Create a system message to instruct the AI
+    const systemMsg: ChatCompletionRequestMessage = {
+      role: 'system',
+      content: `Analyze the provided text and create a detailed prompt that will help generate excellent quiz questions. 
+      Focus on identifying the key concepts, themes, and knowledge areas in the text.
+      Your prompt should be 2-4 sentences and provide specific guidance on what aspects to focus on.
+      DO NOT create the actual quiz questions - just create a prompt that would help generate good questions.`
+    };
+    
+    // Create a user message with the content to analyze
+    const userMsg: ChatCompletionRequestMessage = {
+      role: 'user',
+      content: `Create a prompt for generating quiz questions from this content: 
+      
+      "${trimmedContent}"`
+    };
+    
+    // Send the request to the OpenAI API
+    const response = await chat([systemMsg, userMsg]);
+    
+    // Return the generated prompt, or a default if empty
+    return response.trim() || `Generate thoughtful quiz questions about ${type.value === 'mcq' ? 'multiple-choice' : type.value === 'tf' ? 'true/false' : 'fill-in-the-blank'} questions about the key concepts in this content.`;
+  } catch (error) {
+    console.error("Error generating prompt:", error);
+    return defaultPromptTemplates[type.value];
+  }
+}
 
 // Handle file upload
 async function onFile(e: Event) {
@@ -479,6 +603,12 @@ async function generate() {
     return
   }
 
+  // Make sure we have a prompt when not auto-generating
+  if (!autoGeneratePrompt.value && !customPrompt.value.trim()) {
+    alert('Please enter a prompt or enable auto-generate prompt')
+    return
+  }
+
   isLoading.value = true
   
   // First get available categories for the AI to classify the content
@@ -498,41 +628,32 @@ async function generate() {
        The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
        No extra text.`
   
-  // Enhanced user prompt with specific examples for true/false questions and category selection
-  let userPrompt = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this text. Analyze the content to determine the most appropriate category from the options above. Respond with a valid JSON object only:`
+  // User prompt is now either auto-generated or comes from the customPrompt field
+  let userPrompt = '';
   
-  // Add example for true/false questions
-  if (type.value === 'tf') {
-    userPrompt += `\n\nFor true/false questions, make sure each question ends with "True or False?" and has exactly ["True", "False"] as options. Example:
-{
-  "questions": [
-    {
-      "question": "The Earth orbits around the Sun. True or False?",
-      "options": ["True", "False"],
-      "answerIndex": 0,
-      "explanation": "This is correct. The Earth does orbit around the Sun in our solar system."
+  if (autoGeneratePrompt.value) {
+    // Try to generate a prompt for the user automatically
+    try {
+      const generatedPrompt = await generatePromptFromContent(src);
+      if (generatedPrompt) {
+        customPrompt.value = generatedPrompt;
+        userPrompt = generatedPrompt;
+      }
+    } catch (error) {
+      console.error("Error auto-generating prompt:", error);
+      // Fall back to a simple prompt if generation fails
+      userPrompt = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this content.`;
     }
-  ],
-  "category": 2
-}
-`
   } else {
-    userPrompt += `\n\nExample format:
-{
-  "questions": [
-    {
-      "question": "What is the capital of France?",
-      "options": ["Paris", "London", "Berlin", "Madrid"],
-      "answerIndex": 0,
-      "explanation": "Paris is the capital city of France."
-    }
-  ],
-  "category": 1
-}
-`
+    // Use the custom prompt directly
+    userPrompt = customPrompt.value.trim();
   }
   
-  userPrompt += `\n\n"""\n${src}\n"""`
+  // Add formatting instructions for the expected output
+  userPrompt += `\n\nGenerate ${count.value} questions about the following content. Return a JSON object with "questions" and "category" fields.\nDifficulty level: ${difficulty.value}`;
+  
+  // Append the source content
+  userPrompt += `\n\n"""\n${src}\n"""`;
 
   try {
     // Save source content if the user is authenticated
@@ -564,6 +685,11 @@ async function generate() {
       { role: 'system', content: systemPrompt },
       { role: 'user',   content: userPrompt }
     ]
+    
+    // Log the prompts being used (for debugging)
+    console.log('Using system prompt:', systemPrompt);
+    console.log('Using user prompt:', userPrompt);
+    
     let raw = await chat(msgs)
     
     console.log('Raw API response:', raw)
@@ -791,8 +917,29 @@ async function saveQuizToDatabase(baseTitle: string, totalQuestions: number, sou
   }
 }
 
-function remove(i: number) {
-  questions.value.splice(i, 1)
+function editQuiz(index: number) {
+  // Navigate to the quiz editor for the selected question
+  router.push(`/quiz/${currentQuizId.value}/edit/${index}`);
+}
+
+// Navigate to the full quiz editor page
+function editEntireQuiz() {
+  // Ensure we have a quiz ID first
+  if (!currentQuizId.value) {
+    // If the quiz hasn't been saved yet, save it first
+    saveQuizToDatabase(quizName.value || "Untitled Quiz", questions.value.length)
+      .then(quizId => {
+        currentQuizId.value = quizId
+        router.push(`/quiz/${quizId}/edit`)
+      })
+      .catch(error => {
+        console.error('Error saving quiz before editing:', error)
+        alert('Failed to save quiz. Please try again.')
+      })
+  } else {
+    // Navigate to the quiz editor
+    router.push(`/quiz/${currentQuizId.value}/edit`)
+  }
 }
 
 function exportCSV() {
@@ -1238,6 +1385,19 @@ async function saveQuizAttempt(title: string, score: number, totalQuestions: num
     throw error;
   }
 }
+
+// Handle confirmation modal actions
+function confirmAction() {
+  if (confirmActionCallback.value) {
+    confirmActionCallback.value();
+  }
+  showConfirmation.value = false;
+}
+
+// Handle cancellation of the confirmation dialog
+function cancelConfirmation() {
+  showConfirmation.value = false;
+}
 </script>
 
 <style scoped>
@@ -1580,6 +1740,7 @@ async function saveQuizAttempt(title: string, score: number, totalQuestions: num
 /* Category section styles */
 .category-section {
   margin-top: var(--spacing-md);
+  margin-bottom: var(--spacing-md);
   background: var(--panel-bg);
   border-radius: var(--radius-md);
   padding: var(--spacing-md);
@@ -1591,6 +1752,95 @@ async function saveQuizAttempt(title: string, score: number, totalQuestions: num
   margin: 0 0 var(--spacing-sm) 0;
   color: var(--text-alt);
   font-size: 0.9rem;
+}
+
+/* Custom Prompt Section */
+.prompt-section {
+  margin-bottom: var(--spacing-md);
+  background: var(--panel-bg);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  border-left: 3px solid #8a5cf7;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.prompt-container {
+  margin-top: var(--spacing-sm);
+}
+
+.prompt-info {
+  margin: 0 0 var(--spacing-sm) 0;
+  color: var(--text-alt);
+  font-size: 0.9rem;
+}
+
+.prompt-input {
+  width: 100%;
+  height: 100px;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text-main);
+}
+
+.prompt-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: var(--spacing-sm);
+}
+
+.reset-btn {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text-main);
+  border: 1px solid var(--input-border);
+  cursor: pointer;
+}
+
+.reset-btn:hover {
+  background: var(--panel-bg);
+}
+
+.prompt-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-xs);
+}
+
+.prompt-toggle label {
+  font-size: 0.85rem;
+  color: var(--text-main);
+}
+
+.prompt-toggle input {
+  cursor: pointer;
+}
+
+/* Section Header */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--spacing-sm);
+}
+
+.toggle-button {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+  border-radius: var(--radius-sm);
+  padding: 0.3rem 0.5rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toggle-button:hover {
+  background: var(--accent);
+  color: white;
 }
 
 @keyframes fadeIn {

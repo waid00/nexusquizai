@@ -38,7 +38,9 @@
 
     <main>
       <transition name="fade" mode="out-in">
-        <router-view/>
+        <router-view v-slot="{ Component }">
+          <component :is="Component" />
+        </router-view>
       </transition>
     </main>
 

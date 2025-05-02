@@ -87,7 +87,6 @@
         >
           <span class="upvote-icon">⬆</span>
           <span class="upvote-count">{{ quiz.upvoteCount }}</span>
-          Upvote
         </button>
       </div>
     </div>
