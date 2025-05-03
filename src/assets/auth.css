@@ -255,14 +255,88 @@
 }
 
 /* Responsive adjustments */
+@media (max-width: 992px) {
+  .auth-container {
+    max-width: 500px;
+  }
+}
+
 @media (max-width: 768px) {
   .auth-container {
-    padding: var(--spacing-sm);
+    padding: var(--spacing-md);
     max-width: 90%;
+    margin-top: 1rem;
   }
   
   .auth-title {
     font-size: 1.5rem;
+  }
+  
+  .auth-subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .form-label {
+    font-size: 0.85rem;
+  }
+  
+  .form-input {
+    height: 42px;
+    font-size: 0.95rem;
+  }
+  
+  .auth-btn {
+    padding: 0.7rem;
+    font-size: 0.95rem;
+  }
+  
+  .input-icon {
+    top: calc(1.7rem + 21px - 8px);
+  }
+  
+  .password-toggle {
+    top: calc(1.7rem + 21px - 8px);
+  }
+}
+
+@media (max-width: 576px) {
+  .auth-container {
+    max-width: 100%;
+    padding: var(--spacing-sm);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-md);
+  }
+  
+  .social-login {
+    flex-direction: column;
+  }
+  
+  .social-btn {
+    width: 100%;
+  }
+  
+  .auth-title {
+    font-size: 1.3rem;
+  }
+  
+  .form-group {
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .recovery-words {
+    grid-template-columns: 1fr;
+  }
+  
+  .recovery-word {
+    padding: 0.6rem;
+  }
+  
+  .word-text {
+    font-size: 0.95rem;
+  }
+  
+  .recovery-notice p {
+    font-size: 0.85rem;
   }
 }
 
@@ -273,5 +347,56 @@
   
   .auth-container {
     max-width: 100%;
+  }
+}
+
+@media (max-width: 380px) {
+  .auth-container {
+    padding: var(--spacing-xs);
+    margin: 0.5rem auto;
+  }
+  
+  .auth-title {
+    font-size: 1.2rem;
+  }
+  
+  .auth-subtitle {
+    font-size: 0.85rem;
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .form-input {
+    height: 40px;
+    font-size: 0.9rem;
+  }
+  
+  .form-label {
+    font-size: 0.8rem;
+  }
+  
+  .input-icon {
+    top: calc(1.6rem + 20px - 8px);
+  }
+  
+  .password-toggle {
+    top: calc(1.6rem + 20px - 8px);
+  }
+  
+  .error-message,
+  .auth-alt,
+  .divider {
+    font-size: 0.85rem;
+  }
+  
+  .social-btn,
+  .auth-btn {
+    height: 40px;
+    font-size: 0.9rem;
+  }
+  
+  .password-requirements div,
+  .remember-me,
+  .terms-checkbox {
+    font-size: 0.8rem;
   }
 }

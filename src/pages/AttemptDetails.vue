@@ -670,24 +670,362 @@ function getCorrectAnswerText(options: QuizOption[]) {
   to { transform: rotate(360deg); }
 }
 
-/* Responsive layout */
-@media (max-width: 768px) {
+/* Comprehensive Responsive Layouts */
+/* Large Desktops (1200px and up) */
+@media (min-width: 1200px) {
+  .attempt-details {
+    max-width: 900px;
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+  
+  .summary-grid {
+    gap: var(--spacing-lg);
+  }
+  
+  .question-text {
+    font-size: 1.1rem;
+  }
+}
+
+/* Standard Desktops (992px to 1199px) */
+@media (min-width: 992px) and (max-width: 1199px) {
+  .attempt-details {
+    max-width: 800px;
+  }
+}
+
+/* Tablets (768px to 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
   .attempt-details {
     padding: var(--spacing-md);
+    max-width: 90%;
+  }
+  
+  .page-title {
+    font-size: 1.8rem;
+    margin-bottom: var(--spacing-md);
   }
   
   .summary-grid {
     grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+  }
+  
+  .summary-card {
+    padding: var(--spacing-sm);
+  }
+  
+  .summary-value {
+    font-size: 1.3rem;
+  }
+  
+  .meta-details {
+    padding: var(--spacing-sm);
+    gap: var(--spacing-sm);
+    justify-content: space-between;
+  }
+  
+  .meta-item {
+    flex-basis: 45%;
+  }
+}
+
+/* Large Mobiles (576px to 767px) */
+@media (min-width: 576px) and (max-width: 767px) {
+  .attempt-details {
+    padding: var(--spacing-sm);
+    max-width: 100%;
+  }
+  
+  .page-title {
+    font-size: 1.6rem;
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .attempt-summary, .answers-review {
+    padding: var(--spacing-sm);
+  }
+  
+  .attempt-summary h3, .answers-review h3 {
+    font-size: 1.2rem;
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+  }
+  
+  .summary-card {
+    padding: var(--spacing-sm);
+  }
+  
+  .summary-value {
+    font-size: 1.2rem;
   }
   
   .meta-details {
     flex-direction: column;
-    gap: var(--spacing-sm);
+    padding: var(--spacing-sm);
+    gap: var(--spacing-xs);
+  }
+  
+  .question-item {
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .question-number {
+    width: 26px;
+    height: 26px;
+    font-size: 0.9rem;
+  }
+  
+  .question-text {
+    font-size: 0.9rem;
   }
   
   .action-buttons {
     flex-direction: column;
+    gap: var(--spacing-sm);
+  }
+  
+  .retake-btn, .back-btn {
+    padding: 0.8rem;
+  }
+}
+
+/* Small Mobiles (400px to 575px) */
+@media (min-width: 400px) and (max-width: 575px) {
+  .attempt-details {
+    padding: var(--spacing-xs);
+  }
+  
+  .page-title {
+    font-size: 1.4rem;
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .attempt-summary, .answers-review {
+    padding: var(--spacing-xs);
+  }
+  
+  .attempt-summary h3, .answers-review h3 {
+    font-size: 1.1rem;
+    margin-bottom: var(--spacing-xs);
+  }
+  
+  .summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-xs);
+    margin-bottom: var(--spacing-xs);
+  }
+  
+  .summary-card {
+    padding: var(--spacing-xs);
+  }
+  
+  .summary-value {
+    font-size: 1.1rem;
+    margin-bottom: 0.25rem;
+  }
+  
+  .summary-label {
+    font-size: 0.8rem;
+  }
+  
+  .meta-details {
+    flex-direction: column;
+    padding: var(--spacing-xs);
+    gap: 0.25rem;
+  }
+  
+  .meta-item {
+    margin-bottom: 0.25rem;
+  }
+  
+  .meta-label, .meta-value {
+    font-size: 0.85rem;
+  }
+  
+  .difficulty-badge {
+    font-size: 0.75rem;
+  }
+  
+  .question-item {
+    margin-bottom: var(--spacing-xs);
+  }
+  
+  .question-header {
+    padding: var(--spacing-xs);
+  }
+  
+  .question-number {
+    width: 24px;
+    height: 24px;
+    font-size: 0.8rem;
+    margin-right: var(--spacing-xs);
+  }
+  
+  .question-text {
+    font-size: 0.85rem;
+    padding-right: 30px;
+  }
+  
+  .result-indicator {
+    width: 20px;
+    height: 20px;
+    font-size: 0.8rem;
+    right: var(--spacing-xs);
+  }
+  
+  .options-list {
+    padding: var(--spacing-xs);
+  }
+  
+  .option-item {
+    padding: 0.4rem 0.5rem;
+    margin-bottom: 0.4rem;
+    font-size: 0.85rem;
+  }
+  
+  .correct-indicator {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.3rem;
+  }
+  
+  .answer-explanation {
+    padding: var(--spacing-xs);
+    margin: 0 var(--spacing-xs) var(--spacing-xs);
+    font-size: 0.8rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: var(--spacing-xs);
+  }
+  
+  .retake-btn, .back-btn {
+    padding: 0.6rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra Small Mobiles (less than 400px) */
+@media (max-width: 399px) {
+  .attempt-details {
+    padding: 0.5rem;
+  }
+  
+  .page-title {
+    font-size: 1.2rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .attempt-summary, .answers-review {
+    padding: 0.5rem;
+  }
+  
+  .attempt-summary h3, .answers-review h3 {
+    font-size: 1rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .summary-card {
+    padding: 0.5rem;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  
+  .summary-value {
+    font-size: 1rem;
+    margin-bottom: 0;
+    margin-right: 0.5rem;
+  }
+  
+  .summary-label {
+    font-size: 0.75rem;
+  }
+  
+  .pass-fail {
+    font-size: 0.9rem;
+    padding: 0.1rem 0.4rem;
+  }
+  
+  .meta-details {
+    flex-direction: column;
+    padding: 0.5rem;
+    gap: 0.25rem;
+    border-top: none;
+  }
+  
+  .meta-label, .meta-value {
+    font-size: 0.8rem;
+  }
+  
+  .question-number {
+    width: 20px;
+    height: 20px;
+    font-size: 0.75rem;
+    margin-right: 0.25rem;
+  }
+  
+  .question-text {
+    font-size: 0.8rem;
+    padding-right: 25px;
+  }
+  
+  .result-indicator {
+    width: 18px;
+    height: 18px;
+    font-size: 0.75rem;
+    right: 0.25rem;
+  }
+  
+  .option-item {
+    padding: 0.3rem 0.4rem;
+    margin-bottom: 0.3rem;
+    font-size: 0.8rem;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .correct-indicator {
+    align-self: flex-end;
+    margin-top: 0.25rem;
+    font-size: 0.65rem;
+  }
+  
+  .answer-explanation {
+    font-size: 0.75rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .retake-btn, .back-btn {
+    padding: 0.5rem;
+    font-size: 0.85rem;
+  }
+}
+
+/* Touch Device Optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .retake-btn, .back-btn, .btn {
+    min-height: 44px;
+    padding-top: 0.8rem;
+    padding-bottom: 0.8rem;
+  }
+  
+  .option-item {
+    min-height: 44px;
   }
 }
 </style>
-```

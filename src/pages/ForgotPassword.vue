@@ -437,6 +437,10 @@ async function resetPassword() {
 <style scoped>
 .forgot-password-page {
   padding: 2rem 1rem;
+  min-height: calc(100vh - 4rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .success-message {
@@ -541,9 +545,173 @@ async function resetPassword() {
   to { opacity: 1; }
 }
 
-@media (max-width: 480px) {
+/* Comprehensive responsive styling */
+/* Large screens and desktops (992px and up) */
+@media (min-width: 992px) {
+  .auth-container {
+    min-width: 500px;
+  }
+  
+  .recovery-form {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+/* Medium devices (tablets, 768px to 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+  .auth-container {
+    width: 90%;
+    max-width: 500px;
+  }
+  
+  .recovery-form {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+}
+
+/* Small devices (landscape phones, 576px to 767px) */
+@media (min-width: 576px) and (max-width: 767px) {
+  .forgot-password-page {
+    padding: 1.5rem 1rem;
+  }
+  
+  .auth-container {
+    width: 90%;
+    max-width: 450px;
+  }
+  
+  .auth-title {
+    font-size: 1.5rem;
+  }
+  
+  .recovery-form {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .word-label {
+    min-width: 1.2rem;
+    font-size: 0.8rem;
+  }
+  
+  .recovery-input {
+    font-size: 0.9rem;
+  }
+  
+  .recovery-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .back-btn, .auth-btn {
+    width: 100%;
+  }
+}
+
+/* Extra small devices (portrait phones, less than 576px) */
+@media (max-width: 575px) {
+  .forgot-password-page {
+    padding: 1rem 0.5rem;
+  }
+  
+  .auth-container {
+    width: 100%;
+    padding: 1rem;
+  }
+  
+  .auth-title {
+    font-size: 1.3rem;
+  }
+  
+  .auth-subtitle {
+    font-size: 0.9rem;
+  }
+  
   .recovery-form {
     grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .recovery-word-input {
+    margin-bottom: 0.25rem;
+  }
+  
+  .recovery-actions {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .back-btn, .auth-btn {
+    width: 100%;
+    padding: 0.8rem;
+  }
+  
+  .form-label {
+    font-size: 0.9rem;
+  }
+  
+  .password-requirements div {
+    font-size: 0.75rem;
+  }
+}
+
+/* Extra small devices (small phones, less than 400px) */
+@media (max-width: 399px) {
+  .auth-container {
+    padding: 0.75rem;
+  }
+  
+  .auth-title {
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .auth-subtitle {
+    font-size: 0.8rem;
+    margin-bottom: 1rem;
+  }
+  
+  .form-group {
+    margin-bottom: 0.75rem;
+  }
+  
+  .form-input {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.9rem;
+  }
+  
+  .recovery-input {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.5rem;
+  }
+  
+  .word-label {
+    min-width: 1rem;
+    font-size: 0.7rem;
+  }
+  
+  .password-requirements div {
+    font-size: 0.7rem;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .form-input, 
+  .back-btn, 
+  .auth-btn, 
+  .password-toggle {
+    min-height: 44px; /* Minimum touch target size */
+  }
+  
+  .recovery-input {
+    min-height: 40px;
+  }
+  
+  .password-toggle {
+    padding: 0.5rem;
   }
 }
 </style>

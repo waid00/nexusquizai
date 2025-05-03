@@ -361,21 +361,62 @@ header nav a:hover::after {
 }
 
 /* Responsive adjustments */
+@media (max-width: 992px) {
+  header {
+    padding: 0 1.5rem;
+  }
+  
+  .header-left {
+    margin-right: 1.5rem;
+  }
+  
+  .auth-controls {
+    margin-left: 1.5rem;
+  }
+}
+
 @media (max-width: 768px) {
   header {
     flex-wrap: wrap;
     padding: 1rem;
+    height: auto;
+    min-height: 70px;
+    gap: 0.5rem;
+  }
+  
+  .header-left {
+    flex: 1;
+    margin-right: 0;
   }
   
   header nav {
     order: 3;
     width: 100%;
-    margin-top: 1rem;
-    justify-content: center;
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+    justify-content: space-between;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
   }
   
   .auth-controls {
+    margin-left: auto;
     flex-shrink: 0;
+  }
+}
+
+@media (max-width: 576px) {
+  header {
+    padding: 0.75rem;
+    border-radius: 0 0 8px 8px;
+  }
+  
+  header nav {
+    gap: 1rem;
+  }
+  
+  header nav a {
+    font-size: 0.9rem;
   }
 }
 
@@ -397,6 +438,11 @@ header nav a:hover::after {
   
   .username {
     max-width: 80px;
+  }
+  
+  header nav {
+    justify-content: center;
+    gap: 0.75rem;
   }
 }
 </style>

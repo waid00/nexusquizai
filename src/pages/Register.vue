@@ -19,6 +19,10 @@
               v-model="formData.username" 
               type="text" 
               class="form-input" 
+              :class="{
+                'is-valid': formData.username.trim() !== '' && !usernameError,
+                'is-invalid': usernameError
+              }"
               required 
               autocomplete="username"
               :disabled="auth.state.isLoading"
@@ -39,6 +43,10 @@
               v-model="formData.email" 
               type="email" 
               class="form-input" 
+              :class="{
+                'is-valid': formData.email.trim() !== '' && !emailError,
+                'is-invalid': emailError
+              }"
               required 
               autocomplete="email"
               :disabled="auth.state.isLoading"
@@ -59,6 +67,10 @@
               v-model="formData.password" 
               :type="showPassword ? 'text' : 'password'" 
               class="form-input" 
+              :class="{
+                'is-valid': formData.password && passwordLength && passwordUppercase && passwordLowercase && passwordNumber,
+                'is-invalid': formData.password && !(passwordLength && passwordUppercase && passwordLowercase && passwordNumber)
+              }"
               required
               autocomplete="new-password"
               :disabled="auth.state.isLoading"
@@ -137,6 +149,10 @@
               v-model="formData.confirmPassword" 
               :type="showPassword ? 'text' : 'password'" 
               class="form-input" 
+              :class="{
+                'is-valid': formData.confirmPassword && formData.confirmPassword === formData.password,
+                'is-invalid': formData.confirmPassword && formData.confirmPassword !== formData.password
+              }"
               required
               autocomplete="new-password"
               :disabled="auth.state.isLoading"
@@ -170,23 +186,6 @@
             {{ auth.state.isLoading ? 'Creating Account...' : 'Create Account' }}
           </button>
         </form>
-
-        <div class="divider">OR</div>
-
-        <div class="social-login">
-          <button class="social-btn" :disabled="auth.state.isLoading">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M15.545 6.558a9.42 9.42 0 0 1 .139 1.626c0 2.434-.87 4.492-2.384 5.885h.002C11.978 15.292 10.158 16 8 16A8 8 0 1 1 8 0a7.689 7.689 0 0 1 5.352 2.082l-2.284 2.284A4.347 4.347 0 0 0 8 3.166c-2.087 0-3.86 1.408-4.492 3.304a4.792 4.792 0 0 0 0 3.063h.003c.635 1.893 2.405 3.301 4.492 3.301 1.078 0 2.004-.276 2.722-.764h-.003a3.702 3.702 0 0 0 1.599-2.431H8v-3.08h7.545z"/>
-            </svg>
-            Google
-          </button>
-          <button class="social-btn" :disabled="auth.state.isLoading">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.012 8.012 0 0 0 16 8c0-4.42-3.58-8-8-8z"/>
-            </svg>
-            GitHub
-          </button>
-        </div>
 
         <p class="auth-alt">
           Already have an account? 
@@ -288,7 +287,7 @@
 
 <script setup lang="ts">
 import '@/assets/auth.css'
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
@@ -344,7 +343,8 @@ const isFormValid = computed(() => {
 
 // Validation helpers
 function isValidEmail(email: string): boolean {
-  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+  // More comprehensive email regex that checks for proper format
+  const emailRegex = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/
   return emailRegex.test(email)
 }
 
@@ -388,6 +388,30 @@ function validatePasswordMatch() {
     passwordMatchError.value = ''
   }
 }
+
+// Setup watchers for real-time validation
+watch(() => formData.username, (newValue) => {
+  if (newValue.trim() !== '') {
+    validateUsername()
+  }
+})
+
+watch(() => formData.email, (newValue) => {
+  if (newValue.trim() !== '') {
+    validateEmail()
+  }
+})
+
+// Watch for changes in password fields and validate in real-time
+watch(() => formData.password, () => {
+  validatePassword()
+})
+
+watch(() => formData.confirmPassword, () => {
+  if (formData.confirmPassword.trim() !== '') {
+    validatePasswordMatch()
+  }
+})
 
 // Register handler
 const handleRegister = async () => {
@@ -450,6 +474,9 @@ const proceedToLogin = () => {
 <style scoped>
 .register-page {
   padding: 2rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .error-text {
@@ -591,6 +618,7 @@ const proceedToLogin = () => {
   align-items: center;
   margin: 1.5rem 0;
   position: relative;
+  flex-wrap: wrap;
 }
 
 .copy-btn {
@@ -604,6 +632,7 @@ const proceedToLogin = () => {
   border-radius: var(--radius-sm);
   cursor: pointer;
   transition: background 0.3s ease;
+  min-height: 40px;
 }
 
 .copy-btn:hover {
@@ -633,6 +662,126 @@ const proceedToLogin = () => {
 
 .continue-btn {
   margin-top: 0.5rem;
+}
+
+.form-input {
+  width: 100%;
+  height: 45px;
+  padding: 0 rem;
+  background: var(--input-bg);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-size: 1rem;
+  transition: border-color var(--transition-duration) var(--transition-timing);
+}
+
+.form-input:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.form-input.is-valid {
+  border-color: var(--accent);
+  background-color: rgba(46, 213, 115, 0.05);
+}
+
+.form-input.is-invalid {
+  border-color: rgb(255, 89, 89);
+  background-color: rgba(255, 89, 89, 0.05);
+}
+
+.form-input.is-invalid:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+/* Mobile responsiveness improvements */
+@media (max-width: 768px) {
+  .register-page {
+    padding: 1.5rem 1rem;
+    min-height: calc(100vh - 180px);
+  }
+  
+  .verification-actions {
+    margin: 1.5rem 0;
+  }
+  
+  .recovery-words {
+    gap: 0.6rem;
+  }
+  
+  .recovery-notice {
+    padding: 0.75rem;
+    margin: 1rem 0;
+  }
+  
+  .password-requirements div {
+    margin-top: 0.3rem;
+  }
+  
+  .terms-checkbox {
+    margin: 0.75rem 0;
+  }
+  
+  .checkbox-input {
+    width: 18px;
+    height: 18px;
+  }
+}
+
+@media (max-width: 576px) {
+  .register-page {
+    padding: 1rem 0.5rem;
+  }
+  
+  .verification-actions .auth-btn {
+    width: 100%;
+  }
+  
+  .recovery-words {
+    margin: 1rem 0;
+  }
+  
+  .terms-checkbox {
+    align-items: center;
+  }
+  
+  .terms-checkbox label {
+    line-height: 1.4;
+  }
+  
+  .notice-icon {
+    margin-bottom: 0.25rem;
+  }
+}
+
+@media (max-width: 380px) {
+  .register-page {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .verification-container {
+    text-align: center;
+  }
+  
+  .verification-note {
+    padding: 0.75rem;
+    margin-top: 1.5rem;
+  }
+  
+  .recovery-confirm {
+    margin-top: 1.5rem;
+    gap: 0.75rem;
+  }
+}
+
+/* Adjust animations to be less intensive on mobile */
+@media (max-width: 576px) {
+  .verification-container,
+  .recovery-phrase-container {
+    animation-duration: 0.3s;
+  }
 }
 
 @keyframes fadeIn {

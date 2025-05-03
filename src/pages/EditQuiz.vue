@@ -14,7 +14,7 @@
       <div class="error-icon">
         <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" fill="currentColor" viewBox="0 0 16 16">
           <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
-          <path d="M7.002 11a1 1 0 1 1 2 0 1 1 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
+          <path d="M7.002 11a1 1 0 1 1 2 0 0 1-2 0zM7.1 4.995a.905.905 0 1 1 1.8 0l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995z"/>
         </svg>
       </div>
       <p>{{ errorMessage }}</p>
@@ -33,6 +33,10 @@
             v-model="quizData.title" 
             type="text" 
             placeholder="Enter quiz title"
+            :class="{
+              'valid': titleValid,
+              'invalid': titleInvalid
+            }"
             required
           >
         </div>
@@ -126,6 +130,10 @@
                   v-model="question.questionText" 
                   placeholder="Enter your question"
                   rows="2"
+                  :class="{
+                    'valid': questionValidation[question.id]?.textValid,
+                    'invalid': questionValidation[question.id]?.textInvalid
+                  }"
                   required
                 ></textarea>
               </div>
@@ -174,6 +182,10 @@
                       v-model="option.text" 
                       placeholder="Enter option text"
                       class="option-text-input"
+                      :class="{
+                        'valid': questionValidation[question.id]?.optionsValid?.[option.id],
+                        'invalid': questionValidation[question.id]?.optionsInvalid?.[option.id]
+                      }"
                       required
                     >
                   </div>
@@ -221,6 +233,10 @@
                     v-model="question.correctAnswer" 
                     type="text" 
                     placeholder="Enter correct answer"
+                    :class="{
+                      'valid': questionValidation[question.id]?.blankAnswerValid,
+                      'invalid': questionValidation[question.id]?.blankAnswerInvalid
+                    }"
                     required
                   >
                 </div>
@@ -243,7 +259,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
@@ -260,6 +276,20 @@ const isSaving = ref(false)
 const isGenerating = ref(false)
 const errorMessage = ref('')
 const expandedQuestions = reactive<{[key: string]: boolean}>({})
+
+// Validation states
+const titleValid = ref(false)
+const titleInvalid = ref(false)
+
+// Question validation state tracking
+const questionValidation = reactive<{[key: string]: {
+  textValid: boolean;
+  textInvalid: boolean;
+  optionsValid: {[key: string]: boolean};
+  optionsInvalid: {[key: string]: boolean};
+  blankAnswerValid?: boolean;
+  blankAnswerInvalid?: boolean;
+}}>({}) // Will hold validation state for each question
 
 // Quiz data with default empty structure
 const quizData = reactive({
@@ -632,6 +662,143 @@ function setCorrectOption(question: any, correctIndex: number) {
   })
 }
 
+// Validate title
+function validateTitle() {
+  const title = quizData.title.trim()
+  if (title.length === 0) {
+    titleValid.value = false
+    titleInvalid.value = false
+    return false
+  } else if (title.length < 3) {
+    titleValid.value = false
+    titleInvalid.value = true
+    return false
+  } else if (title.length > 100) {
+    titleValid.value = false
+    titleInvalid.value = true
+    return false
+  } else {
+    titleValid.value = true
+    titleInvalid.value = false
+    return true
+  }
+}
+
+// Validate question text
+function validateQuestionText(question: { id: string | number, questionText: string }) {
+  const questionId = question.id
+  const text = question.questionText.trim()
+  
+  if (!questionValidation[questionId]) {
+    questionValidation[questionId] = reactive({
+      textValid: false,
+      textInvalid: false,
+      optionsValid: {},
+      optionsInvalid: {}
+    })
+  }
+  
+  if (text.length === 0) {
+    questionValidation[questionId].textValid = false
+    questionValidation[questionId].textInvalid = false
+    return false
+  } else if (text.length < 5) {
+    questionValidation[questionId].textValid = false
+    questionValidation[questionId].textInvalid = true
+    return false
+  } else if (text.length > 500) {
+    questionValidation[questionId].textValid = false
+    questionValidation[questionId].textInvalid = true
+    return false
+  } else {
+    questionValidation[questionId].textValid = true
+    questionValidation[questionId].textInvalid = false
+    return true
+  }
+}
+
+// Validate option text
+function validateOptionText(question: { id: string | number }, option: { id: string | number, text: string }) {
+  const questionId = question.id
+  const optionId = option.id
+  const text = option.text.trim()
+  
+  if (!questionValidation[questionId]) {
+    questionValidation[questionId] = reactive({
+      textValid: false,
+      textInvalid: false,
+      optionsValid: {},
+      optionsInvalid: {}
+    })
+  }
+  
+  if (text.length === 0) {
+    questionValidation[questionId].optionsValid[optionId] = false
+    questionValidation[questionId].optionsInvalid[optionId] = false
+    return false
+  } else if (text.length > 200) {
+    questionValidation[questionId].optionsValid[optionId] = false
+    questionValidation[questionId].optionsInvalid[optionId] = true
+    return false
+  } else {
+    questionValidation[questionId].optionsValid[optionId] = true
+    questionValidation[questionId].optionsInvalid[optionId] = false
+    return true
+  }
+}
+
+// Validate fill in blank answer
+function validateBlankAnswer(question: { id: string | number, correctAnswer: string }) {
+  const questionId = question.id
+  const text = question.correctAnswer.trim()
+  
+  if (!questionValidation[questionId]) {
+    questionValidation[questionId] = reactive({
+      textValid: false,
+      textInvalid: false,
+      blankAnswerValid: false,
+      blankAnswerInvalid: false,
+      optionsValid: {},  // Add missing property
+      optionsInvalid: {} // Add missing property
+    })
+  }
+  
+  if (text.length === 0) {
+    questionValidation[questionId].blankAnswerValid = false
+    questionValidation[questionId].blankAnswerInvalid = false
+    return false
+  } else if (text.length > 100) {
+    questionValidation[questionId].blankAnswerValid = false
+    questionValidation[questionId].blankAnswerInvalid = true
+    return false
+  } else {
+    questionValidation[questionId].blankAnswerValid = true
+    questionValidation[questionId].blankAnswerInvalid = false
+    return true
+  }
+}
+
+// Set up watchers for real-time validation
+watch(() => quizData.title, (newValue) => {
+  validateTitle()
+})
+
+// Set up validation for questions and options when questions change
+watch(() => quizData.questions, (newQuestions) => {
+  // Validate each question
+  newQuestions.forEach(question => {
+    validateQuestionText(question)
+    
+    if (question.questionType === 'multiple_choice') {
+      question.options.forEach((option: { id: string | number, text: string, isCorrect: boolean }) => {
+        validateOptionText(question, option)
+      })
+    } else if (question.questionType === 'fill_blank') {
+      validateBlankAnswer(question)
+    }
+  })
+}, { deep: true })
+
 // Save quiz changes
 async function saveQuiz() {
   if (!auth.state.isAuthenticated || !auth.state.user) {
@@ -645,8 +812,23 @@ async function saveQuiz() {
     return
   }
   
+  if (quizData.title.trim().length < 3) {
+    alert('Quiz title must be at least 3 characters long')
+    return
+  }
+  
+  if (quizData.title.trim().length > 100) {
+    alert('Quiz title must be less than 100 characters long')
+    return
+  }
+  
   if (quizData.questions.length === 0) {
     alert('Please add at least one question')
+    return
+  }
+  
+  if (quizData.questions.length > 50) {
+    alert('A quiz cannot have more than 50 questions')
     return
   }
   
@@ -660,14 +842,49 @@ async function saveQuiz() {
       break
     }
     
+    if (question.questionText.trim().length < 5) {
+      alert('Question text must be at least 5 characters long')
+      isValid = false
+      break
+    }
+    
+    if (question.questionText.trim().length > 500) {
+      alert('Question text must be less than 500 characters long')
+      isValid = false
+      break
+    }
+    
     if (question.questionType === 'multiple_choice') {
       // Validate multiple choice options
+      const optionTexts = new Set()
+      
       for (const option of question.options) {
         if (!option.text.trim()) {
           alert('All options must have text')
           isValid = false
           break
         }
+        
+        if (option.text.trim().length < 1) {
+          alert('Option text must not be empty')
+          isValid = false
+          break
+        }
+        
+        if (option.text.trim().length > 200) {
+          alert('Option text must be less than 200 characters long')
+          isValid = false
+          break
+        }
+        
+        // Check for duplicate options
+        if (optionTexts.has(option.text.trim().toLowerCase())) {
+          alert('Multiple choice questions cannot have duplicate options')
+          isValid = false
+          break
+        }
+        
+        optionTexts.add(option.text.trim().toLowerCase())
       }
       
       // Ensure there's a correct option selected
@@ -680,6 +897,12 @@ async function saveQuiz() {
       // Validate fill in the blank answer
       if (!question.correctAnswer.trim()) {
         alert('Fill in the blank questions must have a correct answer')
+        isValid = false
+        break
+      }
+      
+      if (question.correctAnswer.trim().length > 100) {
+        alert('Fill in the blank answers must be less than 100 characters long')
         isValid = false
         break
       }
@@ -1241,6 +1464,27 @@ h4 {
 .ai-icon {
   font-style: normal;
   margin-right: 4px;
+}
+
+/* Validation feedback */
+.form-input.valid {
+  border-color: var(--accent);
+  background-color: rgba(46, 213, 115, 0.05);
+}
+
+.form-input.invalid {
+  border-color: rgb(255, 89, 89);
+  background-color: rgba(255, 89, 89, 0.05);
+}
+
+input.valid, textarea.valid, select.valid {
+  border-color: var(--accent) !important;
+  background-color: rgba(46, 213, 115, 0.05);
+}
+
+input.invalid, textarea.invalid, select.invalid {
+  border-color: rgb(255, 89, 89) !important;
+  background-color: rgba(255, 89, 89, 0.05);
 }
 
 /* Animations */

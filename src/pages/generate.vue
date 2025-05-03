@@ -58,6 +58,10 @@
             v-model="customPrompt"
             :placeholder="autoGeneratePrompt ? 'AI will generate a prompt automatically...' : 'Enter specific instructions for how the AI should generate questions...'"
             class="prompt-input"
+            :class="{
+              'valid': customPromptValid,
+              'invalid': customPromptInvalid
+            }"
             :disabled="autoGeneratePrompt"
             :required="!autoGeneratePrompt"
           ></textarea>
@@ -148,6 +152,10 @@
             type="text" 
             placeholder="Enter a name for your quiz"
             class="form-input"
+            :class="{
+              'valid': quizNameValid,
+              'invalid': quizNameInvalid
+            }"
             maxlength="50"
           />
           <span class="char-counter" :class="{ 'limit-near': quizName.length > 40 }">
@@ -378,6 +386,14 @@ const confirmActionCallback = ref<() => void>(() => {})
 const autoGeneratePrompt = ref(false)
 const customPrompt = ref('')
 
+// Add validation state for custom prompt
+const customPromptValid = ref(false)
+const customPromptInvalid = ref(false)
+
+// Form validation state
+const quizNameValid = ref(false)
+const quizNameInvalid = ref(false)
+
 // Default prompt templates for reset functionality
 const defaultPromptTemplates = {
   mcq: "Generate professional multiple-choice questions that test knowledge and comprehension. Include 4 answer options per question with one correct answer. Explain why the correct answer is right.",
@@ -389,6 +405,53 @@ const defaultPromptTemplates = {
 function resetPrompt() {
   customPrompt.value = defaultPromptTemplates[type.value] || ''
   autoGeneratePrompt.value = false
+}
+
+// Validate quiz name
+function validateQuizName() {
+  const name = quizName.value.trim()
+  if (name.length === 0) {
+    quizNameValid.value = false
+    quizNameInvalid.value = false
+    return false
+  } else if (name.length < 3) {
+    quizNameValid.value = false
+    quizNameInvalid.value = true
+    return false
+  } else if (name.length > 50) {
+    quizNameValid.value = false
+    quizNameInvalid.value = true
+    return false
+  } else {
+    quizNameValid.value = true
+    quizNameInvalid.value = false
+    return true
+  }
+}
+
+// Validate custom prompt
+function validateCustomPrompt() {
+  if (autoGeneratePrompt.value) {
+    // When auto-generating, we don't need to validate
+    customPromptValid.value = false
+    customPromptInvalid.value = false
+    return true
+  }
+  
+  const prompt = customPrompt.value.trim()
+  if (prompt.length === 0) {
+    customPromptValid.value = false
+    customPromptInvalid.value = false
+    return false
+  } else if (prompt.length < 10) {
+    customPromptValid.value = false
+    customPromptInvalid.value = true
+    return false
+  } else {
+    customPromptValid.value = true
+    customPromptInvalid.value = false
+    return true
+  }
 }
 
 // Computed property to check if all questions are answered
@@ -470,6 +533,16 @@ watch([text, extracted, autoGeneratePrompt], async ([newText, newExtracted, shou
     }
   }
 });
+
+// Set up watchers for real-time validation
+watch(() => quizName.value, (newValue) => {
+  validateQuizName()
+})
+
+// Set up watchers for validation of custom prompt
+watch([customPrompt, autoGeneratePrompt], ([newPrompt, isAutoGenerate]) => {
+  validateCustomPrompt()
+})
 
 // Function to generate a prompt from the content
 async function generatePromptFromContent(content: string): Promise<string> {
@@ -603,9 +676,28 @@ async function generate() {
     return
   }
 
+  // Validate input content length
+  if (src.length < 100) {
+    alert('Please provide more content to generate meaningful questions. At least 100 characters are required.')
+    return
+  }
+
   // Make sure we have a prompt when not auto-generating
   if (!autoGeneratePrompt.value && !customPrompt.value.trim()) {
     alert('Please enter a prompt or enable auto-generate prompt')
+    return
+  }
+
+  // Validate question count is within reasonable limits
+  if (count.value < 1) {
+    alert('Please set the question count to at least 1')
+    count.value = 1
+    return
+  }
+
+  if (count.value > 20) {
+    alert('Please limit the question count to 20 or fewer for best results')
+    count.value = 20
     return
   }
 
@@ -1450,6 +1542,14 @@ function cancelConfirmation() {
   color: var(--text-main);
 }
 
+.quiz-name-input input.valid {
+  border-color: var(--success);
+}
+
+.quiz-name-input input.invalid {
+  border-color: var(--error);
+}
+
 .char-counter {
   font-size: 0.85rem;
   color: var(--text-alt);
@@ -1463,16 +1563,53 @@ function cancelConfirmation() {
 .action-buttons {
   display: flex;
   gap: var(--spacing-sm);
+  flex-wrap: wrap;
+}
+
+.edit-quiz-btn, .export-btn, .save-quiz-btn, .take-quiz-btn {
+  padding: 0.6rem 1rem;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 0.9rem;
+  text-align: center;
+  transition: all 0.2s ease;
+}
+
+.edit-quiz-btn {
+  background: var(--input-bg);
+  color: var(--text-main);
+  border: 1px solid var(--input-border);
+}
+
+.export-btn {
+  background: var(--input-bg);
+  color: var(--text-main);
+  border: 1px solid var(--input-border);
+}
+
+.save-quiz-btn {
+  background: rgba(46, 204, 113, 0.2);
+  color: var(--accent);
+  border: 1px solid var(--accent);
 }
 
 .take-quiz-btn {
   background: var(--accent);
   color: white;
   border: none;
-  border-radius: var(--radius-sm);
-  padding: 0.4rem 0.75rem;
-  cursor: pointer;
-  transition: background-color 0.2s;
+}
+
+.edit-quiz-btn:hover {
+  background: var(--panel-bg);
+}
+
+.export-btn:hover {
+  background: var(--panel-bg);
+}
+
+.save-quiz-btn:hover {
+  background: rgba(46, 204, 113, 0.3);
 }
 
 .take-quiz-btn:hover {
@@ -1782,6 +1919,14 @@ function cancelConfirmation() {
   border-radius: var(--radius-sm);
   background: var(--input-bg);
   color: var(--text-main);
+}
+
+.prompt-input.valid {
+  border-color: var(--success);
+}
+
+.prompt-input.invalid {
+  border-color: var(--error);
 }
 
 .prompt-controls {

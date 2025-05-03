@@ -63,10 +63,10 @@
               </thead>
               <tbody>
                 <tr v-for="user in filteredUsers" :key="user.id">
-                  <td>{{ user.id }}</td>
-                  <td>{{ user.username }}</td>
-                  <td>{{ user.email }}</td>
-                  <td>
+                  <td data-label="ID">{{ user.id }}</td>
+                  <td data-label="Username">{{ user.username }}</td>
+                  <td data-label="Email">{{ user.email }}</td>
+                  <td data-label="Role">
                     <select 
                       v-model="user.roleId" 
                       @change="updateUserRole(user.id, user.roleId)"
@@ -77,13 +77,13 @@
                       </option>
                     </select>
                   </td>
-                  <td>{{ formatDate(user.createdAt) }}</td>
-                  <td>
+                  <td data-label="Created">{{ formatDate(user.createdAt) }}</td>
+                  <td data-label="Status">
                     <span class="status-badge" :class="user.isActive ? 'active' : 'inactive'">
                       {{ user.isActive ? 'Active' : 'Inactive' }}
                     </span>
                   </td>
-                  <td class="actions-cell">
+                  <td data-label="Actions" class="actions-cell">
                     <button 
                       @click="confirmToggleUserStatus(user)" 
                       class="action-btn"
@@ -126,17 +126,17 @@
               </thead>
               <tbody>
                 <tr v-for="quiz in filteredQuizzes" :key="quiz.id">
-                  <td>{{ quiz.id }}</td>
-                  <td>{{ quiz.title }}</td>
-                  <td>{{ quiz.ownerUsername }}</td>
-                  <td>{{ quiz.questionCount }}</td>
-                  <td>{{ formatDate(quiz.createdAt) }}</td>
-                  <td>
+                  <td data-label="ID">{{ quiz.id }}</td>
+                  <td data-label="Title">{{ quiz.title }}</td>
+                  <td data-label="Owner">{{ quiz.ownerUsername }}</td>
+                  <td data-label="Questions">{{ quiz.questionCount }}</td>
+                  <td data-label="Created">{{ formatDate(quiz.createdAt) }}</td>
+                  <td data-label="Status">
                     <span class="status-badge" :class="{ 'active': !quiz.isDeleted }">
                       {{ quiz.isDeleted ? 'Deleted' : 'Active' }}
                     </span>
                   </td>
-                  <td class="actions-cell">
+                  <td data-label="Actions" class="actions-cell">
                     <button 
                       @click="confirmToggleQuizStatus(quiz)" 
                       class="action-btn"
@@ -188,8 +188,8 @@
               </thead>
               <tbody>
                 <tr v-for="category in categories" :key="category.id">
-                  <td>{{ category.id }}</td>
-                  <td>
+                  <td data-label="ID">{{ category.id }}</td>
+                  <td data-label="Name">
                     <span v-if="!category.isEditing">{{ category.name }}</span>
                     <input 
                       v-else
@@ -198,8 +198,8 @@
                       class="edit-input"
                     >
                   </td>
-                  <td>{{ category.quizCount }}</td>
-                  <td class="actions-cell">
+                  <td data-label="Quizzes">{{ category.quizCount }}</td>
+                  <td data-label="Actions" class="actions-cell">
                     <template v-if="!category.isEditing">
                       <button @click="startEditCategory(category)" class="action-btn">
                         Edit
@@ -266,10 +266,10 @@
               </thead>
               <tbody>
                 <tr v-for="(activity, index) in recentActivity" :key="index">
-                  <td>{{ activity.type }}</td>
-                  <td>{{ activity.username }}</td>
-                  <td>{{ formatDate(activity.date) }}</td>
-                  <td>{{ activity.details }}</td>
+                  <td data-label="Activity">{{ activity.type }}</td>
+                  <td data-label="User">{{ activity.username }}</td>
+                  <td data-label="Date">{{ formatDate(activity.date) }}</td>
+                  <td data-label="Details">{{ activity.details }}</td>
                 </tr>
               </tbody>
             </table>
@@ -1123,31 +1123,316 @@ function formatDate(dateString: string) {
   to { transform: rotate(360deg); }
 }
 
-/* Responsive adjustments */
-@media (max-width: 1024px) {
+/* Comprehensive Responsive Layouts */
+/* Large Desktops (1200px and up) */
+@media (min-width: 1200px) {
+  .admin-page {
+    padding: var(--spacing-xl) var(--spacing-lg);
+  }
+  
   .stats-grid {
-    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-lg);
+  }
+  
+  .tab-btn {
+    padding: var(--spacing-md) var(--spacing-lg);
   }
 }
 
-@media (max-width: 768px) {
+/* Standard Desktops (992px to 1199px) */
+@media (min-width: 992px) and (max-width: 1199px) {
+  .admin-page {
+    max-width: 95%;
+  }
+  
+  .data-table th,
+  .data-table td {
+    padding: var(--spacing-sm) 0.5rem;
+  }
+}
+
+/* Tablets (768px to 991px) */
+@media (min-width: 768px) and (max-width: 991px) {
+  .admin-page {
+    padding: var(--spacing-md);
+    max-width: 100%;
+  }
+  
+  .page-title {
+    font-size: 1.8rem;
+    margin-bottom: var(--spacing-md);
+  }
+  
+  .admin-tabs {
+    flex-wrap: wrap;
+    gap: 0.2rem;
+  }
+  
+  .tab-btn {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+    padding: 0.5rem;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--spacing-sm);
+  }
+  
+  .stat-value {
+    font-size: 1.7rem;
+  }
+  
+  .form-group {
+    flex-direction: column;
+  }
+  
+  .form-input {
+    width: 100%;
+  }
+  
+  /* Data columns visibility for certain screen sizes */
+  .data-table th:nth-child(1),
+  .data-table td:nth-child(1) {
+    display: none; /* Hide ID column on tablets */
+  }
+  
+  .action-btn {
+    padding: 0.4rem 0.6rem;
+  }
+}
+
+/* Large Mobiles (576px to 767px) */
+@media (min-width: 576px) and (max-width: 767px) {
+  .admin-page {
+    padding: var(--spacing-sm);
+  }
+  
+  .page-title {
+    font-size: 1.6rem;
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .admin-tabs {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.2rem;
+  }
+  
+  .tab-btn {
+    flex: 1 0 40%;
+    min-width: 100px;
+    text-align: center;
+    padding: 0.5rem;
+    font-size: 0.9rem;
+  }
+  
+  .section-title {
+    font-size: 1.3rem;
+    text-align: center;
+  }
+  
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+  }
+  
+  .stat-label {
+    font-size: 0.8rem;
+  }
+  
+  .form-group {
+    flex-direction: column;
+  }
+  
+  /* Responsive tables for smaller screens */
+  .data-table {
+    font-size: 0.85rem;
+  }
+  
+  .data-table th:nth-child(1),
+  .data-table td:nth-child(1),
+  .data-table th:nth-child(5),
+  .data-table td:nth-child(5) {
+    display: none; /* Hide ID and Created columns */
+  }
+  
+  .actions-cell {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  
+  .action-btn {
+    width: 100%;
+    text-align: center;
+    font-size: 0.8rem;
+  }
+}
+
+/* Small Mobiles (400px to 575px) */
+@media (max-width: 575px) {
+  .admin-page {
+    padding: 0.5rem;
+  }
+  
+  .page-title {
+    font-size: 1.4rem;
+    margin-bottom: var(--spacing-sm);
+  }
+  
   .admin-tabs {
     flex-wrap: wrap;
   }
   
   .tab-btn {
-    flex: 1 0 auto;
+    flex: 1 0 calc(50% - 2px);
+    min-width: 0;
+    padding: 0.5rem 0.3rem;
+    font-size: 0.8rem;
     text-align: center;
   }
-}
-
-@media (max-width: 480px) {
+  
+  .section-title {
+    font-size: 1.2rem;
+    text-align: center;
+  }
+  
+  .subsection-title {
+    font-size: 1.1rem;
+    text-align: center;
+  }
+  
   .stats-grid {
     grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+  
+  .stat-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    text-align: left;
+  }
+  
+  .stat-value {
+    font-size: 1.3rem;
+    margin-bottom: 0;
+    margin-right: 0.5rem;
+  }
+  
+  /* Responsive data table for mobile */
+  .data-table {
+    display: block;
+    font-size: 0.8rem;
+  }
+  
+  .data-table thead {
+    display: none; /* Hide table headers on mobile */
+  }
+  
+  .data-table tbody, 
+  .data-table tr, 
+  .data-table td {
+    display: block;
+    width: 100%;
+  }
+  
+  .data-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid var(--input-border);
+    border-radius: var(--radius-sm);
+    padding: 0.5rem;
+  }
+  
+  .data-table td {
+    text-align: right;
+    padding: 0.25rem 0.5rem;
+    position: relative;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  }
+  
+  .data-table td:last-child {
+    border-bottom: none;
+  }
+  
+  .data-table td::before {
+    content: attr(data-label);
+    position: absolute;
+    left: 0.5rem;
+    font-weight: 500;
+    text-align: left;
+    color: var(--text-alt);
   }
   
   .actions-cell {
+    display: flex;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 0.3rem;
+  }
+  
+  .action-btn {
+    padding: 0.3rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .role-select {
+    width: 100%;
+    margin-top: 0.25rem;
+  }
+  
+  .form-group {
     flex-direction: column;
+  }
+  
+  .form-input {
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra Small Mobiles (less than 400px) */
+@media (max-width: 399px) {
+  .tab-btn {
+    font-size: 0.75rem;
+    padding: 0.4rem 0.2rem;
+  }
+  
+  .stat-value {
+    font-size: 1.2rem;
+  }
+  
+  .stat-label {
+    font-size: 0.75rem;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .tab-btn {
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+  
+  .action-btn {
+    padding: 0.5rem 0.7rem;
+    min-height: 44px;
+  }
+  
+  .form-input, 
+  .search-input,
+  .role-select {
+    min-height: 44px;
+  }
+  
+  .data-table td {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
   }
 }
 </style>
