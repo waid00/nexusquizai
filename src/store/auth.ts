@@ -375,7 +375,7 @@ async function register(username: string, email: string, password: string) {
       username: newUser.username,
       email: newUser.email,
       roleId: newUser.role_id,
-      confirmed: true // Default to true until the column exists
+      confirmed: false // Default to true until the column exists
     };
     
     // In production, try to send verification email
