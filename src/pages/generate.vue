@@ -429,6 +429,35 @@ function validateQuizName() {
   }
 }
 
+// Function to detect language from content
+async function detectLanguage(content: string): Promise<string> {
+  try {
+    // Truncate the content if it's too long for detection
+    const sampleText = content.length > 1000 ? content.substring(0, 1000) : content;
+    
+    // Create a system message for language detection
+    const systemMsg = {
+      role: 'system' as const,
+      content: 'You are a language detection expert. Identify the language of the provided text and return ONLY the ISO language code (e.g., "en" for English, "es" for Spanish, "fr" for French, etc.).'
+    };
+    
+    // Create a user message with content to analyze
+    const userMsg = {
+      role: 'user' as const,
+      content: `Detect the language of the following text and reply with only the ISO language code:\n\n${sampleText}`
+    };
+    
+    // Send to OpenAI API
+    const detectedLang = await chat([systemMsg, userMsg]);
+    
+    // Clean up and return just the language code
+    return detectedLang.trim().toLowerCase().substring(0, 2);
+  } catch (error) {
+    console.error("Error detecting language:", error);
+    return "en"; // Default to English if detection fails
+  }
+}
+
 // Validate custom prompt
 function validateCustomPrompt() {
   if (autoGeneratePrompt.value) {
@@ -552,18 +581,22 @@ async function generatePromptFromContent(content: string): Promise<string> {
       ? content.substring(0, 2000) + "..."
       : content;
     
+    // Detect the language of the content
+    const detectedLanguage = await detectLanguage(trimmedContent);
+    
     // Create a system message to instruct the AI
     const systemMsg: ChatCompletionRequestMessage = {
-      role: 'system',
+      role: 'system' as const,
       content: `Analyze the provided text and create a detailed prompt that will help generate excellent quiz questions. 
       Focus on identifying the key concepts, themes, and knowledge areas in the text.
       Your prompt should be 2-4 sentences and provide specific guidance on what aspects to focus on.
+      Generate the prompt in the same language as the provided content.
       DO NOT create the actual quiz questions - just create a prompt that would help generate good questions.`
     };
     
     // Create a user message with the content to analyze
     const userMsg: ChatCompletionRequestMessage = {
-      role: 'user',
+      role: 'user' as const,
       content: `Create a prompt for generating quiz questions from this content: 
       
       "${trimmedContent}"`
@@ -703,51 +736,78 @@ async function generate() {
 
   isLoading.value = true
   
-  // First get available categories for the AI to classify the content
-  let categoryOptions = 'General Knowledge'; // Default fallback
-  if (categories.value.length > 0) {
-    categoryOptions = categories.value.map(cat => `${cat.id}. ${cat.category_name}`).join(', ');
-  }
-  
-  // Enhanced system prompt with specific instructions for true/false questions and category selection
-  const systemPrompt = type.value === 'tf' 
-    ? `You output ONLY a JSON object with two fields: "questions" and "category". 
-       The "questions" field contains an array of true/false quiz objects. Each object must have a question field ending with "True or False?", options array ALWAYS containing exactly ["True", "False"], answerIndex (0 for True, 1 for False), and explanation field explaining why this answer is correct.
-       The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
-       No extra text.`
-    : `You output ONLY a JSON object with two fields: "questions" and "category".
-       The "questions" field contains an array of quiz objects. Each object must have a question, options array, answerIndex (zero-based index of correct answer in options array), and explanation field explaining why this answer is correct.
-       The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
-       No extra text.`
-  
-  // User prompt is now either auto-generated or comes from the customPrompt field
-  let userPrompt = '';
-  
-  if (autoGeneratePrompt.value) {
-    // Try to generate a prompt for the user automatically
-    try {
-      const generatedPrompt = await generatePromptFromContent(src);
-      if (generatedPrompt) {
-        customPrompt.value = generatedPrompt;
-        userPrompt = generatedPrompt;
-      }
-    } catch (error) {
-      console.error("Error auto-generating prompt:", error);
-      // Fall back to a simple prompt if generation fails
-      userPrompt = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this content.`;
-    }
-  } else {
-    // Use the custom prompt directly
-    userPrompt = customPrompt.value.trim();
-  }
-  
-  // Add formatting instructions for the expected output
-  userPrompt += `\n\nGenerate ${count.value} questions about the following content. Return a JSON object with "questions" and "category" fields.\nDifficulty level: ${difficulty.value}`;
-  
-  // Append the source content
-  userPrompt += `\n\n"""\n${src}\n"""`;
-
   try {
+    // Detect the language of the content
+    console.log("Detecting language...");
+    const detectedLanguage = await detectLanguage(src);
+    console.log("Detected language:", detectedLanguage);
+    
+    // Create a map of language codes to language names for better prompting
+    const languageNames: Record<string, string> = {
+      "en": "English",
+      "es": "Spanish",
+      "fr": "French",
+      "de": "German",
+      "it": "Italian",
+      "pt": "Portuguese",
+      "ru": "Russian",
+      "zh": "Chinese",
+      "ja": "Japanese",
+      "ko": "Korean",
+      "ar": "Arabic",
+      "hi": "Hindi",
+      // Add more languages as needed
+    };
+    
+    const languageName = languageNames[detectedLanguage] || "the same language as the provided content";
+    
+    // First get available categories for the AI to classify the content
+    let categoryOptions = 'General Knowledge'; // Default fallback
+    if (categories.value.length > 0) {
+      categoryOptions = categories.value.map(cat => `${cat.id}. ${cat.category_name}`).join(', ');
+    }
+    
+    // Enhanced system prompt with instructions to generate in the detected language
+    const systemPrompt = type.value === 'tf' 
+      ? `You output ONLY a JSON object with two fields: "questions" and "category". 
+         The "questions" field contains an array of true/false quiz objects. Each object must have a question field ending with "True or False?", options array ALWAYS containing exactly ["True", "False"], answerIndex (0 for True, 1 for False), and explanation field explaining why this answer is correct.
+         The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
+         Generate all questions and explanations in ${languageName} to match the source content language.
+         For True/False questions, translate "True" and "False" into the appropriate words in ${languageName}.
+         No extra text.`
+      : `You output ONLY a JSON object with two fields: "questions" and "category".
+         The "questions" field contains an array of quiz objects. Each object must have a question, options array, answerIndex (zero-based index of correct answer in options array), and explanation field explaining why this answer is correct.
+         The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
+         Generate all questions, options, and explanations in ${languageName} to match the source content language.
+         No extra text.`;
+    
+    // User prompt is now either auto-generated or comes from the customPrompt field
+    let userPrompt = '';
+    
+    if (autoGeneratePrompt.value) {
+      // Try to generate a prompt for the user automatically
+      try {
+        const generatedPrompt = await generatePromptFromContent(src);
+        if (generatedPrompt) {
+          customPrompt.value = generatedPrompt;
+          userPrompt = generatedPrompt;
+        }
+      } catch (error) {
+        console.error("Error auto-generating prompt:", error);
+        // Fall back to a simple prompt if generation fails
+        userPrompt = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this content in ${languageName}.`;
+      }
+    } else {
+      // Use the custom prompt directly
+      userPrompt = customPrompt.value.trim();
+    }
+    
+    // Add formatting instructions for the expected output
+    userPrompt += `\n\nGenerate ${count.value} questions about the following content. Return a JSON object with "questions" and "category" fields. Generate all content in ${languageName}.\nDifficulty level: ${difficulty.value}`;
+    
+    // Append the source content
+    userPrompt += `\n\n"""\n${src}\n"""`;
+
     // Save source content if the user is authenticated
     let sourceDocId = null;
     if (auth.state.isAuthenticated && auth.state.user) {
@@ -789,7 +849,7 @@ async function generate() {
     // Try to safely extract the JSON
     raw = raw.trim()
     
-    // Remove any code fence markers (```json or ```)
+    // Remove any code fence markers (```json or ```) 
     raw = raw.replace(/^```(?:json)?\s*/g, '')
     raw = raw.replace(/\s*```$/g, '')
     raw = raw.trim()
