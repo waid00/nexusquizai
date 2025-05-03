@@ -3,7 +3,7 @@
   <div class="register-page">
     <div class="auth-container">
       <!-- Registration form shown if not showing recovery phrase -->
-      <div v-if="!showRecoveryPhrase">
+      <div v-if="!showRecoveryPhrase && !registrationComplete">
         <h1 class="auth-title">Create Account</h1>
         <p class="auth-subtitle">Join NexusQuiz AI and create your own quizzes</p>
         
@@ -194,7 +194,38 @@
         </p>
       </div>
 
-      <!-- Recovery phrase screen (shown after successful registration) -->
+      <!-- Email verification screen (shown after registration but before recovery phrase) -->
+      <div v-else-if="registrationComplete && !showRecoveryPhrase" class="verification-container">
+        <h1 class="auth-title">Verify Your Email</h1>
+        <div class="email-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/>
+          </svg>
+        </div>
+        
+        <p>We've sent a verification email to <strong>{{ formData.email }}</strong></p>
+        <p>Please check your inbox and click the verification link to complete your registration.</p>
+        
+        <div class="verification-actions">
+          <button @click="showRecoveryPhrase = true" class="auth-btn">
+            Continue to Recovery Phrase
+          </button>
+          
+          <button @click="resendVerificationEmail" class="text-btn" :disabled="resending">
+            {{ resending ? 'Sending...' : 'Resend verification email' }}
+          </button>
+          
+          <div v-if="resendSuccess" class="success-message">
+            Verification email sent successfully!
+          </div>
+        </div>
+        
+        <div class="verification-note">
+          <p>Note: You'll need to verify your email before you can log in.</p>
+        </div>
+      </div>
+
+      <!-- Recovery phrase screen -->
       <div v-else class="recovery-phrase-container">
         <h1 class="auth-title">Account Created!</h1>
         <p class="auth-subtitle">Please save your recovery phrase</p>
@@ -279,6 +310,9 @@ const showPassword = ref(false)
 const showRecoveryPhrase = ref(false)
 const recoveryPhraseConfirmed = ref(false)
 const copied = ref(false)
+const registrationComplete = ref(false)
+const resending = ref(false)
+const resendSuccess = ref(false)
 
 // Validation state
 const usernameError = ref('')
@@ -367,8 +401,27 @@ const handleRegister = async () => {
   )
   
   if (success) {
-    // Show recovery phrase screen
-    showRecoveryPhrase.value = true
+    // First show the verification screen
+    registrationComplete.value = true
+  }
+}
+
+// Resend verification email
+const resendVerificationEmail = async () => {
+  if (!auth.state.user) return
+  
+  resending.value = true
+  resendSuccess.value = false
+  
+  try {
+    const success = await auth.resendVerificationEmail()
+    if (success) {
+      resendSuccess.value = true
+    }
+  } catch (error) {
+    console.error('Failed to resend verification email:', error)
+  } finally {
+    resending.value = false
   }
 }
 
@@ -423,6 +476,53 @@ const proceedToLogin = () => {
   margin-top: 0.25rem;
   font-size: 0.8rem;
   color: var(--text-alt);
+}
+
+/* Verification screen styles */
+.verification-container {
+  animation: fadeIn 0.5s ease;
+}
+
+.email-icon {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+  color: var(--accent);
+}
+
+.verification-actions {
+  margin: 2rem 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.text-btn {
+  background: none;
+  border: none;
+  color: var(--accent);
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: 0.9rem;
+}
+
+.text-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.verification-note {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: rgba(79, 70, 229, 0.1);
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+}
+
+.success-message {
+  color: var(--success);
+  font-size: 0.9rem;
 }
 
 /* Recovery phrase styles */

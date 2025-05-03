@@ -11,6 +11,7 @@ import Register from '@/pages/Register.vue'
 import ForgotPassword from '@/pages/ForgotPassword.vue'
 import MyQuizzes from '@/pages/MyQuizzes.vue'
 import Profile from '@/pages/Profile.vue'
+import VerifyEmail from '@/pages/VerifyEmail.vue'
 
 const routes: RouteRecordRaw[] = [
   {
@@ -87,6 +88,11 @@ const routes: RouteRecordRaw[] = [
     name: 'ForgotPassword',
     component: ForgotPassword,
     meta: { guestOnly: true }
+  },
+  {
+    path: '/verify-email',
+    name: 'VerifyEmail',
+    component: VerifyEmail
   }
 ]
 

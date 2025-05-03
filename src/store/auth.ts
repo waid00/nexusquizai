@@ -2,12 +2,17 @@
 import { reactive } from 'vue';
 import { supabase } from '@/api/supabase';
 import bcrypt from 'bcryptjs';
+import axios from 'axios';
+
+// Check if we're in development mode
+const isDevelopment = import.meta.env.MODE === 'development';
 
 export interface User {
   userId: number;
   username: string;
   email: string;
   roleId: number;
+  confirmed?: boolean;
 }
 
 interface AuthState {
@@ -115,7 +120,8 @@ async function login(email: string, password: string) {
       userId: user.id,
       username: user.username,
       email: user.email,
-      roleId: user.role_id
+      roleId: user.role_id,
+      confirmed: true // Default to true until the column is added
     };
     
     state.isAuthenticated = true;
@@ -164,6 +170,7 @@ async function loginByUsername(username: string, password: string) {
     
     // Get the first user with matching username
     const user = data[0];
+    
     console.log('User found, verifying password');
     
     // Verify password
@@ -181,7 +188,8 @@ async function loginByUsername(username: string, password: string) {
       userId: user.id,
       username: user.username,
       email: user.email,
-      roleId: user.role_id
+      roleId: user.role_id,
+      confirmed: true // Default to true until the column is added
     };
     
     state.isAuthenticated = true;
@@ -323,15 +331,16 @@ async function register(username: string, email: string, password: string) {
       role_id: roleId,
     });
     
-    // Create user with both recovery phrase and hashed version
+    // Create user with basic required fields
     const userData = {
       username,
       email,
       password_hash: hashedPassword,
-      recovery_phrase_hash: hashedRecoveryPhrase, // Store hashed version
+      recovery_phrase_hash: hashedRecoveryPhrase,
       role_id: roleId,
       created_at: new Date().toISOString(),
       is_active: true
+      // We don't add confirmed field yet - we'll add it once the column exists
     };
     
     // Create user with explicit role ID
@@ -360,14 +369,29 @@ async function register(username: string, email: string, password: string) {
       roleId: newUser.role_id
     });
     
-    // Set authenticated user
+    // Set user data
     state.user = {
       userId: newUser.id,
       username: newUser.username,
       email: newUser.email,
-      roleId: newUser.role_id
+      roleId: newUser.role_id,
+      confirmed: true // Default to true until the column exists
     };
     
+    // In production, try to send verification email
+    // In development, skip email verification
+    if (!isDevelopment) {
+      try {
+        await sendVerificationEmail(newUser.id, email, username);
+      } catch (emailError) {
+        console.error('Failed to send verification email:', emailError);
+        // Continue with registration, but log the error
+      }
+    } else {
+      console.log('Development mode: Skipping email verification');
+    }
+    
+    // User is authenticated
     state.isAuthenticated = true;
     
     // Save to localStorage
@@ -377,6 +401,76 @@ async function register(username: string, email: string, password: string) {
   } catch (error) {
     console.error('Registration error:', error);
     state.error = 'An error occurred during registration';
+    return false;
+  } finally {
+    state.isLoading = false;
+  }
+}
+
+// Send verification email
+async function sendVerificationEmail(userId: number, email: string, username: string) {
+  try {
+    const response = await axios.post('/api/send-verification-email', {
+      userId,
+      email,
+      username
+    });
+    
+    return response.data.success;
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    throw error;
+  }
+}
+
+// Verify email with token
+async function verifyEmail(token: string) {
+  state.isLoading = true;
+  state.error = null;
+  
+  try {
+    const response = await axios.post('/api/verify-email', { token });
+    
+    if (response.data.success) {
+      // If user is already set in state, update confirmed status
+      if (state.user) {
+        state.user.confirmed = true;
+        localStorage.setItem('user', JSON.stringify(state.user));
+      }
+      
+      return true;
+    }
+    
+    return false;
+  } catch (error: any) {
+    console.error('Email verification error:', error);
+    const errorMessage = error.response?.data?.error || 'Failed to verify email';
+    state.error = errorMessage;
+    return false;
+  } finally {
+    state.isLoading = false;
+  }
+}
+
+// Resend verification email
+async function resendVerificationEmail() {
+  if (!state.user) {
+    state.error = 'User not found';
+    return false;
+  }
+  
+  state.isLoading = true;
+  state.error = null;
+  
+  try {
+    return await sendVerificationEmail(
+      state.user.userId,
+      state.user.email,
+      state.user.username
+    );
+  } catch (error) {
+    console.error('Error resending verification email:', error);
+    state.error = 'Failed to resend verification email';
     return false;
   } finally {
     state.isLoading = false;
@@ -466,5 +560,7 @@ export const auth = {
   logout,
   resetPassword,
   clearError,
-  generateRecoveryPhrase
+  generateRecoveryPhrase,
+  verifyEmail,
+  resendVerificationEmail
 };
