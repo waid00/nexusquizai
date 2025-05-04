@@ -142,8 +142,15 @@
           @click="generate"
           :disabled="isLoading || (!autoGeneratePrompt && !customPrompt.trim())"
         >
-          {{ isLoading ? 'Generating…' : 'Generate Quiz' }}
+          <span v-if="!isLoading">Generate Quiz</span>
+          <span v-else class="loading-text">
+            {{ generationStep || 'Generating quiz...' }} 
+            <span v-if="generationProgress > 0" class="progress-indicator">{{ Math.round(generationProgress * 100) }}%</span>
+          </span>
         </button>
+        <div v-if="isLoading" class="generation-status">
+          {{ generationStep || 'Processing content...' }}
+        </div>
       </div>
 
       <!-- 7) Results & Export -->
@@ -896,12 +903,17 @@ async function generate() {
   }
 
   isLoading.value = true
+  generationStep.value = 'Analyzing content...'
+  generationProgress.value = 0.05
   
   try {
     // Detect the language of the content
-    console.log("Detecting language...");
-    const detectedLanguage = await detectLanguage(src);
-    console.log("Detected language:", detectedLanguage);
+    console.log("Detecting language...")
+    generationStep.value = 'Detecting language...'
+    generationProgress.value = 0.15
+    
+    const detectedLanguage = await detectLanguage(src)
+    console.log("Detected language:", detectedLanguage)
     
     // Create a map of language codes to language names for better prompting
     const languageNames: Record<string, string> = {
@@ -922,22 +934,31 @@ async function generate() {
       "pl": "Polish",
       "hu": "Hungarian",
       // Add more languages as needed
-    };
+    }
     
-    const languageName = languageNames[detectedLanguage] || "the same language as the provided content";
+    const languageName = languageNames[detectedLanguage] || "the same language as the provided content"
+    
+    generationStep.value = 'Preparing quiz generation...'
+    generationProgress.value = 0.25
     
     // First get available categories for the AI to classify the content
-    let categoryOptions = 'General Knowledge'; // Default fallback
+    let categoryOptions = 'General Knowledge' // Default fallback
     if (categories.value.length > 0) {
-      categoryOptions = categories.value.map(cat => `${cat.id}. ${cat.category_name}`).join(', ');
+      categoryOptions = categories.value.map(cat => `${cat.id}. ${cat.category_name}`).join(', ')
     }
     
     // Detect if content appears to be educational/technical material with detailed explanations
-    const isEducationalMaterial = detectEducationalMaterial(src);
-    console.log("Content appears to be educational material:", isEducationalMaterial);
+    generationStep.value = 'Analyzing content type...'
+    generationProgress.value = 0.3
+    
+    const isEducationalMaterial = detectEducationalMaterial(src)
+    console.log("Content appears to be educational material:", isEducationalMaterial)
     
     // Choose appropriate system prompt based on content type and question type
-    let systemPrompt = '';
+    generationStep.value = 'Crafting optimal prompt...'
+    generationProgress.value = 0.35
+    
+    let systemPrompt = ''
     
     if (isEducationalMaterial) {
       // Use enhanced prompts for educational/technical material
@@ -958,7 +979,7 @@ When creating questions:
 - Preserve the technical accuracy and depth of the original explanations
 - For definition questions, maintain the structure of multi-part definitions
 - Aim for the complexity level matching the source material
-- Ensure all text is in ${languageName}`;
+- Ensure all text is in ${languageName}`
       } else {
         systemPrompt = `You are a specialized quiz generator for educational content in ${languageName}. Analyze the following technical/academic material.
 
@@ -977,7 +998,7 @@ When creating questions:
 - Preserve the technical accuracy and depth of the original explanations
 - For definition questions, maintain the structure of multi-part definitions
 - Match the complexity level of the source material
-- Ensure all text is in ${languageName}`;
+- Ensure all text is in ${languageName}`
       }
     } else {
       // Use standard prompts for general content
@@ -987,51 +1008,57 @@ The "questions" field contains an array of true/false quiz objects. Each object 
 The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
 Generate all questions and explanations in ${languageName} to match the source content language.
 For True/False questions, translate "True" and "False" into the appropriate words in ${languageName}.
-No extra text.`;
+No extra text.`
       } else {
         systemPrompt = `You output ONLY a JSON object with two fields: "questions" and "category".
 The "questions" field contains an array of quiz objects. Each object must have a question, options array, answerIndex (zero-based index of correct answer in options array), and explanation field explaining why this answer is correct.
 The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
 Generate all questions, options, and explanations in ${languageName} to match the source content language.
-No extra text.`;
+No extra text.`
       }
     }
     
     // User prompt is now either auto-generated or comes from the customPrompt field
-    let userPrompt = '';
+    let userPrompt = ''
     
     if (autoGeneratePrompt.value) {
       // Try to generate a prompt for the user automatically
+      generationStep.value = 'Creating custom prompt from content...'
+      generationProgress.value = 0.4
+      
       try {
-        const generatedPrompt = await generatePromptFromContent(src);
+        const generatedPrompt = await generatePromptFromContent(src)
         if (generatedPrompt) {
-          customPrompt.value = generatedPrompt;
-          userPrompt = generatedPrompt;
+          customPrompt.value = generatedPrompt
+          userPrompt = generatedPrompt
         }
       } catch (error) {
-        console.error("Error auto-generating prompt:", error);
+        console.error("Error auto-generating prompt:", error)
         // Fall back to a simple prompt if generation fails
-        userPrompt = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this content in ${languageName}.`;
+        userPrompt = `Generate ${count.value} ${type.value} questions (difficulty: ${difficulty.value}) from this content in ${languageName}.`
       }
     } else {
       // Use the custom prompt directly
-      userPrompt = customPrompt.value.trim();
+      userPrompt = customPrompt.value.trim()
     }
     
     // Add formatting instructions for the expected output
-    userPrompt += `\n\nGenerate ${count.value} questions about the following content. Return a JSON object with "questions" and "category" fields. Generate all content in ${languageName}.\nDifficulty level: ${difficulty.value}`;
+    userPrompt += `\n\nGenerate ${count.value} questions about the following content. Return a JSON object with "questions" and "category" fields. Generate all content in ${languageName}.\nDifficulty level: ${difficulty.value}`
     
     // Append the source content
-    userPrompt += `\n\n"""\n${src}\n"""`;
-
+    userPrompt += `\n\n"""\n${src}\n"""`
+    
     // Save source content if the user is authenticated
-    let sourceDocId = null;
+    generationStep.value = 'Saving source content...'
+    generationProgress.value = 0.45
+    
+    let sourceDocId = null
     if (auth.state.isAuthenticated && auth.state.user) {
       try {
         // Determine if we're using a file or text input
-        const isUsingFileContent = extracted.value.trim() === src;
-        const fileType = isUsingFileContent ? (fileName.value.split('.').pop() || 'txt') : 'text';
-        const title = isUsingFileContent ? fileName.value : 'Text Input';
+        const isUsingFileContent = extracted.value.trim() === src
+        const fileType = isUsingFileContent ? (fileName.value.split('.').pop() || 'txt') : 'text'
+        const title = isUsingFileContent ? fileName.value : 'Text Input'
         
         // Save to SourceDocs table
         const sourceDoc = await createSourceDoc({
@@ -1039,12 +1066,12 @@ No extra text.`;
           content: src,
           title: title,
           file_type: fileType
-        });
+        })
         
-        console.log("Source document saved with ID:", sourceDoc.id);
-        sourceDocId = sourceDoc.id;
+        console.log("Source document saved with ID:", sourceDoc.id)
+        sourceDocId = sourceDoc.id
       } catch (error) {
-        console.error('Error saving source document:', error);
+        console.error('Error saving source document:', error)
         // Continue with generation even if saving fails
       }
     }
@@ -1055,12 +1082,18 @@ No extra text.`;
     ]
     
     // Log the prompts being used (for debugging)
-    console.log('Using system prompt:', systemPrompt);
-    console.log('Using user prompt:', userPrompt);
+    console.log('Using system prompt:', systemPrompt)
+    console.log('Using user prompt:', userPrompt)
+    
+    generationStep.value = `Generating ${count.value} ${difficulty.value} difficulty ${type.value === 'mcq' ? 'multiple-choice' : type.value === 'tf' ? 'true/false' : 'fill-in-the-blank'} questions...`
+    generationProgress.value = 0.5
     
     let raw = await chat(msgs)
     
     console.log('Raw API response:', raw)
+    
+    generationStep.value = 'Processing AI response...'
+    generationProgress.value = 0.8
     
     // Try to safely extract the JSON
     raw = raw.trim()
@@ -1072,51 +1105,66 @@ No extra text.`;
     
     // Parse the JSON response (now expecting an object with questions array and category)
     try {
-      const parsedResponse = JSON.parse(raw);
-      console.log('Parsed response:', parsedResponse);
+      const parsedResponse = JSON.parse(raw)
+      console.log('Parsed response:', parsedResponse)
+      
+      generationStep.value = 'Preparing quiz content...'
+      generationProgress.value = 0.9
       
       // Extract questions array and category
       if (parsedResponse.questions && Array.isArray(parsedResponse.questions)) {
-        questions.value = parsedResponse.questions;
-        console.log('Parsed questions:', questions.value);
+        questions.value = parsedResponse.questions
+        console.log('Parsed questions:', questions.value)
         
         // Extract and validate category
         if (parsedResponse.category !== undefined) {
           // Find the category by ID in our categories array
-          const categoryId = Number(parsedResponse.category);
-          const foundCategory = categories.value.find(cat => cat.id === categoryId);
+          const categoryId = Number(parsedResponse.category)
+          const foundCategory = categories.value.find(cat => cat.id === categoryId)
           
           if (foundCategory) {
-            suggestedCategory.value = foundCategory.id;
-            console.log('Suggested category:', foundCategory.category_name, '(ID:', foundCategory.id, ')');
+            suggestedCategory.value = foundCategory.id
+            console.log('Suggested category:', foundCategory.category_name, '(ID:', foundCategory.id, ')')
           } else {
             // If category ID is invalid, use default
-            suggestedCategory.value = categories.value.length > 0 ? categories.value[0].id : 1;
-            console.log('Invalid category ID returned, using default:', suggestedCategory.value);
+            suggestedCategory.value = categories.value.length > 0 ? categories.value[0].id : 1
+            console.log('Invalid category ID returned, using default:', suggestedCategory.value)
           }
         }
         
+        generationStep.value = 'Finalizing quiz...'
+        generationProgress.value = 0.95
+        
         // Auto-save the quiz with a default name
         if (auth.state.isAuthenticated && auth.state.user) {
-          quizName.value = "Untitled Quiz";
-          const savedQuizId = await saveQuizToDatabase(quizName.value, questions.value.length, sourceDocId);
-          console.log("Quiz auto-saved with ID:", savedQuizId);
-          currentQuizId.value = savedQuizId;
+          quizName.value = "Untitled Quiz"
+          const savedQuizId = await saveQuizToDatabase(quizName.value, questions.value.length, sourceDocId)
+          console.log("Quiz auto-saved with ID:", savedQuizId)
+          currentQuizId.value = savedQuizId
         }
       } else {
-        throw new Error('No questions array found in the response');
+        throw new Error('No questions array found in the response')
       }
     } catch (error) {
-      const jsonError = error as Error;
-      console.error('JSON parse error:', jsonError);
-      throw new Error(`Failed to parse JSON: ${jsonError.message}`);
+      const jsonError = error as Error
+      console.error('JSON parse error:', jsonError)
+      throw new Error(`Failed to parse JSON: ${jsonError.message}`)
     }
+    
+    generationStep.value = 'Quiz generated successfully!'
+    generationProgress.value = 1.0
   } catch (err) {
-    const error = err as Error;
-    console.error('Generation error:', error);
-    alert(`Error: ${error.message || 'Failed to generate questions'}`);
+    const error = err as Error
+    console.error('Generation error:', error)
+    generationStep.value = `Error: ${error.message || 'Failed to generate questions'}`
+    alert(`Error: ${error.message || 'Failed to generate questions'}`)
   } finally {
-    isLoading.value = false;
+    // Small delay to show the final success message
+    setTimeout(() => {
+      isLoading.value = false
+      generationStep.value = ''
+      generationProgress.value = 0
+    }, 1000)
   }
 }
 
@@ -1763,6 +1811,10 @@ async function saveQuizToDatabase(title: string, questionCount: number, sourceDo
     throw error;
   }
 }
+
+// Add new state for tracking generation progress
+const generationStep = ref<string>('')
+const generationProgress = ref<number>(0)
 </script>
 
 <style scoped>
@@ -2318,6 +2370,70 @@ async function saveQuizToDatabase(title: string, questionCount: number, sourceDo
 
 .content-input.invalid {
   border-color: var(--error);
+}
+
+.button-container {
+  margin: var(--spacing-md) 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-sm);
+}
+
+.generate-btn {
+  padding: 0.75rem 2rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background var(--transition-duration) var(--transition-timing),
+              transform 0.2s ease;
+  min-width: 200px;
+}
+
+.generate-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--accent) 80%, white);
+  transform: translateY(-2px);
+}
+
+.generate-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.loading-text {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.progress-indicator {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 400;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 4px;
+}
+
+.generation-status {
+  color: var(--text-alt);
+  font-size: 0.9rem;
+  text-align: center;
+  max-width: 400px;
+  margin-top: 8px;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.7; }
+  50% { opacity: 1; }
+  100% { opacity: 0.7; }
 }
 
 @keyframes fadeIn {

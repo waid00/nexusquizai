@@ -91,10 +91,8 @@
         </div>
       </div>
 
-
-
-            <!-- Quiz Stats (visible to owners or after attempting) -->
-            <div v-if="attemptCount > 0 && (isOwner || hasAttempted)" class="quiz-stats">
+      <!-- Quiz Stats (visible to owners or after attempting) -->
+      <div v-if="attemptCount > 0 && (isOwner || hasAttempted)" class="quiz-stats">
         <h3>Quiz Statistics</h3>
         
         <div class="stats-grid">
@@ -133,6 +131,148 @@
                   :class="getSuccessRateClass(calculateSuccessRate(question.questionId))"
                 ></div>
                 <div class="success-rate-label">{{ calculateSuccessRate(question.questionId) }}%</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Advanced Analytics (visible only to admins and quiz owners) -->
+      <div v-if="isAdmin || isOwner" class="advanced-analytics">
+        <h3>Advanced Analytics</h3>
+        
+        <div class="analytics-tabs">
+          <button 
+            :class="['tab-btn', { active: activeAnalyticsTab === 'attempts' }]" 
+            @click="activeAnalyticsTab = 'attempts'"
+          >
+            Attempt History
+          </button>
+          <button 
+            :class="['tab-btn', { active: activeAnalyticsTab === 'users' }]" 
+            @click="activeAnalyticsTab = 'users'"
+          >
+            User Performance
+          </button>
+          <button 
+            :class="['tab-btn', { active: activeAnalyticsTab === 'trends' }]" 
+            @click="activeAnalyticsTab = 'trends'"
+          >
+            Performance Trends
+          </button>
+        </div>
+        
+        <!-- Attempt History Tab -->
+        <div v-if="activeAnalyticsTab === 'attempts'" class="analytics-tab-content">
+          <div class="attempts-list">
+            <div v-if="attempts.length === 0" class="empty-state">
+              <p>No attempts recorded yet.</p>
+            </div>
+            <table v-else class="attempts-table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Score</th>
+                  <th>Result</th>
+                  <th>Time</th>
+                  <th>Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="attempt in sortedAttempts" :key="attempt.attemptId">
+                  <td>{{ getUsernameById(attempt.userId) }}</td>
+                  <td>{{ attempt.score }} / {{ attempt.totalQuestions }}</td>
+                  <td>
+                    <span 
+                      class="badge"
+                      :class="{ 'pass': attempt.isPassed, 'fail': !attempt.isPassed }"
+                    >
+                      {{ attempt.isPassed ? 'PASSED' : 'FAILED' }}
+                    </span>
+                  </td>
+                  <td>{{ formatTime(attempt.elapsedTime) }}</td>
+                  <td>{{ formatDateWithTime(attempt.completedAt) }}</td>
+                  <td>
+                    <button class="view-btn" @click="viewAttemptDetails(attempt.attemptId)">
+                      View Details
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        
+        <!-- User Performance Tab -->
+        <div v-if="activeAnalyticsTab === 'users'" class="analytics-tab-content">
+          <div class="user-performance-chart">
+            <h4>Top Performers</h4>
+            <div class="performance-table-wrapper">
+              <table class="performance-table">
+                <thead>
+                  <tr>
+                    <th>Rank</th>
+                    <th>Username</th>
+                    <th>Attempts</th>
+                    <th>Best Score</th>
+                    <th>Avg Score</th>
+                    <th>Best Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr v-for="(user, index) in userPerformance" :key="user.userId">
+                    <td>{{ index + 1 }}</td>
+                    <td>{{ user.username }}</td>
+                    <td>{{ user.attemptCount }}</td>
+                    <td>{{ user.bestScore }}%</td>
+                    <td>{{ user.avgScore }}%</td>
+                    <td>{{ formatTime(user.bestTime) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Performance Trends Tab -->
+        <div v-if="activeAnalyticsTab === 'trends'" class="analytics-tab-content">
+          <div class="trends-content">
+            <div class="trend-section">
+              <h4>Attempt Count Over Time</h4>
+              <div class="trend-chart attempt-chart">
+                <div 
+                  v-for="(count, index) in attemptCounts" 
+                  :key="'attempt-' + index" 
+                  class="trend-bar"
+                  :style="{ height: calculateBarHeight(count, maxAttemptCount) }"
+                >
+                  <div class="trend-value">{{ count }}</div>
+                </div>
+              </div>
+              <div class="chart-labels">
+                <div v-for="(period, index) in trendTimePeriods" :key="'label-' + index" class="chart-label">
+                  {{ period }}
+                </div>
+              </div>
+            </div>
+            
+            <div class="trend-section">
+              <h4>Average Score Trend</h4>
+              <div class="trend-chart score-chart">
+                <div 
+                  v-for="(score, index) in avgScoreTrend" 
+                  :key="'score-' + index" 
+                  class="trend-bar score-bar"
+                  :style="{ height: `${score}%` }"
+                >
+                  <div class="trend-value">{{ score }}%</div>
+                </div>
+              </div>
+              <div class="chart-labels">
+                <div v-for="(period, index) in trendTimePeriods" :key="'score-label-' + index" class="chart-label">
+                  {{ period }}
+                </div>
               </div>
             </div>
           </div>
@@ -285,6 +425,15 @@ const passRate = ref(0)
 const passCount = ref(0)
 const avgTime = ref(0)
 
+// Analytics data
+const activeAnalyticsTab = ref('attempts')
+const usernames = reactive<{[key: number]: string}>({})
+const userPerformance = ref<any[]>([])
+const trendTimePeriods = ref<string[]>([])
+const attemptCounts = ref<number[]>([])
+const avgScoreTrend = ref<number[]>([])
+const maxAttemptCount = ref(0)
+
 // Confirmation modal state
 const showConfirmation = ref(false)
 const confirmationData = reactive({
@@ -303,6 +452,12 @@ const isOwner = computed(() => {
          quiz.value.ownerId === auth.state.user.userId
 })
 
+const isAdmin = computed(() => {
+  return auth.state.isAuthenticated && 
+         auth.state.user && 
+         auth.state.user.roleId === 1 // Admin role ID is 1
+})
+
 const hasAttempted = computed(() => {
   return userAttempts.value.length > 0
 })
@@ -310,11 +465,31 @@ const hasAttempted = computed(() => {
 // Stats computed properties
 const attemptCount = computed(() => attempts.value.length)
 
+// Sorted attempts for the table (most recent first)
+const sortedAttempts = computed(() => {
+  return [...attempts.value].sort((a, b) => {
+    return new Date(b.completedAt).getTime() - new Date(a.completedAt).getTime()
+  })
+})
+
 // Format a date string
 const formatDate = (dateString: string) => {
   if (!dateString) return 'N/A'
   const date = new Date(dateString)
   return date.toLocaleDateString()
+}
+
+// Format date with time
+const formatDateWithTime = (dateString: string) => {
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  return new Intl.DateTimeFormat('default', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date)
 }
 
 // Format time in seconds to minutes:seconds
@@ -332,6 +507,22 @@ const editQuiz = () => {
 
 const takeQuiz = () => {
   router.push(`/quiz/${quizId}`)
+}
+
+const viewAttemptDetails = (attemptId: number) => {
+  router.push(`/attempt/${attemptId}`)
+}
+
+// Get username by user ID (for analytics)
+const getUsernameById = (userId: number) => {
+  return usernames[userId] || 'Unknown User'
+}
+
+// Calculate bar height for trend charts
+const calculateBarHeight = (value: number, maxValue: number) => {
+  if (maxValue === 0) return '0%'
+  const percentage = (value / maxValue) * 100
+  return `${percentage}%`
 }
 
 // Upvote handling
@@ -510,6 +701,11 @@ onMounted(async () => {
     
     // Calculate stats for display
     calculateStats()
+    
+    // Load advanced analytics data for admins and quiz owners
+    if ((auth.state.user && auth.state.user.roleId === 1) || isOwner) {
+      await loadAnalyticsData()
+    }
     
   } catch (error: any) {
     console.error('Error loading quiz details:', error)
@@ -706,6 +902,135 @@ function calculateStats() {
     return acc + attempt.elapsedTime
   }, 0)
   avgTime.value = Math.round(totalTime / attempts.value.length)
+}
+
+// Load analytics data (for admins and quiz owners)
+async function loadAnalyticsData() {
+  if (attempts.value.length === 0) return
+  
+  // Get unique user IDs
+  const userIds = Array.from(new Set(attempts.value.map(a => a.userId)))
+  
+  // Load usernames for all users who attempted the quiz
+  await loadUsernames(userIds)
+  
+  // Generate user performance data
+  generateUserPerformanceData(userIds)
+  
+  // Generate trend data
+  generateTrendData()
+}
+
+// Load usernames for user IDs
+async function loadUsernames(userIds: number[]) {
+  if (userIds.length === 0) return
+  
+  const { data, error } = await supabase
+    .from('Users')
+    .select('id, username')
+    .in('id', userIds)
+  
+  if (error) {
+    console.error('Error loading usernames:', error)
+    return
+  }
+  
+  if (data && data.length > 0) {
+    data.forEach(user => {
+      usernames[user.id] = user.username
+    })
+  }
+}
+
+// Generate user performance data
+function generateUserPerformanceData(userIds: number[]) {
+  const performance: any[] = []
+  
+  userIds.forEach(userId => {
+    const userAttempts = attempts.value.filter(a => a.userId === userId)
+    if (userAttempts.length === 0) return
+    
+    const scores = userAttempts.map(a => Math.round((a.score / a.totalQuestions) * 100))
+    const times = userAttempts.map(a => a.elapsedTime)
+    
+    performance.push({
+      userId,
+      username: usernames[userId] || 'Unknown User',
+      attemptCount: userAttempts.length,
+      bestScore: Math.max(...scores),
+      avgScore: Math.round(scores.reduce((a, b) => a + b, 0) / scores.length),
+      bestTime: Math.min(...times)
+    })
+  })
+  
+  // Sort by best score (highest first)
+  userPerformance.value = performance.sort((a, b) => b.bestScore - a.bestScore)
+}
+
+// Generate trend data for charts
+function generateTrendData() {
+  // Get all attempt dates
+  const attemptDates = attempts.value.map(a => new Date(a.completedAt))
+  
+  // Sort dates in ascending order
+  attemptDates.sort((a, b) => a.getTime() - b.getTime())
+  
+  if (attemptDates.length === 0) return
+  
+  // Get the oldest and newest dates
+  const oldestDate = attemptDates[0]
+  const newestDate = attemptDates[attemptDates.length - 1]
+  
+  // Create time periods (use weeks if range > 30 days, otherwise use days)
+  const daysDiff = Math.ceil((newestDate.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24))
+  const useWeeks = daysDiff > 30
+  const numPeriods = Math.min(useWeeks ? 12 : 14, Math.max(5, daysDiff / (useWeeks ? 7 : 1)))
+  
+  // Create periods
+  const periods = []
+  const periodData: { label: string, attempts: any[] }[] = []
+  
+  for (let i = 0; i < numPeriods; i++) {
+    const date = new Date(oldestDate)
+    date.setDate(date.getDate() + i * (useWeeks ? 7 : 1))
+    
+    const formatter = new Intl.DateTimeFormat('default', {
+      month: 'short',
+      day: 'numeric'
+    })
+    
+    const label = formatter.format(date)
+    periods.push(label)
+    periodData.push({
+      label,
+      attempts: []
+    })
+  }
+  
+  // Assign attempts to periods
+  for (const attempt of attempts.value) {
+    const attemptDate = new Date(attempt.completedAt)
+    const daysSinceStart = Math.floor((attemptDate.getTime() - oldestDate.getTime()) / (1000 * 60 * 60 * 24))
+    const periodIndex = Math.min(Math.floor(daysSinceStart / (useWeeks ? 7 : 1)), numPeriods - 1)
+    
+    if (periodIndex >= 0 && periodIndex < periodData.length) {
+      periodData[periodIndex].attempts.push(attempt)
+    }
+  }
+  
+  // Calculate attempt counts and average scores for each period
+  const counts = periodData.map(period => period.attempts.length)
+  const avgScores = periodData.map(period => {
+    if (period.attempts.length === 0) return 0
+    const total = period.attempts.reduce((sum, attempt) => sum + (attempt.score / attempt.totalQuestions * 100), 0)
+    return Math.round(total / period.attempts.length)
+  })
+  
+  // Store data for charts
+  trendTimePeriods.value = periods
+  attemptCounts.value = counts
+  avgScoreTrend.value = avgScores
+  maxAttemptCount.value = Math.max(...counts)
 }
 </script>
 
@@ -1401,6 +1726,267 @@ function calculateStats() {
   color: var(--text-alt);
 }
 
+/* Advanced Analytics Styles */
+.advanced-analytics {
+  background: var(--panel-bg);
+  border-radius: var(--radius-md);
+  padding: var(--spacing-md);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--spacing-lg);
+}
+
+.advanced-analytics h3 {
+  margin-top: 0;
+  margin-bottom: var(--spacing-md);
+  font-size: 1.2rem;
+  color: var(--text-main);
+  border-bottom: 1px solid var(--input-border);
+  padding-bottom: var(--spacing-xs);
+}
+
+.analytics-tabs {
+  display: flex;
+  gap: var(--spacing-sm);
+  margin-bottom: var(--spacing-md);
+  border-bottom: 1px solid var(--input-border);
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.tab-btn {
+  padding: var(--spacing-sm) var(--spacing-md);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-alt);
+  font-weight: 500;
+  position: relative;
+  white-space: nowrap;
+}
+
+.tab-btn.active {
+  color: var(--accent);
+}
+
+.tab-btn.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+}
+
+.analytics-tab-content {
+  padding: var(--spacing-sm) 0;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Attempts Table */
+.attempts-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.attempts-table th, .attempts-table td {
+  padding: var(--spacing-sm);
+  text-align: left;
+  border-bottom: 1px solid var(--input-border);
+}
+
+.attempts-table th {
+  font-weight: 600;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.attempts-table tr:hover {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.badge.pass {
+  background: rgba(46, 213, 115, 0.15);
+  color: #2ed573;
+}
+
+.badge.fail {
+  background: rgba(255, 71, 87, 0.15);
+  color: #ff4757;
+}
+
+.view-btn {
+  background: none;
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: var(--text-alt);
+}
+
+.view-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-main);
+}
+
+/* User Performance */
+.performance-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.performance-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: var(--spacing-sm);
+}
+
+.performance-table th, .performance-table td {
+  padding: var(--spacing-sm);
+  text-align: left;
+  border-bottom: 1px solid var(--input-border);
+}
+
+.performance-table th {
+  font-weight: 600;
+  color: var(--text-main);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.performance-table tr:nth-child(1) td {
+  background: rgba(255, 215, 0, 0.05);
+}
+
+.performance-table tr:nth-child(2) td {
+  background: rgba(192, 192, 192, 0.05);
+}
+
+.performance-table tr:nth-child(3) td {
+  background: rgba(205, 127, 50, 0.05);
+}
+
+/* Trend Charts */
+.trends-content {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  margin-top: var(--spacing-md);
+}
+
+.trend-section {
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: var(--radius-sm);
+  padding: var(--spacing-sm);
+}
+
+.trend-section h4 {
+  margin-top: 0;
+  margin-bottom: var(--spacing-sm);
+  font-size: 1rem;
+  color: var(--text-main);
+  text-align: center;
+}
+
+.trend-chart {
+  height: 200px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-around;
+  gap: 4px;
+  margin-bottom: var(--spacing-xs);
+}
+
+.trend-bar {
+  width: 20px;
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent-light) 100%);
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  transition: height 1s ease-out;
+  position: relative;
+}
+
+.score-bar {
+  background: linear-gradient(180deg, #2ed573 0%, #7bed9f 100%);
+}
+
+.trend-value {
+  position: absolute;
+  top: -20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-alt);
+}
+
+.chart-labels {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 4px;
+}
+
+.chart-label {
+  font-size: 0.7rem;
+  color: var(--text-alt);
+  text-align: center;
+  transform: rotate(-45deg);
+  transform-origin: top left;
+  white-space: nowrap;
+  margin-top: var(--spacing-sm);
+}
+
+/* Empty states */
+.empty-state {
+  padding: var(--spacing-md);
+  text-align: center;
+  color: var(--text-alt);
+}
+
+/* Responsive adjustments */
+@media (max-width: 991px) {
+  .trends-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 767px) {
+  .advanced-analytics {
+    padding: var(--spacing-sm);
+  }
+  
+  .analytics-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+  
+  .attempts-table th:nth-child(5), 
+  .attempts-table td:nth-child(5) {
+    display: none;
+  }
+}
+
+@media (max-width: 576px) {
+  .attempts-table th:nth-child(4), 
+  .attempts-table td:nth-child(4) {
+    display: none;
+  }
+  
+  .tab-btn {
+    padding: var(--spacing-xs) var(--spacing-sm);
+    font-size: 0.9rem;
+  }
+}
+
 /* Animations */
 @keyframes spin {
   to { transform: rotate(360deg); }
@@ -1409,6 +1995,11 @@ function calculateStats() {
 @keyframes slideDown {
   from { opacity: 0; max-height: 0; }
   to { opacity: 1; max-height: 500px; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* Responsive layout - remove the side-by-side layout since we're now stacking vertically */
