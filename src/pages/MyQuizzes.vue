@@ -598,19 +598,24 @@ function cancelConfirmation() {
 /* Quiz Cards */
 .quiz-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  grid-template-columns: repeat(2, 1fr);
   gap: var(--spacing-md);
 }
 
+/* Responsive adjustments - keeping 2 per row */
 @media (min-width: 1440px) {
   .quiz-list {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 1000px;
+    margin: 0 auto;
   }
 }
 
 @media (min-width: 992px) and (max-width: 1439px) {
   .quiz-list {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 900px;
+    margin: 0 auto;
   }
 }
 
