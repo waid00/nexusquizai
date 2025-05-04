@@ -17,7 +17,24 @@
           v-model="text"
           placeholder="Paste your text here…"
           class="content-input"
+          :class="{
+            'valid': contentValid,
+            'invalid': contentInvalid
+          }"
+          minlength="100"
+          maxlength="10000"
+          @input="validateContent"
+          @blur="showContentValidationMessage = true"
         ></textarea>
+        <div class="input-info">
+          <p class="input-hint">Minimum 100 characters required, maximum 10,000 characters.</p>
+          <div class="validation-feedback" v-if="showContentValidationMessage && text.trim().length < 100 && text.trim().length > 0">
+            <div class="warning-message"><i class="warning-icon">⚠️</i> You need at least 100 characters for the model to work properly.</div>
+          </div>
+          <span class="char-counter" :class="{ 'limit-near': text.length > 9000, 'count-warning': text.trim().length < 100 && text.trim().length > 0 }">
+            {{ text.length }}/10000
+          </span>
+        </div>
       </div>
 
       <!-- 3) File picker -->
@@ -62,9 +79,23 @@
               'valid': customPromptValid,
               'invalid': customPromptInvalid
             }"
-            :disabled="autoGeneratePrompt"
+            :disabled="false"
             :required="!autoGeneratePrompt"
+            minlength="10"
+            maxlength="1000"
+            @input="validateCustomPrompt"
+            @blur="showPromptValidationMessage = true"
           ></textarea>
+          
+          <div class="input-info">
+            <p class="input-hint">Minimum 10 characters required, maximum 1,000 characters.</p>
+            <div class="validation-feedback" v-if="showPromptValidationMessage && customPrompt.trim().length < 10 && customPrompt.trim().length > 0">
+              <div class="warning-message"><i class="warning-icon">⚠️</i> You need at least 10 characters for the model to work properly.</div>
+            </div>
+            <span class="char-counter" :class="{ 'limit-near': customPrompt.length > 900, 'count-warning': customPrompt.trim().length < 10 && customPrompt.trim().length > 0 }">
+              {{ customPrompt.length }}/1000
+            </span>
+          </div>
           
           <p class="prompt-info">This prompt guides how questions are created. Be specific about what aspects of the content to focus on.</p>
         </div>
@@ -390,9 +421,19 @@ const customPrompt = ref('')
 const customPromptValid = ref(false)
 const customPromptInvalid = ref(false)
 
+// Validation message state for prompt
+const showPromptValidationMessage = ref(false)
+
 // Form validation state
 const quizNameValid = ref(false)
 const quizNameInvalid = ref(false)
+
+// Content validation state
+const contentValid = ref(false)
+const contentInvalid = ref(false)
+
+// Validation message state for content
+const showContentValidationMessage = ref(false)
 
 // Default prompt templates for reset functionality
 const defaultPromptTemplates = {
@@ -425,6 +466,28 @@ function validateQuizName() {
   } else {
     quizNameValid.value = true
     quizNameInvalid.value = false
+    return true
+  }
+}
+
+// Validate content
+function validateContent() {
+  const content = text.value.trim()
+  if (content.length === 0) {
+    contentValid.value = false
+    contentInvalid.value = false
+    return false
+  } else if (content.length < 100) {
+    contentValid.value = false
+    contentInvalid.value = true
+    return false
+  } else if (content.length > 10000) {
+    contentValid.value = false
+    contentInvalid.value = true
+    return false
+  } else {
+    contentValid.value = true
+    contentInvalid.value = false
     return true
   }
 }
@@ -573,6 +636,11 @@ watch([customPrompt, autoGeneratePrompt], ([newPrompt, isAutoGenerate]) => {
   validateCustomPrompt()
 })
 
+// Set up watchers for validation of content
+watch(() => text.value, (newValue) => {
+  validateContent()
+})
+
 // Function to generate a prompt from the content
 async function generatePromptFromContent(content: string): Promise<string> {
   try {
@@ -611,6 +679,99 @@ async function generatePromptFromContent(content: string): Promise<string> {
     console.error("Error generating prompt:", error);
     return defaultPromptTemplates[type.value];
   }
+}
+
+/**
+ * Detects if content has characteristics of educational/technical material with detailed explanations
+ * @param content The text content to analyze
+ * @returns Boolean indicating if this appears to be educational material
+ */
+function detectEducationalMaterial(content: string): boolean {
+  if (!content || content.length < 100) return false;
+  
+  // 1. Check for definition-style patterns (term: explanation)
+  const definitionPatternCount = (content.match(/^([^:]+):\s*$/gm) || []).length;
+  
+  // 2. Check for section headers with numbering patterns (common in educational materials)
+  const sectionHeaderCount = (content.match(/^(\d+\.\d+(\.\d+)*)\s+[A-Z][a-z]/gm) || []).length;
+  
+  // 3. Check for technical terminology density
+  const technicalTerms = [
+    'definition', 'algorithm', 'function', 'property', 'theorem', 'analysis',
+    'system', 'process', 'method', 'concept', 'model', 'paradigm', 'architecture',
+    'framework', 'interface', 'protocol', 'syntax', 'semantics', 'entity',
+    'attribute', 'parameter', 'variable', 'constant', 'implementation', 'specification',
+    'component', 'module', 'structure', 'instance', 'reference', 'declaration'
+  ];
+  
+  let termCount = 0;
+  for (const term of technicalTerms) {
+    const regex = new RegExp(`\\b${term}\\b`, 'gi');
+    const matches = content.match(regex) || [];
+    termCount += matches.length;
+  }
+  
+  const wordCount = content.split(/\s+/).length;
+  const technicalTermDensity = wordCount > 0 ? termCount / wordCount : 0;
+  
+  // 4. Check for multi-paragraph explanations (common in educational content)
+  // Look for paragraph breaks followed by continued explanations
+  const explanationPatterns = (content.match(/\.\s*\n\n.{100,}/g) || []).length;
+  
+  // 5. Check for bullet point lists (common in educational materials)
+  const bulletPointLists = (content.match(/^(\s*[-•*]\s+.+\n){3,}/gm) || []).length;
+  
+  // 6. Check for reference citations (common in academic materials)
+  const citationCount = (content.match(/\[\d+\]|\(\w+\s*,\s*\d{4}\)/g) || []).length;
+  
+  // 7. Check for educational keyword density
+  const educationalKeywords = [
+    'learn', 'understand', 'explain', 'describe', 'define', 'analyze',
+    'evaluate', 'compare', 'contrast', 'demonstrate', 'identify', 'examine',
+    'explore', 'student', 'knowledge', 'skill', 'competency', 'curriculum',
+    'education', 'academic', 'study', 'research', 'theory', 'principle'
+  ];
+  
+  let educationalKeywordCount = 0;
+  for (const keyword of educationalKeywords) {
+    const regex = new RegExp(`\\b${keyword}\\b`, 'gi');
+    const matches = content.match(regex) || [];
+    educationalKeywordCount += matches.length;
+  }
+  
+  const educationalKeywordDensity = wordCount > 0 ? educationalKeywordCount / wordCount : 0;
+  
+  // Calculate a score based on these factors
+  let score = 0;
+  
+  if (definitionPatternCount >= 3) score += 2;
+  if (sectionHeaderCount >= 2) score += 1;
+  if (technicalTermDensity > 0.02) score += 2;
+  if (explanationPatterns >= 2) score += 2;
+  if (bulletPointLists >= 1) score += 1;
+  if (citationCount >= 2) score += 1;
+  if (educationalKeywordDensity > 0.015) score += 1;
+  
+  // Check for paragraph length - educational content often has longer paragraphs with detailed explanations
+  const paragraphs = content.split(/\n\s*\n/);
+  const longParagraphCount = paragraphs.filter(p => p.length > 200).length;
+  if (longParagraphCount >= 2) score += 1;
+  
+  // Log the detection results for debugging
+  console.log('Educational material detection results:', {
+    definitionPatternCount,
+    sectionHeaderCount,
+    technicalTermDensity,
+    explanationPatterns,
+    bulletPointLists,
+    citationCount,
+    educationalKeywordDensity,
+    longParagraphCount,
+    score
+  });
+  
+  // Return true if the score exceeds the threshold
+  return score >= 4;
 }
 
 // Handle file upload
@@ -756,6 +917,10 @@ async function generate() {
       "ko": "Korean",
       "ar": "Arabic",
       "hi": "Hindi",
+      "cs": "Czech",
+      "sk": "Slovak",
+      "pl": "Polish",
+      "hu": "Hungarian",
       // Add more languages as needed
     };
     
@@ -767,19 +932,70 @@ async function generate() {
       categoryOptions = categories.value.map(cat => `${cat.id}. ${cat.category_name}`).join(', ');
     }
     
-    // Enhanced system prompt with instructions to generate in the detected language
-    const systemPrompt = type.value === 'tf' 
-      ? `You output ONLY a JSON object with two fields: "questions" and "category". 
-         The "questions" field contains an array of true/false quiz objects. Each object must have a question field ending with "True or False?", options array ALWAYS containing exactly ["True", "False"], answerIndex (0 for True, 1 for False), and explanation field explaining why this answer is correct.
-         The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
-         Generate all questions and explanations in ${languageName} to match the source content language.
-         For True/False questions, translate "True" and "False" into the appropriate words in ${languageName}.
-         No extra text.`
-      : `You output ONLY a JSON object with two fields: "questions" and "category".
-         The "questions" field contains an array of quiz objects. Each object must have a question, options array, answerIndex (zero-based index of correct answer in options array), and explanation field explaining why this answer is correct.
-         The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
-         Generate all questions, options, and explanations in ${languageName} to match the source content language.
-         No extra text.`;
+    // Detect if content appears to be educational/technical material with detailed explanations
+    const isEducationalMaterial = detectEducationalMaterial(src);
+    console.log("Content appears to be educational material:", isEducationalMaterial);
+    
+    // Choose appropriate system prompt based on content type and question type
+    let systemPrompt = '';
+    
+    if (isEducationalMaterial) {
+      // Use enhanced prompts for educational/technical material
+      if (type.value === 'tf') {
+        systemPrompt = `You are a specialized quiz generator for educational content in ${languageName}. Analyze the following technical/academic material.
+
+Output ONLY a JSON object with two fields: "questions" and "category".
+The "questions" field contains an array of true/false quiz objects. Each object must have:
+1. A "question" field ending with "True or False?"
+2. An "options" array ALWAYS containing exactly ["True", "False"] (translated to ${languageName} if needed)
+3. An "answerIndex" field (0 for True, 1 for False)
+4. An "explanation" field that preserves the detailed explanations from the source material
+
+The "category" field should contain the ID of the most appropriate category from: ${categoryOptions}.
+
+When creating questions:
+- Extract key facts and concepts directly from the material
+- Preserve the technical accuracy and depth of the original explanations
+- For definition questions, maintain the structure of multi-part definitions
+- Aim for the complexity level matching the source material
+- Ensure all text is in ${languageName}`;
+      } else {
+        systemPrompt = `You are a specialized quiz generator for educational content in ${languageName}. Analyze the following technical/academic material.
+
+Output ONLY a JSON object with two fields: "questions" and "category".
+The "questions" field contains an array of quiz objects. Each object must have:
+1. A clear "question" that tests understanding of important concepts
+2. An "options" array with 4 plausible choices (labeled A, B, C, D if appropriate)
+3. An "answerIndex" field (zero-based index of correct answer)
+4. An "explanation" field that preserves the detailed explanations from the source material
+
+The "category" field should contain the ID of the most appropriate category from: ${categoryOptions}.
+
+When creating questions:
+- Extract key facts, definitions, and relationships directly from the material
+- For multiple-choice questions, include distractors that represent common misconceptions
+- Preserve the technical accuracy and depth of the original explanations
+- For definition questions, maintain the structure of multi-part definitions
+- Match the complexity level of the source material
+- Ensure all text is in ${languageName}`;
+      }
+    } else {
+      // Use standard prompts for general content
+      if (type.value === 'tf') {
+        systemPrompt = `You output ONLY a JSON object with two fields: "questions" and "category". 
+The "questions" field contains an array of true/false quiz objects. Each object must have a question field ending with "True or False?", options array ALWAYS containing exactly ["True", "False"], answerIndex (0 for True, 1 for False), and explanation field explaining why this answer is correct.
+The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
+Generate all questions and explanations in ${languageName} to match the source content language.
+For True/False questions, translate "True" and "False" into the appropriate words in ${languageName}.
+No extra text.`;
+      } else {
+        systemPrompt = `You output ONLY a JSON object with two fields: "questions" and "category".
+The "questions" field contains an array of quiz objects. Each object must have a question, options array, answerIndex (zero-based index of correct answer in options array), and explanation field explaining why this answer is correct.
+The "category" field should contain the ID of the most appropriate category for this quiz content from the following options: ${categoryOptions}.
+Generate all questions, options, and explanations in ${languageName} to match the source content language.
+No extra text.`;
+      }
+    }
     
     // User prompt is now either auto-generated or comes from the customPrompt field
     let userPrompt = '';
@@ -901,171 +1117,6 @@ async function generate() {
     alert(`Error: ${error.message || 'Failed to generate questions'}`);
   } finally {
     isLoading.value = false;
-  }
-}
-
-async function saveQuizToDatabase(baseTitle: string, totalQuestions: number, sourceDocId?: number | null) {
-  try {
-    // First, make sure the user is authenticated
-    if (!auth.state.isAuthenticated) {
-      throw new Error('You must be logged in to save quizzes');
-    }
-    
-    // Make sure we have a valid user object with ID
-    if (!auth.state.user || !auth.state.user.userId) {
-      console.error('User authenticated but no user data found');
-      throw new Error('User data not found, please log in again');
-    }
-    
-    console.log('Attempting to save quiz with user:', { 
-      userId: auth.state.user.userId,
-      username: auth.state.user.username 
-    });
-    
-    // Verify the user exists
-    try {
-      const { data: userCheck, error: userCheckError } = await supabase
-        .from('Users')
-        .select('id')
-        .eq('id', auth.state.user.userId)
-        .single();
-      
-      if (userCheckError || !userCheck) {
-        console.error('User ID verification failed:', userCheckError);
-        throw new Error('User not found in database. Please log out and log in again.');
-      }
-    } catch (verifyError) {
-      console.error('Error verifying user:', verifyError);
-      throw new Error('Could not verify user in database');
-    }
-    
-    // Use the AI-suggested category (if available)
-    let categoryId = suggestedCategory.value;
-    
-    console.log('Using category ID:', categoryId, 'from suggestedCategory');
-    
-    // Ensure quiz name is valid
-    let finalTitle = baseTitle.trim() || "Untitled Quiz";
-    quizName.value = finalTitle;
-    
-    // Convert difficulty to proper case
-    const difficultyProperCase = difficulty.value.charAt(0).toUpperCase() + difficulty.value.slice(1).toLowerCase();
-    
-    // Use the owner ID
-    const ownerId = auth.state.user.userId;
-    
-    console.log('Creating quiz with data:', {
-      title: finalTitle,
-      owner_id: ownerId,
-      category_id: categoryId,
-      difficulty: difficultyProperCase,
-      source_doc_id: sourceDocId || null
-    });
-    
-    // Create the quiz with additional debugging
-    try {
-      const quizData = {
-        owner_id: ownerId,
-        category_id: categoryId,
-        title: finalTitle,
-        description: `Generated quiz with ${totalQuestions} questions`,
-        difficulty: difficultyProperCase,
-        is_public: true,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        published_at: new Date().toISOString(),
-        is_deleted: false,
-        source_doc_id: sourceDocId || null
-      };
-      
-      const { data: newQuiz, error: quizError } = await supabase
-        .from('Quizzes')
-        .insert(quizData)
-        .select()
-        .single();
-      
-      if (quizError) {
-        console.error('Quiz creation error:', quizError);
-        throw new Error(`Failed to create quiz: ${quizError.message}`);
-      }
-      
-      if (!newQuiz || !newQuiz.id) {
-        throw new Error('Quiz created but no ID returned');
-      }
-      
-      const quizId = newQuiz.id;
-      console.log('Successfully created quiz with ID:', quizId);
-      
-      // Store questions and options
-      for (let i = 0; i < questions.value.length; i++) {
-        const question = questions.value[i];
-        
-        // Create question
-        const questionData = {
-          quiz_id: quizId,
-          question_text: question.question,
-          question_type: type.value === 'mcq' ? 'multiple_choice' : 
-            type.value === 'tf' ? 'true_false' : 'fill_blank',
-          difficulty: difficultyProperCase,
-          points: 1,
-          created_at: new Date().toISOString(),
-          is_active: true
-        };
-        
-        const { data: newQuestion, error: questionError } = await supabase
-          .from('Questions')
-          .insert(questionData)
-          .select()
-          .single();
-          
-        if (questionError) {
-          console.error(`Error creating question #${i+1}:`, questionError);
-          continue;
-        }
-        
-        const questionId = newQuestion.id;
-        
-        // Store the question ID for later reference
-        questions.value[i].questionId = questionId;
-        questions.value[i].optionIds = [];
-        
-        // Add answer options
-        if (question.options && Array.isArray(question.options)) {
-          const optionsData = question.options.map((opt: string, j: number) => ({
-            question_id: questionId,
-            answer_text: opt,
-            is_correct: j === question.answerIndex,
-            created_at: new Date().toISOString()
-          }));
-          
-          const { data: newOptions, error: optionsError } = await supabase
-            .from('AnswerOptions')
-            .insert(optionsData)
-            .select();
-          
-          if (optionsError) {
-            console.error(`Error creating options for question #${i+1}:`, optionsError);
-            continue;
-          }
-          
-          // Store option IDs for later reference
-          if (newOptions && Array.isArray(newOptions)) {
-            questions.value[i].optionIds = newOptions.map((opt: any) => opt.id);
-          }
-        }
-      }
-      
-      return quizId;
-    } catch (dbError: any) {
-      console.error('Database error:', dbError);
-      if (dbError.response && dbError.response.data) {
-        console.error('Error details:', dbError.response.data);
-      }
-      throw dbError;
-    }
-  } catch (error) {
-    console.error('Error saving quiz:', error);
-    throw error;
   }
 }
 
@@ -1549,6 +1600,168 @@ function confirmAction() {
 // Handle cancellation of the confirmation dialog
 function cancelConfirmation() {
   showConfirmation.value = false;
+}
+
+/**
+ * Save a quiz to the database
+ * @param title The title of the quiz
+ * @param questionCount The number of questions in the quiz
+ * @param sourceDocId Optional ID of the source document
+ * @returns Promise that resolves to the new quiz ID
+ */
+async function saveQuizToDatabase(title: string, questionCount: number, sourceDocId: number | null = null): Promise<number> {
+  try {
+    if (!auth.state.isAuthenticated || !auth.state.user) {
+      throw new Error('User must be logged in to save quizzes');
+    }
+    
+    // Verify the user exists in the database
+    try {
+      const { data: userCheck, error: userCheckError } = await supabase
+        .from('Users')
+        .select('id, username')
+        .eq('id', auth.state.user.userId)
+        .single();
+      
+      if (userCheckError || !userCheck) {
+        console.error('User ID verification failed:', userCheckError);
+        throw new Error('User not found in database. Please log out and log in again.');
+      }
+    } catch (verifyError) {
+      console.error('Error verifying user:', verifyError);
+      throw new Error('Could not verify user in database');
+    }
+    
+    // Ensure quiz title is valid
+    const finalTitle = title.trim() || "Untitled Quiz";
+    
+    // Convert difficulty to proper case
+    const difficultyProperCase = difficulty.value.charAt(0).toUpperCase() + difficulty.value.slice(1).toLowerCase();
+    
+    // Use the owner ID
+    const ownerId = auth.state.user.userId;
+    
+    console.log('Creating quiz with data:', {
+      title: finalTitle,
+      owner_id: ownerId,
+      category_id: suggestedCategory.value,
+      difficulty: difficultyProperCase,
+      source_doc_id: sourceDocId || null
+    });
+    
+    // Create the quiz with additional debugging
+    try {
+      const quizData = {
+        owner_id: ownerId,
+        category_id: suggestedCategory.value,
+        title: finalTitle,
+        description: `Generated quiz with ${questionCount} questions`,
+        difficulty: difficultyProperCase,
+        is_public: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        published_at: new Date().toISOString(),
+        is_deleted: false,
+        source_doc_id: sourceDocId || null
+      };
+      
+      const { data: newQuiz, error: quizError } = await supabase
+        .from('Quizzes')
+        .insert(quizData)
+        .select()
+        .single();
+      
+      if (quizError) {
+        console.error('Quiz creation error:', quizError);
+        throw new Error(`Failed to create quiz: ${quizError.message}`);
+      }
+      
+      if (!newQuiz || !newQuiz.id) {
+        throw new Error('Quiz created but no ID returned');
+      }
+      
+      const quizId = newQuiz.id;
+      console.log('Successfully created quiz with ID:', quizId);
+      
+      // Store questions and options
+      for (let i = 0; i < questions.value.length; i++) {
+        const question = questions.value[i];
+        
+        // Create question
+        const questionData = {
+          quiz_id: quizId,
+          question_text: question.question,
+          question_type: type.value === 'mcq' ? 'multiple_choice' : 
+            type.value === 'tf' ? 'true_false' : 'fill_blank',
+          difficulty: difficultyProperCase,
+          points: 1,
+          created_at: new Date().toISOString(),
+          is_active: true
+        };
+        
+        const { data: newQuestion, error: questionError } = await supabase
+          .from('Questions')
+          .insert(questionData)
+          .select()
+          .single();
+          
+        if (questionError) {
+          console.error(`Error creating question #${i+1}:`, questionError);
+          continue;
+        }
+        
+        const questionId = newQuestion.id;
+        
+        // Save question to object for future reference
+        questions.value[i].questionId = questionId;
+        
+        // Create answer options
+        const options = [];
+        const optionIds = [];
+        
+        for (let j = 0; j < question.options.length; j++) {
+          const optionText = question.options[j];
+          const isCorrect = j === question.answerIndex;
+          
+          // Create option object
+          options.push({
+            question_id: questionId,
+            answer_text: optionText,
+            is_correct: isCorrect,
+            created_at: new Date().toISOString()
+          });
+        }
+        
+        // Batch insert options
+        if (options.length > 0) {
+          const { data: newOptions, error: optionsError } = await supabase
+            .from('AnswerOptions')
+            .insert(options)
+            .select();
+          
+          if (optionsError) {
+            console.error(`Error creating options for question #${i+1}:`, optionsError);
+          } else if (newOptions) {
+            // Save option IDs for future reference
+            questions.value[i].optionIds = newOptions.map(opt => opt.id);
+          }
+        }
+      }
+      
+      return quizId;
+    } catch (dbError) {
+      console.error('Database error:', dbError);
+      // Safely check if dbError has a response property with data
+      const error = dbError as any; // Type assertion to allow property access
+      if (error && error.response && error.response.data) {
+        console.error('Error details:', error.response.data);
+      }
+      throw dbError;
+    }
+  } catch (error) {
+    console.error('Error saving quiz:', error);
+    throw error;
+  }
 }
 </script>
 
@@ -2046,6 +2259,65 @@ function cancelConfirmation() {
 .toggle-button:hover {
   background: var(--accent);
   color: white;
+}
+
+.input-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: 6px;
+  flex-wrap: wrap;
+}
+
+.input-hint {
+  margin: 0;
+  font-size: 0.8rem;
+  color: var(--text-alt);
+  flex: 1;
+}
+
+.validation-feedback {
+  width: 100%;
+  margin-top: 5px;
+}
+
+.warning-message {
+  background-color: rgba(255, 193, 7, 0.15);
+  color: #c7a644;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.warning-icon {
+  font-style: normal;
+}
+
+.count-warning {
+  color: #856404;
+  font-weight: bold;
+}
+
+.content-input {
+  width: 100%;
+  min-height: 150px;
+  padding: var(--spacing-sm);
+  border: 1px solid var(--input-border);
+  border-radius: var(--radius-sm);
+  background: var(--input-bg);
+  color: var(--text-main);
+  resize: vertical;
+}
+
+.content-input.valid {
+  border-color: var(--success);
+}
+
+.content-input.invalid {
+  border-color: var(--error);
 }
 
 @keyframes fadeIn {
