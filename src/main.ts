@@ -9,6 +9,12 @@ import router from './router'
 import { initializeRoles } from './db/roles'
 import { initializeCategories } from './db/categories'
 
+// Add this near the top of the file, after imports
+console.log('ENV check:', {
+  supabaseUrl: import.meta.env.VITE_SUPABASE_URL ? 'defined' : 'undefined',
+  supabaseKey: import.meta.env.VITE_SUPABASE_KEY ? 'defined' : 'undefined'
+});
+
 // Initialize database tables before mounting the app
 Promise.all([
   initializeRoles().catch(error => {
