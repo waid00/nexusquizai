@@ -144,7 +144,7 @@
 .stat-value, .author-name {
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text-main);
+  color: white;
 }
 
 .quiz-card-footer {

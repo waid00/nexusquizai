@@ -163,6 +163,7 @@
   font-weight: 500;
   border: none;
   transition: all 0.3s ease;
+  margin-top:20px;
 }
 
 .action-btn {
@@ -246,9 +247,9 @@
 }
 
 .stat-value {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--accent);
+  font-size: 1rem;
+  font-weight: 600;
+  color: white;
   margin-bottom: 0.5rem;
 }
 
