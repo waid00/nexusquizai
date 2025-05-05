@@ -198,6 +198,7 @@ input:checked + .slider:before {
 .quiz-card-footer.take-quiz {
   background: var(--accent);
   color: white;
+  border-radius: 0;
 }
 
 .quiz-card-footer.take-quiz:hover {
@@ -312,6 +313,18 @@ input:checked + .slider:before {
 
 .delete-btn:hover {
   background: rgba(255, 71, 87, 0.3);
+}
+
+/* My Quizzes specific stat styling */
+.my-quizzes .quiz-stats .stat-item:nth-child(3) {
+  grid-column: 1 / span 2;
+  width: 100%;
+}
+
+/* Make the Created stat in MyQuizzes span the full width */
+.my-quizzes .quiz-card-body .quiz-stats .stat-item:nth-child(3) {
+  grid-column: 1 / span 2 !important; /* Using !important to override any other styles */
+  width: 100%;
 }
 
 /* Responsive adjustments */

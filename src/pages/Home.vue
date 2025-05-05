@@ -70,7 +70,7 @@
               <span class="stat-value">{{ quiz.attemptCount }}</span>
             </div>
             <div class="stat-item">
-              <span class="stat-label">User </span>
+              <span class="stat-label">User</span>
               <span class="author-name">{{ quiz.authorName }}</span>
             </div>
             <div class="stat-item">

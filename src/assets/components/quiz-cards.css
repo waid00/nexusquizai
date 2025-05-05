@@ -126,6 +126,24 @@
   margin-bottom: var(--spacing-xs);
 }
 
+/* Make a single item span full width */
+.quiz-stats .stat-item:only-child {
+  grid-column: 1 / span 2;
+  width: 100%;
+}
+
+/* For the MyQuizzes page where we have 3 items (Questions, Attempts, Created),
+   make the 3rd item take the same position as a 2-column grid would naturally place it */
+.quiz-stats .stat-item:nth-child(3):last-child {
+  grid-column: 1 / span 1;
+}
+
+/* When there are exactly 2 items, keep them side by side */
+.quiz-stats .stat-item:first-child:nth-last-child(2),
+.quiz-stats .stat-item:last-child:nth-first-child(2) {
+  grid-column: auto; /* Reset to default grid positioning */
+}
+
 .stat-item {
   display: flex;
   flex-direction: column;
@@ -135,6 +153,11 @@
   border-radius: var(--radius-sm);
 }
 
+.stat-item.invisible {
+  visibility: hidden;
+  background: transparent;
+}
+
 .stat-label {
   font-size: 0.8rem;
   color: var(--text-alt);
@@ -142,8 +165,8 @@
 }
 
 .stat-value, .author-name {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 0.85rem; /* Reduced from 0.95rem */
+  font-weight: 500; /* Reduced from 600 */
   color: white;
 }
 

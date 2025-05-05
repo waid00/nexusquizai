@@ -66,7 +66,7 @@
                 <span class="stat-label">Attempts</span>
                 <span class="stat-value">{{ quiz.attemptCount }}</span>
               </div>
-              <div class="stat-item created-date">
+              <div class="stat-item">
                 <span class="stat-label">Created</span>
                 <span class="stat-value">{{ formatDate(quiz.createdAt) }}</span>
               </div>
