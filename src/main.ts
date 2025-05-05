@@ -1,9 +1,21 @@
 import { createApp } from "vue";
 import App from "./App.vue";
 
-// import your global styles:
-import "./assets/base.css";
-import "./assets/main.css";
+// Import global styles first
+import "./assets/globals/base.css";
+import "./assets/globals/main.css";
+
+// Import component styles
+import "./assets/components/modals.css";
+import "./assets/components/mode-toggle.css";
+import "./assets/components/quiz-cards.css";
+
+// Import page-specific styles
+import "./assets/pages/auth.css";
+import "./assets/pages/generate.css";
+import "./assets/pages/home.css";
+import "./assets/pages/my-quizzes.css";
+import "./assets/pages/take-quiz.css";
 
 import router from './router'
 import { initializeRoles } from './db/roles'

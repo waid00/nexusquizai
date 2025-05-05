@@ -44,7 +44,7 @@ export async function getUserById(id: number) {
 
 export async function getUserByEmail(email: string) {
   const { data, error } = await supabase.from('Users').select('*').eq('email', email).single();
-  if (error && error.code !== 'PGRST116') throw error; // PGRST116 is the "not found" error
+  if (error && error.code !== 'PGRST116') throw error;
   return data;
 }
 
@@ -84,8 +84,8 @@ export async function getPublicQuizzes() {
     attemptCount: quiz.QuizAttempts?.length || 0,
     upvoteCount: quiz.QuizUpvotes?.length || 0,
     categoryName: quiz.Categories?.category_name || 'Uncategorized',
-    hasUserUpvoted: false, // This will be set on the client based on current user
-    isUserOwner: false // This will be set on the client based on current user
+    hasUserUpvoted: false,
+    isUserOwner: false
   }));
 }
 

@@ -115,7 +115,7 @@
 </template>
 
 <script setup lang="ts">
-import '@/assets/auth.css'
+import '@/assets/pages/auth.css';
 import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
@@ -163,39 +163,3 @@ const handleLogin = async () => {
   }
 }
 </script>
-
-<style scoped>
-.login-page {
-  padding: 2rem 1rem;
-  min-height: calc(100vh - 200px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-/* Touch-friendly adjustments for mobile */
-@media (max-width: 768px) {
-  .login-page {
-    padding: 1.5rem 1rem;
-    min-height: calc(100vh - 180px);
-  }
-  
-  .remember-me .checkbox-input {
-    width: 18px;
-    height: 18px;
-  }
-}
-
-@media (max-width: 576px) {
-  .login-page {
-    padding: 1rem 0.5rem;
-    min-height: calc(100vh - 160px);
-  }
-}
-
-@media (max-width: 380px) {
-  .login-page {
-    padding: 0.5rem 0.25rem;
-  }
-}
-</style>

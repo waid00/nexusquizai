@@ -1,0 +1,212 @@
+/* Quiz Cards Component Styles */
+
+.quiz-card {
+  background: var(--panel-bg);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  border-top: 3px solid;
+  max-width: 100%;
+  cursor: pointer;
+}
+
+.quiz-card.easy {
+  border-top-color: #2ed573;
+}
+
+.quiz-card.medium {
+  border-top-color: #ffab00;
+}
+
+.quiz-card.hard {
+  border-top-color: #ff4757;
+}
+
+.quiz-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+}
+
+.quiz-card-header {
+  padding: var(--spacing-md);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid var(--input-border);
+}
+
+.quiz-title {
+  margin: 0;
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text-main);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-width: 200px;
+  word-break: break-word;
+}
+
+.quiz-badge {
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 12px;
+  text-transform: capitalize;
+  margin-left: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.quiz-badge.easy {
+  background: rgba(46, 213, 115, 0.15);
+  color: #2ed573;
+}
+
+.quiz-badge.medium {
+  background: rgba(255, 171, 0, 0.15);
+  color: #ffab00;
+}
+
+.quiz-badge.hard {
+  background: rgba(255, 71, 87, 0.15);
+  color: #ff4757;
+}
+
+.quiz-card-body {
+  padding: var(--spacing-md);
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.quiz-description {
+  color: var(--text-alt);
+  margin-top: 0;
+  margin-bottom: var(--spacing-md);
+  line-height: 1.5;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 0.95rem;
+}
+
+.quiz-description span:last-child {
+  font-weight: 500;
+}
+
+.quiz-card.easy .quiz-description span:last-child {
+  color: #2ed573;
+}
+
+.quiz-card.medium .quiz-description span:last-child {
+  color: #ffab00;
+}
+
+.quiz-card.hard .quiz-description span:last-child {
+  color: #ff4757;
+}
+
+.quiz-description span:last-child {
+  color: var(--accent);
+  font-weight: 500;
+}
+
+.quiz-stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-xs);
+  margin-top: auto;
+  margin-bottom: var(--spacing-xs);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 8px;
+  border-radius: var(--radius-sm);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: var(--text-alt);
+  margin-bottom: 4px;
+}
+
+.stat-value, .author-name {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.quiz-card-footer {
+  width: 100%;
+  padding: var(--spacing-xs) var(--spacing-md);
+  border-top: 1px solid var(--input-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: rgba(0, 0, 0, 0.15);
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--text-alt);
+  border-radius: 0 0 var(--radius-md) var(--radius-md);
+  transition: all 0.2s ease;
+  gap: 5px;
+}
+
+.quiz-card-footer:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.quiz-card-footer:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+.quiz-card.easy .quiz-card-footer:hover:not(:disabled) {
+  color: #2ed573;
+}
+
+.quiz-card.medium .quiz-card-footer:hover:not(:disabled) {
+  color: #ffab00;
+}
+
+.quiz-card.hard .quiz-card-footer:hover:not(:disabled) {
+  color: #ff4757;
+}
+
+.quiz-card-footer.active {
+  background-color: rgba(0, 0, 0, 0.25);
+}
+
+.quiz-card.easy .quiz-card-footer.active {
+  color: #2ed573;
+}
+
+.quiz-card.medium .quiz-card-footer.active {
+  color: #ffab00;
+}
+
+.quiz-card.hard .quiz-card-footer.active {
+  color: #ff4757;
+}
+
+.upvote-icon {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.upvote-count {
+  font-weight: 600;
+  margin: 0 2px;
+}
