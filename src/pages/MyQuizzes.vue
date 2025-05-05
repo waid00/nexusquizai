@@ -26,14 +26,14 @@
 
     <!-- Created Quizzes Tab -->
     <div v-else-if="activeTab === 'created'" class="tab-content">
-      <div v-if="createdQuizzes.length === 0" class="empty-state">
+      <div v-if="displayedCreatedQuizzes.length === 0 && !canLoadMoreCreated" class="empty-state">
         <p>You haven't created any quizzes yet.</p>
         <router-link to="/generate" class="action-btn">Create a Quiz</router-link>
       </div>
 
       <div v-else class="quiz-list">
         <div 
-          v-for="quiz in createdQuizzes" 
+          v-for="quiz in displayedCreatedQuizzes" 
           :key="quiz.quizId" 
           class="quiz-card"
           :class="quiz.difficulty"
@@ -98,19 +98,25 @@
             </button>
           </div>
         </div>
+        <!-- Loading indicator for infinite scrolling -->
+        <div v-if="isLoadingMore" class="loading-more-container">
+          <div class="loading-spinner"></div>
+          <p>Loading more...</p>
+        </div>
+        <div ref="loadMoreTrigger" class="load-more-trigger"></div>
       </div>
     </div>
 
     <!-- Quiz Attempts Tab -->
     <div v-else-if="activeTab === 'attempts'" class="tab-content">
-      <div v-if="quizAttempts.length === 0" class="empty-state">
+      <div v-if="displayedAttempts.length === 0 && !canLoadMoreAttempts" class="empty-state">
         <p>You haven't taken any quizzes yet.</p>
         <router-link to="/generate" class="action-btn">Take a Quiz</router-link>
       </div>
 
       <div v-else class="attempts-list">
         <div 
-          v-for="attempt in quizAttempts" 
+          v-for="attempt in displayedAttempts" 
           :key="attempt.attemptId" 
           class="attempt-card"
           :class="{ 'passed': attempt.isPassed }"
@@ -150,6 +156,12 @@
             <button class="action-btn delete-btn" @click="confirmDeleteAttempt(attempt)">Delete</button>
           </div>
         </div>
+        <!-- Loading indicator for infinite scrolling -->
+        <div v-if="isLoadingMore" class="loading-more-container">
+          <div class="loading-spinner"></div>
+          <p>Loading more...</p>
+        </div>
+        <div ref="loadMoreTrigger" class="load-more-trigger"></div>
       </div>
     </div>
     
@@ -167,7 +179,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
@@ -178,6 +190,18 @@ const activeTab = ref('created')
 const isLoading = ref(true)
 const createdQuizzes = ref<any[]>([])
 const quizAttempts = ref<any[]>([])
+
+// Added for infinite scrolling
+const displayedCreatedQuizzes = ref<any[]>([])
+const displayedAttempts = ref<any[]>([])
+const pageSize = 4 // Show only 4 items initially
+const currentCreatedPage = ref(1)
+const currentAttemptsPage = ref(1)
+const canLoadMoreCreated = ref(false)
+const canLoadMoreAttempts = ref(false)
+const isLoadingMore = ref(false)
+const loadMoreTrigger = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
 
 // Confirmation modal state
 const showConfirmation = ref(false)
@@ -201,6 +225,8 @@ onMounted(async () => {
     // Reset any cached data
     createdQuizzes.value = []
     quizAttempts.value = []
+    displayedCreatedQuizzes.value = []
+    displayedAttempts.value = []
     console.log('MyQuizzes component mounted, fetching fresh quiz data')
     
     // Fetch data from Supabase
@@ -208,11 +234,124 @@ onMounted(async () => {
       fetchCreatedQuizzes(), 
       fetchQuizAttempts()
     ])
+    
+    // Setup intersection observer for infinite scrolling
+    setupIntersectionObserver()
   } catch (error) {
     console.error('Error loading quiz data:', error)
   } finally {
     isLoading.value = false
   }
+})
+
+// Set up the intersection observer for infinite scrolling
+function setupIntersectionObserver() {
+  // Wait for the DOM to update fully
+  setTimeout(() => {
+    if (loadMoreTrigger.value) {
+      console.log('Setting up intersection observer for MyQuizzes');
+      observer = new IntersectionObserver((entries) => {
+        const entry = entries[0];
+        console.log('Intersection detected:', entry.isIntersecting);
+        if (entry.isIntersecting && !isLoadingMore.value) {
+          if (activeTab.value === 'created' && canLoadMoreCreated.value) {
+            console.log('Loading more created quizzes');
+            loadMoreCreatedQuizzes();
+          } else if (activeTab.value === 'attempts' && canLoadMoreAttempts.value) {
+            console.log('Loading more attempts');
+            loadMoreAttempts();
+          }
+        }
+      }, { 
+        root: null, // Use the viewport
+        rootMargin: '0px 0px 200px 0px', // Load earlier, before fully scrolling to element
+        threshold: 0.1 // Trigger when at least 10% of the element is visible
+      });
+      
+      observer.observe(loadMoreTrigger.value);
+      console.log('Observer attached to element');
+    } else {
+      console.log('Load more trigger element not found');
+    }
+  }, 500);
+}
+
+// Clean up the observer when component is unmounted
+onUnmounted(() => {
+  if (observer) {
+    observer.disconnect();
+    console.log('Observer disconnected');
+  }
+})
+
+// Load more created quizzes
+function loadMoreCreatedQuizzes() {
+  if (isLoadingMore.value || !canLoadMoreCreated.value) return;
+  
+  isLoadingMore.value = true;
+  
+  // Simulate a small delay to prevent rapid loading
+  setTimeout(() => {
+    try {
+      currentCreatedPage.value++;
+      const nextBatch = createdQuizzes.value.slice(
+        (currentCreatedPage.value - 1) * pageSize, 
+        currentCreatedPage.value * pageSize
+      );
+      displayedCreatedQuizzes.value = [...displayedCreatedQuizzes.value, ...nextBatch];
+      updateCanLoadMoreCreated();
+      
+      // Re-initialize the observer after loading more content
+      if (canLoadMoreCreated.value) {
+        setupIntersectionObserver();
+      }
+    } finally {
+      isLoadingMore.value = false;
+    }
+  }, 300);
+}
+
+// Load more attempts
+function loadMoreAttempts() {
+  if (isLoadingMore.value || !canLoadMoreAttempts.value) return;
+  
+  isLoadingMore.value = true;
+  
+  // Simulate a small delay to prevent rapid loading
+  setTimeout(() => {
+    try {
+      currentAttemptsPage.value++;
+      const nextBatch = quizAttempts.value.slice(
+        (currentAttemptsPage.value - 1) * pageSize, 
+        currentAttemptsPage.value * pageSize
+      );
+      displayedAttempts.value = [...displayedAttempts.value, ...nextBatch];
+      updateCanLoadMoreAttempts();
+      
+      // Re-initialize the observer after loading more content
+      if (canLoadMoreAttempts.value) {
+        setupIntersectionObserver();
+      }
+    } finally {
+      isLoadingMore.value = false;
+    }
+  }, 300);
+}
+
+// Check if there are more created quizzes to load
+function updateCanLoadMoreCreated() {
+  canLoadMoreCreated.value = createdQuizzes.value.length > displayedCreatedQuizzes.value.length;
+}
+
+// Check if there are more attempts to load
+function updateCanLoadMoreAttempts() {
+  canLoadMoreAttempts.value = quizAttempts.value.length > displayedAttempts.value.length;
+}
+
+// Watch for tab changes to reset and update the loadable content
+watch(activeTab, () => {
+  // Re-initialize the observer for the new tab content
+  setupIntersectionObserver();
 })
 
 // Fetch quizzes created by the user
@@ -230,6 +369,7 @@ async function fetchCreatedQuizzes() {
         difficulty,
         created_at,
         is_public,
+        owner_id,
         Questions:Questions(count),
         QuizAttempts:QuizAttempts(count),
         QuizUpvotes:QuizUpvotes(count)
@@ -263,6 +403,12 @@ async function fetchCreatedQuizzes() {
     
     // Format the quiz data
     createdQuizzes.value = quizzes.map(quiz => {
+      // Verify the quiz belongs to the current user
+      if (quiz.owner_id !== auth.state.user!.userId) {
+        console.log(`Quiz ${quiz.id} does not belong to current user, skipping`);
+        return null;
+      }
+      
       return {
         quizId: quiz.id,
         title: quiz.title || 'Untitled Quiz',
@@ -270,17 +416,24 @@ async function fetchCreatedQuizzes() {
         difficulty: typeof quiz.difficulty === 'string' ? quiz.difficulty.toLowerCase() : 'medium',
         createdAt: quiz.created_at,
         isPublic: quiz.is_public,
+        ownerId: quiz.owner_id,
         questionCount: quiz.Questions?.length || 0,
         attemptCount: quiz.QuizAttempts?.length || 0,
         upvoteCount: quiz.QuizUpvotes?.length || 0,
-        hasUserUpvoted: userUpvotes ? userUpvotes.some((uv: any) => uv.quiz_id === quiz.id) : false
+        hasUserUpvoted: userUpvotes ? userUpvotes.some((uv: any) => uv.quiz_id === quiz.id) : false,
+        isUserOwner: quiz.owner_id === auth.state.user!.userId
       };
-    });
+    }).filter(quiz => quiz !== null); // Filter out the null entries
     
     console.log('Processed quizzes:', createdQuizzes.value);
+    
+    // Initialize displayed quizzes with the first page
+    displayedCreatedQuizzes.value = createdQuizzes.value.slice(0, pageSize);
+    updateCanLoadMoreCreated();
   } catch (error) {
     console.error('Error fetching created quizzes:', error);
     createdQuizzes.value = [];
+    displayedCreatedQuizzes.value = [];
   }
 }
 
@@ -331,9 +484,14 @@ async function fetchQuizAttempts() {
     }));
     
     console.log('Processed quiz attempts:', quizAttempts.value);
+    
+    // Initialize displayed attempts with the first page
+    displayedAttempts.value = quizAttempts.value.slice(0, pageSize);
+    updateCanLoadMoreAttempts();
   } catch (error) {
     console.error('Error fetching quiz attempts:', error);
     quizAttempts.value = [];
+    displayedAttempts.value = [];
   }
 }
 
@@ -448,6 +606,8 @@ async function deleteQuiz(quiz: any) {
 
     // Remove the quiz from the list
     createdQuizzes.value = createdQuizzes.value.filter(q => q.quizId !== quiz.quizId)
+    displayedCreatedQuizzes.value = displayedCreatedQuizzes.value.filter(q => q.quizId !== quiz.quizId)
+    updateCanLoadMoreCreated()
   } catch (error) {
     console.error('Error deleting quiz:', error)
     alert('Failed to delete quiz. Please try again.')
@@ -479,6 +639,8 @@ async function deleteAttempt(attempt: any) {
 
     // Remove the attempt from the list
     quizAttempts.value = quizAttempts.value.filter(a => a.attemptId !== attempt.attemptId)
+    displayedAttempts.value = displayedAttempts.value.filter(a => a.attemptId !== attempt.attemptId)
+    updateCanLoadMoreAttempts()
   } catch (error) {
     console.error('Error deleting attempt:', error)
     alert('Failed to delete attempt. Please try again.')

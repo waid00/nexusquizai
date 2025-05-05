@@ -64,7 +64,7 @@
   border: 3px solid rgba(255, 255, 255, 0.1);
   border-radius: 50%;
   border-top-color: var(--accent);
-  animation: spin 1s ease-in-out infinite;
+  animation: spin 1s linear infinite;
   margin-bottom: var(--spacing-sm);
 }
 
@@ -325,6 +325,34 @@ input:checked + .slider:before {
 .my-quizzes .quiz-card-body .quiz-stats .stat-item:nth-child(3) {
   grid-column: 1 / span 2 !important; /* Using !important to override any other styles */
   width: 100%;
+}
+
+/* Infinite scrolling styles */
+.load-more-trigger {
+  height: 80px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--spacing-md);
+}
+
+.loading-more-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-md);
+  margin-top: var(--spacing-md);
+  height: 80px;
+  border-top: 1px dashed var(--color-border);
+}
+
+.scroll-debug {
+  text-align: center;
+  padding: var(--spacing-md);
+  color: var(--text-alt);
+  font-style: italic;
 }
 
 /* Responsive adjustments */
