@@ -110,7 +110,6 @@
             <select id="quiz-type" v-model="type" class="select-input">
               <option value="mcq">Multiple‑choice</option>
               <option value="tf">True/False</option>
-              <option value="fill">Fill‑in‑the‑blank</option>
             </select>
           </div>
           <div class="control-group">
@@ -393,7 +392,7 @@ const isFileMode  = ref(false)
 const text        = ref('')
 const extracted   = ref('')
 const fileName    = ref('')
-const type        = ref<'mcq'|'tf'|'fill'>('mcq')
+const type        = ref<'mcq'|'tf'>('mcq')
 const count       = ref(5)
 const difficulty  = ref<'easy'|'medium'|'hard'>('medium')
 const isLoading   = ref(false)
@@ -445,8 +444,7 @@ const showContentValidationMessage = ref(false)
 // Default prompt templates for reset functionality
 const defaultPromptTemplates = {
   mcq: "Generate professional multiple-choice questions that test knowledge and comprehension. Include 4 answer options per question with one correct answer. Explain why the correct answer is right.",
-  tf: "Create true/false questions that assess factual knowledge. Each question should clearly state a proposition that is definitively true or false.",
-  fill: "Create fill-in-the-blank questions that test specific knowledge of terms, concepts, or facts."
+  tf: "Create true/false questions that assess factual knowledge. Each question should clearly state a proposition that is definitively true or false."
 }
 
 // Reset prompt to default based on current quiz type
@@ -681,7 +679,7 @@ async function generatePromptFromContent(content: string): Promise<string> {
     const response = await chat([systemMsg, userMsg]);
     
     // Return the generated prompt, or a default if empty
-    return response.trim() || `Generate thoughtful quiz questions about ${type.value === 'mcq' ? 'multiple-choice' : type.value === 'tf' ? 'true/false' : 'fill-in-the-blank'} questions about the key concepts in this content.`;
+    return response.trim() || `Generate thoughtful quiz questions about ${type.value === 'mcq' ? 'multiple-choice' : 'true/false'} questions about the key concepts in this content.`;
   } catch (error) {
     console.error("Error generating prompt:", error);
     return defaultPromptTemplates[type.value];
@@ -1085,7 +1083,7 @@ No extra text.`
     console.log('Using system prompt:', systemPrompt)
     console.log('Using user prompt:', userPrompt)
     
-    generationStep.value = `Generating ${count.value} ${difficulty.value} difficulty ${type.value === 'mcq' ? 'multiple-choice' : type.value === 'tf' ? 'true/false' : 'fill-in-the-blank'} questions...`
+    generationStep.value = `Generating ${count.value} ${difficulty.value} difficulty ${type.value === 'mcq' ? 'multiple-choice' : 'true/false'} questions...`
     generationProgress.value = 0.5
     
     let raw = await chat(msgs)
@@ -1739,8 +1737,7 @@ async function saveQuizToDatabase(title: string, questionCount: number, sourceDo
         const questionData = {
           quiz_id: quizId,
           question_text: question.question,
-          question_type: type.value === 'mcq' ? 'multiple_choice' : 
-            type.value === 'tf' ? 'true_false' : 'fill_blank',
+          question_type: type.value === 'mcq' ? 'multiple_choice' : 'true_false',
           difficulty: difficultyProperCase,
           points: 1,
           created_at: new Date().toISOString(),
