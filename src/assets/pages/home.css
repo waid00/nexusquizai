@@ -138,6 +138,7 @@
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--spacing-md);
+  justify-content: center;
 }
 
 @media (min-width: 992px) {

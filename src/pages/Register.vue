@@ -4,8 +4,8 @@
     <div class="auth-container">
       <!-- Registration form shown if not showing recovery phrase -->
       <div v-if="!showRecoveryPhrase && !registrationComplete">
-        <h1 class="auth-title">Create Account</h1>
-        <p class="auth-subtitle">Join NexusQuiz AI and create your own quizzes</p>
+        <h1 class="auth-title">{{ t('register.createAccount') }}</h1>
+        <p class="auth-subtitle">{{ t('register.joinNexusQuiz') }}</p>
         
         <div v-if="auth.state.error" class="error-message">
           {{ auth.state.error }}
@@ -13,7 +13,7 @@
 
         <form @submit.prevent="handleRegister">
           <div class="form-group">
-            <label for="username" class="form-label">Username</label>
+            <label for="username" class="form-label">{{ t('account.username') }}</label>
             <input 
               id="username" 
               v-model="formData.username" 
@@ -37,7 +37,7 @@
           </div>
 
           <div class="form-group">
-            <label for="email" class="form-label">Email Address</label>
+            <label for="email" class="form-label">{{ t('account.emailAddress') }}</label>
             <input 
               id="email" 
               v-model="formData.email" 
@@ -61,7 +61,7 @@
           </div>
 
           <div class="form-group">
-            <label for="password" class="form-label">Password</label>
+            <label for="password" class="form-label">{{ t('account.password') }}</label>
             <input 
               id="password" 
               v-model="formData.password" 
@@ -107,7 +107,7 @@
                 <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                 </svg>
-                At least 8 characters
+                {{ t('register.passwordRequirements.minChars') }}
               </div>
               <div :class="{ 'requirement-met': passwordUppercase }">
                 <svg v-if="passwordUppercase" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
@@ -117,7 +117,7 @@
                 <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                 </svg>
-                Contains uppercase letter
+                {{ t('register.passwordRequirements.uppercase') }}
               </div>
               <div :class="{ 'requirement-met': passwordLowercase }">
                 <svg v-if="passwordLowercase" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
@@ -127,7 +127,7 @@
                 <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                 </svg>
-                Contains lowercase letter
+                {{ t('register.passwordRequirements.lowercase') }}
               </div>
               <div :class="{ 'requirement-met': passwordNumber }">
                 <svg v-if="passwordNumber" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
@@ -137,13 +137,13 @@
                 <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                 </svg>
-                Contains number
+                {{ t('register.passwordRequirements.number') }}
               </div>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="confirmPassword" class="form-label">Confirm Password</label>
+            <label for="confirmPassword" class="form-label">{{ t('register.confirmPassword') }}</label>
             <input 
               id="confirmPassword" 
               v-model="formData.confirmPassword" 
@@ -175,7 +175,7 @@
               required
               :disabled="auth.state.isLoading"
             >
-            <label for="terms">I agree to the <a href="#" class="auth-link">Terms of Service</a> and <a href="#" class="auth-link">Privacy Policy</a></label>
+            <label for="terms">{{ t('register.agreeToTerms') }} <a href="#" class="auth-link">{{ t('register.termsOfService') }}</a> {{ t('register.and') }} <a href="#" class="auth-link">{{ t('register.privacyPolicy') }}</a></label>
           </div>
 
           <button 
@@ -183,51 +183,51 @@
             class="auth-btn" 
             :disabled="auth.state.isLoading || !isFormValid"
           >
-            {{ auth.state.isLoading ? 'Creating Account...' : 'Create Account' }}
+            {{ auth.state.isLoading ? t('register.creatingAccount') : t('register.createAccount') }}
           </button>
         </form>
 
         <p class="auth-alt">
-          Already have an account? 
-          <router-link to="/login" class="auth-link">Sign in</router-link>
+          {{ t('register.alreadyHaveAccount') }} 
+          <router-link to="/login" class="auth-link">{{ t('register.signIn') }}</router-link>
         </p>
       </div>
 
       <!-- Email verification screen (shown after registration but before recovery phrase) -->
       <div v-else-if="registrationComplete && !showRecoveryPhrase" class="verification-container">
-        <h1 class="auth-title">Verify Your Email</h1>
+        <h1 class="auth-title">{{ t('register.verifyEmail') }}</h1>
         <div class="email-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
             <path d="M0 4a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V4Zm2-1a1 1 0 0 0-1 1v.217l7 4.2 7-4.2V4a1 1 0 0 0-1-1H2Zm13 2.383-4.708 2.825L15 11.105V5.383Zm-.034 6.876-5.64-3.471L8 9.583l-1.326-.795-5.64 3.47A1 1 0 0 0 2 13h12a1 1 0 0 0 .966-.741ZM1 11.105l4.708-2.897L1 5.383v5.722Z"/>
           </svg>
         </div>
         
-        <p>We've sent a verification email to <strong>{{ formData.email }}</strong></p>
-        <p>Please check your inbox and click the verification link to complete your registration.</p>
+        <p>{{ t('register.sentVerificationEmail') }} <strong>{{ formData.email }}</strong></p>
+        <p>{{ t('register.checkInbox') }}</p>
         
         <div class="verification-actions">
           <button @click="showRecoveryPhrase = true" class="auth-btn">
-            Continue to Recovery Phrase
+            {{ t('register.continueToRecovery') }}
           </button>
           
           <button @click="resendVerificationEmail" class="text-btn" :disabled="resending">
-            {{ resending ? 'Sending...' : 'Resend verification email' }}
+            {{ resending ? t('register.sending') : t('register.resendVerificationEmail') }}
           </button>
           
           <div v-if="resendSuccess" class="success-message">
-            Verification email sent successfully!
+            {{ t('register.emailSentSuccess') }}
           </div>
         </div>
         
         <div class="verification-note">
-          <p>Note: You'll need to verify your email before you can log in.</p>
+          <p>{{ t('register.verifyEmailNote') }}</p>
         </div>
       </div>
 
       <!-- Recovery phrase screen -->
       <div v-else class="recovery-phrase-container">
-        <h1 class="auth-title">Account Created!</h1>
-        <p class="auth-subtitle">Please save your recovery phrase</p>
+        <h1 class="auth-title">{{ t('register.accountCreated') }}</h1>
+        <p class="auth-subtitle">{{ t('register.saveRecoveryPhrase') }}</p>
         
         <div class="recovery-notice">
           <div class="notice-icon">
@@ -235,8 +235,8 @@
               <path d="M8 16A8 8 0 1 0 8 0a8 8 0 0 0 0 16zm.93-9.412-1 4.705c-.07.34.029.533.304.533.194 0 .487-.07.686-.246l-.088.416c-.287.346-.92.598-1.465.598-.703 0-1.002-.422-.808-1.319l.738-3.468c.064-.293.006-.399-.287-.47l-.451-.081.082-.381 2.29-.287zM8 5.5a1 1 0 1 1 0-2 1 1 0 0 1 0 2z"/>
             </svg>
           </div>
-          <p><strong>IMPORTANT:</strong> Write down these 10 words in order and keep them in a safe place. You will need them to reset your password if you forget it.</p>
-          <p>These words cannot be recovered if lost!</p>
+          <p><strong>{{ t('register.important') }}:</strong> {{ t('register.recoveryPhraseInstructions') }}</p>
+          <p>{{ t('register.cannotBeRecovered') }}</p>
         </div>
         
         <div class="recovery-words">
@@ -256,9 +256,9 @@
               <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
               <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
             </svg>
-            Copy Words
+            {{ t('register.copyWords') }}
           </button>
-          <div v-if="copied" class="copied-message">Copied!</div>
+          <div v-if="copied" class="copied-message">{{ t('register.copied') }}</div>
         </div>
 
         <div class="recovery-confirm">
@@ -269,7 +269,7 @@
               v-model="recoveryPhraseConfirmed" 
               class="checkbox-input"
             >
-            <label for="confirm-saved">I have saved these recovery words</label>
+            <label for="confirm-saved">{{ t('register.haveSavedRecoveryWords') }}</label>
           </div>
           
           <button 
@@ -277,7 +277,7 @@
             @click="proceedToLogin"
             :disabled="!recoveryPhraseConfirmed"
           >
-            Continue to Login
+            {{ t('register.continueToLogin') }}
           </button>
         </div>
       </div>
@@ -291,9 +291,29 @@ import { ref, reactive, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
+import { useLanguage } from '@/context/LanguageContext'
 
 // Router
 const router = useRouter()
+
+// Translation function
+const languageState = useLanguage()
+const t = (key: string, params?: Record<string, any>): string => {
+  if (!languageState) return key
+  
+  // Get the translation from the language state
+  let translation = languageState.t(key)
+  
+  // If params are provided, replace placeholders like {param} with actual values
+  if (params) {
+    Object.keys(params).forEach(paramKey => {
+      const placeholder = new RegExp(`{${paramKey}}`, 'g')
+      translation = translation.replace(placeholder, params[paramKey])
+    })
+  }
+  
+  return translation
+}
 
 // Form data
 const formData = reactive({

@@ -1,12 +1,12 @@
 <!-- src/pages/Admin.vue -->
 <template>
   <div class="admin-page">
-    <h1 class="page-title">Admin Dashboard</h1>
+    <h1 class="page-title">{{ t('admin.dashboard') }}</h1>
     
     <!-- Loading state -->
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Loading admin data...</p>
+      <p>{{ t('admin.loadingData') }}</p>
     </div>
     
     <!-- Error state -->
@@ -30,20 +30,20 @@
           :class="{ 'active': activeTab === tab.id }"
           @click="activeTab = tab.id"
         >
-          {{ tab.label }}
+          {{ t(`admin.tabs.${tab.id}`) }}
         </button>
       </div>
 
       <div class="tab-content">
         <!-- Users Management Tab -->
         <div v-if="activeTab === 'users'" class="admin-section">
-          <h2 class="section-title">Users Management</h2>
+          <h2 class="section-title">{{ t('admin.usersManagement') }}</h2>
           
           <div class="search-bar">
             <input 
               type="text" 
               v-model="userSearchQuery" 
-              placeholder="Search users by username or email..." 
+              :placeholder="t('admin.searchUsers')" 
               class="search-input"
             >
           </div>
@@ -52,13 +52,13 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Username</th>
-                  <th>Email</th>
-                  <th>Role</th>
-                  <th>Created</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{{ t('admin.id') }}</th>
+                  <th>{{ t('admin.username') }}</th>
+                  <th>{{ t('admin.email') }}</th>
+                  <th>{{ t('admin.role') }}</th>
+                  <th>{{ t('admin.created') }}</th>
+                  <th>{{ t('admin.status') }}</th>
+                  <th>{{ t('admin.actions') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -80,7 +80,7 @@
                   <td data-label="Created">{{ formatDate(user.createdAt) }}</td>
                   <td data-label="Status">
                     <span class="status-badge" :class="user.isActive ? 'active' : 'inactive'">
-                      {{ user.isActive ? 'Active' : 'Inactive' }}
+                      {{ user.isActive ? t('admin.active') : t('admin.inactive') }}
                     </span>
                   </td>
                   <td data-label="Actions" class="actions-cell">
@@ -89,7 +89,7 @@
                       class="action-btn"
                       :class="user.isActive ? 'deactivate-btn' : 'activate-btn'"
                     >
-                      {{ user.isActive ? 'Deactivate' : 'Activate' }}
+                      {{ user.isActive ? t('admin.deactivate') : t('admin.activate') }}
                     </button>
                   </td>
                 </tr>
@@ -100,13 +100,13 @@
 
         <!-- Quizzes Management Tab -->
         <div v-if="activeTab === 'quizzes'" class="admin-section">
-          <h2 class="section-title">Quizzes Management</h2>
+          <h2 class="section-title">{{ t('admin.quizzesManagement') }}</h2>
           
           <div class="search-bar">
             <input 
               type="text" 
               v-model="quizSearchQuery" 
-              placeholder="Search quizzes by title..." 
+              :placeholder="t('admin.searchQuizzes')" 
               class="search-input"
             >
           </div>
@@ -115,13 +115,13 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Title</th>
-                  <th>Owner</th>
-                  <th>Questions</th>
-                  <th>Created</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{{ t('admin.id') }}</th>
+                  <th>{{ t('admin.title') }}</th>
+                  <th>{{ t('admin.owner') }}</th>
+                  <th>{{ t('admin.questions') }}</th>
+                  <th>{{ t('admin.created') }}</th>
+                  <th>{{ t('admin.status') }}</th>
+                  <th>{{ t('admin.actions') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -133,7 +133,7 @@
                   <td data-label="Created">{{ formatDate(quiz.createdAt) }}</td>
                   <td data-label="Status">
                     <span class="status-badge" :class="{ 'active': !quiz.isDeleted }">
-                      {{ quiz.isDeleted ? 'Deleted' : 'Active' }}
+                      {{ quiz.isDeleted ? t('admin.deleted') : t('admin.active') }}
                     </span>
                   </td>
                   <td data-label="Actions" class="actions-cell">
@@ -142,10 +142,10 @@
                       class="action-btn"
                       :class="quiz.isDeleted ? 'activate-btn' : 'deactivate-btn'"
                     >
-                      {{ quiz.isDeleted ? 'Restore' : 'Delete' }}
+                      {{ quiz.isDeleted ? t('admin.restore') : t('admin.delete') }}
                     </button>
                     <button @click="viewQuiz(quiz.id)" class="action-btn view-btn">
-                      View
+                      {{ t('admin.view') }}
                     </button>
                   </td>
                 </tr>
@@ -156,14 +156,14 @@
 
         <!-- Categories Management Tab -->
         <div v-if="activeTab === 'categories'" class="admin-section">
-          <h2 class="section-title">Categories Management</h2>
+          <h2 class="section-title">{{ t('admin.categoriesManagement') }}</h2>
           
           <div class="category-form">
             <div class="form-group">
               <input 
                 type="text" 
                 v-model="newCategory" 
-                placeholder="New category name" 
+                :placeholder="t('admin.newCategoryName')" 
                 class="form-input"
               >
               <button 
@@ -171,7 +171,7 @@
                 class="action-btn"
                 :disabled="!newCategory.trim()"
               >
-                Add Category
+                {{ t('admin.addCategory') }}
               </button>
             </div>
           </div>
@@ -180,10 +180,10 @@
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>ID</th>
-                  <th>Name</th>
-                  <th>Quizzes</th>
-                  <th>Actions</th>
+                  <th>{{ t('admin.id') }}</th>
+                  <th>{{ t('admin.name') }}</th>
+                  <th>{{ t('admin.quizzes') }}</th>
+                  <th>{{ t('admin.actions') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -202,22 +202,22 @@
                   <td data-label="Actions" class="actions-cell">
                     <template v-if="!category.isEditing">
                       <button @click="startEditCategory(category)" class="action-btn">
-                        Edit
+                        {{ t('admin.edit') }}
                       </button>
                       <button 
                         @click="confirmDeleteCategory(category)" 
                         class="action-btn deactivate-btn"
                         :disabled="category.quizCount > 0"
                       >
-                        Delete
+                        {{ t('admin.delete') }}
                       </button>
                     </template>
                     <template v-else>
                       <button @click="saveCategory(category)" class="action-btn">
-                        Save
+                        {{ t('admin.save') }}
                       </button>
                       <button @click="cancelEditCategory(category)" class="action-btn">
-                        Cancel
+                        {{ t('admin.cancel') }}
                       </button>
                     </template>
                   </td>
@@ -229,44 +229,44 @@
 
         <!-- Statistics Tab -->
         <div v-if="activeTab === 'stats'" class="admin-section">
-          <h2 class="section-title">System Statistics</h2>
+          <h2 class="section-title">{{ t('admin.systemStatistics') }}</h2>
           
           <div class="stats-grid">
             <div class="stat-card">
               <div class="stat-value">{{ stats.totalUsers }}</div>
-              <div class="stat-label">Total Users</div>
+              <div class="stat-label">{{ t('admin.totalUsers') }}</div>
             </div>
             
             <div class="stat-card">
               <div class="stat-value">{{ stats.totalQuizzes }}</div>
-              <div class="stat-label">Total Quizzes</div>
+              <div class="stat-label">{{ t('admin.totalQuizzes') }}</div>
             </div>
             
             <div class="stat-card">
               <div class="stat-value">{{ stats.totalAttempts }}</div>
-              <div class="stat-label">Quiz Attempts</div>
+              <div class="stat-label">{{ t('admin.quizAttempts') }}</div>
             </div>
             
             <div class="stat-card">
               <div class="stat-value">{{ stats.activeUsers }}</div>
-              <div class="stat-label">Active Users</div>
+              <div class="stat-label">{{ t('admin.activeUsers') }}</div>
             </div>
           </div>
 
-          <h3 class="subsection-title">Recent Activity</h3>
+          <h3 class="subsection-title">{{ t('admin.recentActivity') }}</h3>
           <div class="table-wrapper">
             <table class="data-table">
               <thead>
                 <tr>
-                  <th>Activity</th>
-                  <th>User</th>
-                  <th>Date</th>
-                  <th>Details</th>
+                  <th>{{ t('admin.activity') }}</th>
+                  <th>{{ t('admin.user') }}</th>
+                  <th>{{ t('admin.date') }}</th>
+                  <th>{{ t('admin.details') }}</th>
                 </tr>
               </thead>
               <tbody>
                 <tr v-for="(activity, index) in recentActivity" :key="index">
-                  <td data-label="Activity">{{ activity.type }}</td>
+                  <td data-label="Activity">{{ t('admin.quizAttempt') }}</td>
                   <td data-label="User">{{ activity.username }}</td>
                   <td data-label="Date">{{ formatDate(activity.date) }}</td>
                   <td data-label="Details">{{ activity.details }}</td>
@@ -297,10 +297,30 @@ import { useRouter } from 'vue-router';
 import { auth } from '@/store/auth';
 import { supabase } from '@/api/supabase';
 import ConfirmationModal from '@/components/ConfirmationModal.vue';
+import { useLanguage } from '@/context/LanguageContext';
 import '@/assets/pages/admin.css';
 
 // Router
 const router = useRouter();
+
+// Translation function
+const languageState = useLanguage();
+const t = (key: string, params?: Record<string, any>): string => {
+  if (!languageState) return key;
+  
+  // Get the translation from the language state
+  let translation = languageState.t(key);
+  
+  // If params are provided, replace placeholders like {param} with actual values
+  if (params) {
+    Object.keys(params).forEach(paramKey => {
+      const placeholder = new RegExp(`{${paramKey}}`, 'g');
+      translation = translation.replace(placeholder, params[paramKey]);
+    });
+  }
+  
+  return translation;
+};
 
 // State variables
 const isLoading = ref(true);
@@ -609,9 +629,9 @@ function confirmToggleUserStatus(user: any) {
   const newStatus = !user.isActive;
   const action = newStatus ? 'activate' : 'deactivate';
   
-  confirmationData.title = newStatus ? 'Activate User' : 'Deactivate User';
-  confirmationData.message = `Are you sure you want to ${action} the user "${user.username}"?`;
-  confirmationData.confirmText = newStatus ? 'Activate' : 'Deactivate';
+  confirmationData.title = newStatus ? t('admin.activateUser') : t('admin.deactivateUser');
+  confirmationData.message = t('admin.confirmToggleUserStatus', { action, username: user.username });
+  confirmationData.confirmText = newStatus ? t('admin.activate') : t('admin.deactivate');
   confirmationData.type = newStatus ? 'info' : 'warning';
   confirmationData.action = 'toggleUserStatus';
   confirmationData.data = user;
@@ -645,9 +665,9 @@ function confirmToggleQuizStatus(quiz: any) {
   const newStatus = !quiz.isDeleted;
   const action = newStatus ? 'delete' : 'restore';
   
-  confirmationData.title = newStatus ? 'Delete Quiz' : 'Restore Quiz';
-  confirmationData.message = `Are you sure you want to ${action} the quiz "${quiz.title}"?`;
-  confirmationData.confirmText = newStatus ? 'Delete' : 'Restore';
+  confirmationData.title = newStatus ? t('admin.deleteQuiz') : t('admin.restoreQuiz');
+  confirmationData.message = t('admin.confirmToggleQuizStatus', { action, title: quiz.title });
+  confirmationData.confirmText = newStatus ? t('admin.delete') : t('admin.restore');
   confirmationData.type = newStatus ? 'danger' : 'info';
   confirmationData.action = 'toggleQuizStatus';
   confirmationData.data = quiz;
@@ -748,13 +768,13 @@ function cancelEditCategory(category: any) {
 // Confirm delete category
 function confirmDeleteCategory(category: any) {
   if (category.quizCount > 0) {
-    alert('Cannot delete category with associated quizzes');
+    alert(t('admin.cannotDeleteCategoryWithQuizzes'));
     return;
   }
   
-  confirmationData.title = 'Delete Category';
-  confirmationData.message = `Are you sure you want to delete the category "${category.name}"?`;
-  confirmationData.confirmText = 'Delete';
+  confirmationData.title = t('admin.deleteCategory');
+  confirmationData.message = t('admin.confirmDeleteCategory', { name: category.name });
+  confirmationData.confirmText = t('admin.delete');
   confirmationData.type = 'danger';
   confirmationData.action = 'deleteCategory';
   confirmationData.data = category;
@@ -767,7 +787,7 @@ async function deleteCategory(category: any) {
   try {
     // Check if category has quizzes
     if (category.quizCount > 0) {
-      alert('Cannot delete category with associated quizzes');
+      alert(t('admin.cannotDeleteCategoryWithQuizzes'));
       return;
     }
     
@@ -811,7 +831,7 @@ function cancelConfirmation() {
 
 // Format date for display
 function formatDate(dateString: string) {
-  if (!dateString) return 'N/A';
+  if (!dateString) return t('admin.notAvailable');
   
   const date = new Date(dateString);
   return date.toLocaleDateString('en-US', {

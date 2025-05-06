@@ -1,6 +1,6 @@
 <template>
   <div class="public-quizzes">
-    <h2 class="page-title">Explore Quizzes</h2>
+    <h2 class="page-title">{{ t('quiz.exploreQuizzes') }}</h2>
     
     <!-- Search Bar -->
     <div class="search-container">
@@ -8,7 +8,7 @@
         <input 
           type="text" 
           v-model="searchQuery" 
-          placeholder="Search for quizzes..." 
+          :placeholder="t('common.searchForQuizzes')" 
           class="search-input"
           @input="onSearchInput"
         />
@@ -16,7 +16,7 @@
           v-if="searchQuery" 
           class="clear-search-btn" 
           @click="clearSearch"
-          aria-label="Clear search"
+          :aria-label="t('common.clearSearch')"
         >×</button>
       </div>
     </div>
@@ -24,7 +24,7 @@
     <!-- Loading state -->
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Loading quizzes...</p>
+      <p>{{ t('common.loading') }}</p>
     </div>
     
     <!-- No quizzes state -->
@@ -34,9 +34,9 @@
         <line x1="16" y1="8" x2="2" y2="22"></line>
         <line x1="17.5" y1="15" x2="9" y2="15"></line>
       </svg>
-      <p v-if="searchQuery">No quizzes found matching "{{ searchQuery }}"</p>
-      <p v-else>No public quizzes available</p>
-      <router-link to="/generate" class="action-btn">Create a Quiz</router-link>
+      <p v-if="searchQuery">{{ t('quiz.noQuizzesMatching') }} "{{ searchQuery }}"</p>
+      <p v-else>{{ t('quiz.noPublicQuizzes') }}</p>
+      <router-link to="/generate" class="action-btn">{{ t('quiz.createQuiz') }}</router-link>
     </div>
     
     <!-- Quizzes list -->
@@ -53,29 +53,29 @@
             <h3 class="quiz-title">
               <span v-html="highlightMatch(quiz.title)"></span>
             </h3>
-            <span class="quiz-badge" :class="quiz.difficulty">{{ quiz.difficulty }}</span>
+            <span class="quiz-badge" :class="quiz.difficulty">{{ t(`quiz.${quiz.difficulty}`) }}</span>
           </div>
           <div class="quiz-card-body">
             <p class="quiz-description text-center">
-              <span class="category-label">Category: </span>
+              <span class="category-label">{{ t('quiz.category') }}: </span>
               <span v-html="highlightMatch(quiz.categoryName)"></span>
             </p>
             
             <div class="quiz-stats">
               <div class="stat-item">
-                <span class="stat-label">Questions</span>
+                <span class="stat-label">{{ t('quiz.questions') }}</span>
                 <span class="stat-value">{{ quiz.questionCount }}</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">Attempts</span>
+                <span class="stat-label">{{ t('quiz.attempts') }}</span>
                 <span class="stat-value">{{ quiz.attemptCount }}</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">User</span>
+                <span class="stat-label">{{ t('common.user') }}</span>
                 <span class="author-name">{{ quiz.authorName }}</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">Created</span>
+                <span class="stat-label">{{ t('common.created') }}</span>
                 <span class="stat-value">{{ formatDate(quiz.createdAt) }}</span>
               </div>
             </div>
@@ -99,11 +99,11 @@
         ref="loadMoreTrigger"
       >
         <div v-if="isLoadingMore" class="loading-spinner"></div>
-        <p v-else>Scroll for more quizzes</p>
+        <p v-else>{{ t('common.scrollForMore') }}</p>
       </div>
       <!-- Debug element to ensure we can see when scrolling reaches the bottom -->
       <div class="scroll-debug" v-if="!canLoadMore && displayedQuizzes.length > 0">
-        End of quizzes
+        {{ t('common.endOfQuizzes') }}
       </div>
     </div>
   </div>
@@ -115,6 +115,7 @@ import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import debounce from 'lodash.debounce'
 import { getPublicQuizzes, toggleQuizUpvote, checkUserUpvote } from '@/api/supabase'
+import { useLanguage } from '@/context/LanguageContext'
 
 const router = useRouter()
 const isAuthenticated = computed(() => auth.state.isAuthenticated)
@@ -129,36 +130,46 @@ const canLoadMore = ref(false)
 const loadMoreTrigger = ref<HTMLElement | null>(null)
 let observer: IntersectionObserver | null = null
 
+// Get the translation function
+const languageState = useLanguage();
+const t = (key: string): string => {
+  if (!languageState) return key;
+  return languageState.t(key);
+};
+
 // Format date for display
 function formatDate(dateString: string) {
-  if (!dateString) return 'Unknown'
-  const date = new Date(dateString)
-  const now = new Date()
-  const diffTime = Math.abs(now.getTime() - date.getTime())
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+  if (!dateString) return t('common.unknown');
+  
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - date.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   
   if (diffDays < 1) {
-    return 'Today'
+    return t('common.today');
   } else if (diffDays < 2) {
-    return 'Yesterday'
+    return t('common.yesterday');
   } else if (diffDays < 7) {
-    return `${diffDays} days ago`
+    const daysAgoText = t('common.daysAgo');
+    return daysAgoText.replace('{days}', diffDays.toString());
   } else {
-    return date.toLocaleDateString('en-US', {
+    // Use the current language for date formatting
+    const locale = languageState?.language.value === 'cs' ? 'cs-CZ' : 'en-US';
+    return date.toLocaleDateString(locale, {
       month: 'short',
       day: 'numeric',
       year: 'numeric'
-    })
+    });
   }
 }
 
-// Smart search implementation
+// Rest of your existing code...
 const onSearchInput = debounce(() => {
   resetQuizDisplay()
   filterQuizzes()
 }, 300)
 
-// Reset quiz display when search changes
 function resetQuizDisplay() {
   currentPage.value = 1
   displayedQuizzes.value = []
@@ -287,11 +298,6 @@ async function toggleUpvote(quiz: any) {
   } catch (error) {
     console.error('Error toggling upvote:', error)
   }
-}
-
-// Navigate to take a quiz
-function takeQuiz(quizId: number) {
-  router.push(`/quiz/${quizId}`);
 }
 
 // Load more quizzes for infinite scrolling

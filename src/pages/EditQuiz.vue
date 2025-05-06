@@ -1,12 +1,12 @@
 <!-- src/pages/EditQuiz.vue -->
 <template>
   <div class="edit-quiz">
-    <h2 class="page-title">Edit Quiz</h2>
+    <h2 class="page-title">{{ t('quiz.editQuiz') }}</h2>
 
     <!-- Loading state -->
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Loading quiz data...</p>
+      <p>{{ t('common.loading') }}</p>
     </div>
     
     <!-- Error state -->
@@ -18,21 +18,21 @@
         </svg>
       </div>
       <p>{{ errorMessage }}</p>
-      <router-link :to="`/quiz/${quizId}/details`" class="btn">Back to Quiz</router-link>
+      <router-link :to="`/quiz/${quizId}/details`" class="btn">{{ t('common.back') }}</router-link>
     </div>
 
     <!-- Edit Quiz Form -->
     <div v-else class="edit-form-container">
       <!-- Quiz Basic Info -->
       <div class="form-section">
-        <h3>Quiz Information</h3>
+        <h3>{{ t('quiz.quizInformation') || 'Quiz Information' }}</h3>
         <div class="form-row">
-          <label for="quiz-title">Title</label>
+          <label for="quiz-title">{{ t('quiz.title') }}</label>
           <input 
             id="quiz-title" 
             v-model="quizData.title" 
             type="text" 
-            placeholder="Enter quiz title"
+            :placeholder="t('quiz.enterQuizName')"
             :class="{
               'valid': titleValid,
               'invalid': titleInvalid
@@ -42,21 +42,21 @@
         </div>
         
         <div class="form-row">
-          <label for="quiz-description">Description</label>
+          <label for="quiz-description">{{ t('quiz.description') }}</label>
           <textarea 
             id="quiz-description" 
             v-model="quizData.description" 
-            placeholder="Enter quiz description"
+            :placeholder="t('quiz.enterDescription') || 'Enter quiz description'"
             rows="3"
           ></textarea>
         </div>
         
         <div class="form-row">
-          <label for="quiz-difficulty">Difficulty</label>
+          <label for="quiz-difficulty">{{ t('quiz.difficulty') }}</label>
           <select id="quiz-difficulty" v-model="quizData.difficulty">
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
+            <option value="easy">{{ t('quiz.easy') }}</option>
+            <option value="medium">{{ t('quiz.medium') }}</option>
+            <option value="hard">{{ t('quiz.hard') }}</option>
           </select>
         </div>
         
@@ -67,27 +67,27 @@
               v-model="quizData.isPublic" 
               type="checkbox"
             >
-            <span class="checkbox-label">Public Quiz</span>
+            <span class="checkbox-label">{{ t('myQuizzes.public') }}</span>
           </label>
-          <div class="help-text">Public quizzes can be taken by anyone.</div>
+          <div class="help-text">{{ t('quiz.publicQuizNote') || 'Public quizzes can be taken by anyone.' }}</div>
         </div>
       </div>
       
       <!-- Questions Section -->
       <div class="form-section">
         <div class="section-header">
-          <h3>Quiz Questions</h3>
+          <h3>{{ t('quiz.questions') }}</h3>
           <div class="action-buttons">
             <button class="add-btn-ai" @click="addQuestionWithAI" :disabled="isGenerating">
-              <span v-if="isGenerating">Generating...</span>
-              <span v-else><i class="ai-icon">✨</i> Add Question with AI</span>
+              <span v-if="isGenerating">{{ t('common.loading') }}</span>
+              <span v-else><i class="ai-icon">✨</i> {{ t('quiz.addQuestionWithAI') || 'Add Question with AI' }}</span>
             </button>
-            <button class="add-btn" @click="addQuestion">Add Question</button>
+            <button class="add-btn" @click="addQuestion">{{ t('quiz.addQuestion') || 'Add Question' }}</button>
           </div>
         </div>
         
         <div v-if="quizData.questions.length === 0" class="empty-questions">
-          <p>No questions yet. Click "Add Question" to start building your quiz.</p>
+          <p>{{ t('quiz.noQuestionsYet') || 'No questions yet. Click "Add Question" to start building your quiz.' }}</p>
         </div>
         
         <div v-else class="questions-list">
@@ -119,16 +119,16 @@
             </div>
             
             <div class="question-preview" @click="toggleQuestionExpand(question.id)">
-              <div class="preview-text">{{ question.questionText || 'New question' }}</div>
+              <div class="preview-text">{{ question.questionText || t('quiz.newQuestion') || 'New question' }}</div>
             </div>
             
             <div v-if="expandedQuestions[question.id]" class="question-edit-panel">
               <div class="form-row">
-                <label :for="`question-text-${question.id}`">Question Text</label>
+                <label :for="`question-text-${question.id}`">{{ t('quiz.questionText') || 'Question Text' }}</label>
                 <textarea 
                   :id="`question-text-${question.id}`" 
                   v-model="question.questionText" 
-                  placeholder="Enter your question"
+                  :placeholder="t('quiz.enterYourQuestion') || 'Enter your question'"
                   rows="2"
                   :class="{
                     'valid': questionValidation[question.id]?.textValid,
@@ -139,28 +139,28 @@
               </div>
               
               <div class="form-row">
-                <label :for="`question-type-${question.id}`">Question Type</label>
+                <label :for="`question-type-${question.id}`">{{ t('quiz.questionType') || 'Question Type' }}</label>
                 <select 
                   :id="`question-type-${question.id}`" 
                   v-model="question.questionType"
                   @change="questionTypeChanged(question)"
                 >
-                  <option value="multiple_choice">Multiple Choice</option>
-                  <option value="true_false">True/False</option>
-                  <option value="fill_blank">Fill in the Blank</option>
+                  <option value="multiple_choice">{{ t('quiz.multipleChoice') }}</option>
+                  <option value="true_false">{{ t('quiz.trueFalse') }}</option>
+                  <option value="fill_blank">{{ t('quiz.fillBlank') }}</option>
                 </select>
               </div>
               
               <!-- Multiple Choice Options -->
               <div v-if="question.questionType === 'multiple_choice'" class="options-container">
                 <div class="options-header">
-                  <h4>Answer Options</h4>
+                  <h4>{{ t('quiz.answerOptions') || 'Answer Options' }}</h4>
                   <button 
                     v-if="question.options.length < 6" 
                     class="add-option-btn" 
                     @click="addOption(question)"
                   >
-                    Add Option
+                    {{ t('quiz.addOption') || 'Add Option' }}
                   </button>
                 </div>
                 
@@ -180,7 +180,7 @@
                     <input 
                       type="text" 
                       v-model="option.text" 
-                      placeholder="Enter option text"
+                      :placeholder="t('quiz.enterOptionText') || 'Enter option text'"
                       class="option-text-input"
                       :class="{
                         'valid': questionValidation[question.id]?.optionsValid?.[option.id],
@@ -201,7 +201,7 @@
               
               <!-- True/False Options -->
               <div v-else-if="question.questionType === 'true_false'" class="options-container">
-                <h4>Answer</h4>
+                <h4>{{ t('quiz.answer') || 'Answer' }}</h4>
                 <div class="true-false-options">
                   <label class="radio-label">
                     <input 
@@ -210,7 +210,7 @@
                       :checked="question.correctAnswer === 'true'" 
                       @change="question.correctAnswer = 'true'"
                     >
-                    <span>True</span>
+                    <span>{{ t('common.yes') || 'True' }}</span>
                   </label>
                   <label class="radio-label">
                     <input 
@@ -219,7 +219,7 @@
                       :checked="question.correctAnswer === 'false'" 
                       @change="question.correctAnswer = 'false'"
                     >
-                    <span>False</span>
+                    <span>{{ t('common.no') || 'False' }}</span>
                   </label>
                 </div>
               </div>
@@ -227,12 +227,12 @@
               <!-- Fill in the Blank Answer -->
               <div v-else-if="question.questionType === 'fill_blank'" class="options-container">
                 <div class="form-row">
-                  <label :for="`fill-blank-answer-${question.id}`">Correct Answer</label>
+                  <label :for="`fill-blank-answer-${question.id}`">{{ t('quiz.correctAnswer') }}</label>
                   <input 
                     :id="`fill-blank-answer-${question.id}`" 
                     v-model="question.correctAnswer" 
                     type="text" 
-                    placeholder="Enter correct answer"
+                    :placeholder="t('quiz.enterCorrectAnswer') || 'Enter correct answer'"
                     :class="{
                       'valid': questionValidation[question.id]?.blankAnswerValid,
                       'invalid': questionValidation[question.id]?.blankAnswerInvalid
@@ -249,22 +249,28 @@
       <!-- Action Buttons -->
       <div class="action-buttons">
         <button class="save-btn" @click="saveQuiz" :disabled="isSaving">
-          <span v-if="isSaving">Saving...</span>
-          <span v-else>Save Changes</span>
+          <span v-if="isSaving">{{ t('common.saving') || 'Saving...' }}</span>
+          <span v-else>{{ t('common.save') }}</span>
         </button>
-        <router-link :to="`/quiz/${quizId}/details`" class="cancel-btn">Cancel</router-link>
+        <router-link :to="`/quiz/${quizId}/details`" class="cancel-btn">{{ t('common.cancel') }}</router-link>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed, watch } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
-import { chat, type ChatCompletionRequestMessage } from '@/api/openai'
+import { auth } from '@/store/auth'
+import { useLanguage } from '@/context/LanguageContext'
+import type { ChatCompletionRequestMessage } from '@/api/openai'
+import { chat } from '@/api/openai'
 import '@/assets/pages/edit-quiz.css';
+
+const language = useLanguage()
+// Add null check with optional chaining to ensure t is defined
+const t = (key: string) => language?.t?.(key) || key
 
 // Route and navigation
 const route = useRoute()

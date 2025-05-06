@@ -10,6 +10,7 @@
   flex-direction: column;
   border-top: 3px solid;
   max-width: 100%;
+  min-width: 300px;
   cursor: pointer;
 }
 
@@ -119,8 +120,8 @@
 }
 
 .quiz-stats {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
   gap: var(--spacing-xs);
   margin-top: auto;
   margin-bottom: var(--spacing-xs);

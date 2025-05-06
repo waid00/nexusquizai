@@ -4,8 +4,8 @@
     <div class="auth-container">
       <!-- Initial screen (enter username) -->
       <div v-if="currentStep === 'username'">
-        <h1 class="auth-title">Recover Password</h1>
-        <p class="auth-subtitle">Enter your username to start recovery</p>
+        <h1 class="auth-title">{{ t('password.recoverPassword') }}</h1>
+        <p class="auth-subtitle">{{ t('password.enterUsernameToRecover') }}</p>
         
         <div v-if="errorMessage" class="error-message">
           {{ errorMessage }}
@@ -13,7 +13,7 @@
 
         <form @submit.prevent="goToRecoveryPhrase">
           <div class="form-group">
-            <label for="username" class="form-label">Username or Email</label>
+            <label for="username" class="form-label">{{ t('login.usernameOrEmail') }}</label>
             <input 
               id="username" 
               v-model="username" 
@@ -35,15 +35,15 @@
             class="auth-btn" 
             :disabled="isLoading || !username"
           >
-            {{ isLoading ? 'Processing...' : 'Continue' }}
+            {{ isLoading ? t('common.processing') : t('common.continue') }}
           </button>
         </form>
       </div>
 
       <!-- Recovery phrase screen -->
       <div v-else-if="currentStep === 'recovery'">
-        <h1 class="auth-title">Enter Recovery Phrase</h1>
-        <p class="auth-subtitle">Type the 10 words provided during registration</p>
+        <h1 class="auth-title">{{ t('password.enterRecoveryPhrase') }}</h1>
+        <p class="auth-subtitle">{{ t('password.type10Words') }}</p>
 
         <div v-if="errorMessage" class="error-message">
           {{ errorMessage }}
@@ -72,22 +72,22 @@
             class="back-btn"
             :disabled="isLoading"
           >
-            Back
+            {{ t('common.back') }}
           </button>
           <button 
             @click="verifyRecoveryPhrase" 
             class="auth-btn" 
             :disabled="isLoading || !isRecoveryPhraseComplete"
           >
-            {{ isLoading ? 'Verifying...' : 'Verify Recovery Phrase' }}
+            {{ isLoading ? t('password.verifying') : t('password.verifyRecoveryPhrase') }}
           </button>
         </div>
       </div>
 
       <!-- New password screen -->
       <div v-else-if="currentStep === 'new-password'">
-        <h1 class="auth-title">Create New Password</h1>
-        <p class="auth-subtitle">Enter your new password</p>
+        <h1 class="auth-title">{{ t('password.createNewPassword') }}</h1>
+        <p class="auth-subtitle">{{ t('password.enterNewPassword') }}</p>
 
         <div v-if="errorMessage" class="error-message">
           {{ errorMessage }}
@@ -99,7 +99,7 @@
 
         <form v-if="!resetComplete" @submit.prevent="resetPassword">
           <div class="form-group">
-            <label for="new-password" class="form-label">New Password</label>
+            <label for="new-password" class="form-label">{{ t('password.newPassword') }}</label>
             <input 
               id="new-password" 
               v-model="newPassword" 
@@ -141,7 +141,7 @@
                 <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                 </svg>
-                At least 8 characters
+                {{ t('password.atLeast8Chars') }}
               </div>
               <div :class="{ 'requirement-met': passwordUppercase }">
                 <svg v-if="passwordUppercase" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
@@ -151,7 +151,7 @@
                 <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                 </svg>
-                Contains uppercase letter
+                {{ t('password.containsUppercase') }}
               </div>
               <div :class="{ 'requirement-met': passwordLowercase }">
                 <svg v-if="passwordLowercase" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
@@ -161,7 +161,7 @@
                 <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                 </svg>
-                Contains lowercase letter
+                {{ t('password.containsLowercase') }}
               </div>
               <div :class="{ 'requirement-met': passwordNumber }">
                 <svg v-if="passwordNumber" xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
@@ -171,13 +171,13 @@
                 <svg v-else xmlns="http://www.w3.org/2000/svg" width="12" height="12" fill="currentColor" viewBox="0 0 16 16">
                   <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
                 </svg>
-                Contains number
+                {{ t('password.containsNumber') }}
               </div>
             </div>
           </div>
 
           <div class="form-group">
-            <label for="confirm-password" class="form-label">Confirm Password</label>
+            <label for="confirm-password" class="form-label">{{ t('password.confirmPassword') }}</label>
             <input 
               id="confirm-password" 
               v-model="confirmPassword" 
@@ -201,7 +201,7 @@
             class="auth-btn" 
             :disabled="isLoading || !isPasswordValid"
           >
-            {{ isLoading ? 'Resetting Password...' : 'Reset Password' }}
+            {{ isLoading ? t('password.resettingPassword') : t('password.resetPassword') }}
           </button>
         </form>
 
@@ -211,8 +211,8 @@
               <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
             </svg>
           </div>
-          <p>Your password has been successfully reset.</p>
-          <router-link to="/login" class="auth-btn login-btn">Go to Login</router-link>
+          <p>{{ t('password.passwordResetSuccess') }}</p>
+          <router-link to="/login" class="auth-btn login-btn">{{ t('login.goToLogin') }}</router-link>
         </div>
       </div>
     </div>
@@ -225,6 +225,11 @@ import { ref, computed } from 'vue'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
 import '@/assets/pages/password.css';
+import { useLanguage } from '@/context/LanguageContext'
+
+// Add language support
+const language = useLanguage();
+const t = (key: string) => language?.t?.(key) || key;
 
 // Step navigation (username → recovery phrase → new password)
 const currentStep = ref('username')
@@ -336,7 +341,7 @@ async function verifyRecoveryPhrase() {
       .single()
     
     if (error || !data) {
-      throw new Error('User not found')
+      throw new Error(t('password.userNotFound'))
     }
     
     // Store the email for the reset password step
@@ -351,7 +356,7 @@ async function verifyRecoveryPhrase() {
       .single()
     
     if (phraseError || !phraseCheck) {
-      throw new Error('Invalid recovery phrase')
+      throw new Error(t('password.invalidRecoveryPhrase'))
     }
     
     // Store the email for later use in resetPassword
@@ -361,7 +366,7 @@ async function verifyRecoveryPhrase() {
     currentStep.value = 'new-password'
     return true
   } catch (error: any) {
-    errorMessage.value = error.message || 'Failed to verify recovery phrase'
+    errorMessage.value = error.message || t('common.error')
     return false
   } finally {
     isLoading.value = false
@@ -384,7 +389,7 @@ function validatePassword() {
 
 function validatePasswordMatch() {
   if (newPassword.value !== confirmPassword.value) {
-    passwordMatchError.value = 'Passwords do not match'
+    passwordMatchError.value = t('password.passwordsDoNotMatch')
   } else {
     passwordMatchError.value = ''
   }
@@ -411,7 +416,7 @@ async function resetPassword() {
     // Get the user's email stored during verification step
     const userEmail = localStorage.getItem('resetEmail')
     if (!userEmail) {
-      throw new Error('Session expired. Please restart the recovery process.')
+      throw new Error(t('password.sessionExpired'))
     }
     
     // Get the recovery phrase as a string
@@ -425,10 +430,10 @@ async function resetPassword() {
       localStorage.removeItem('resetEmail')
       
       resetComplete.value = true
-      successMessage.value = 'Your password has been successfully reset.'
+      successMessage.value = t('password.passwordResetSuccess')
     }
   } catch (error: any) {
-    errorMessage.value = error.message || 'Failed to reset password'
+    errorMessage.value = error.message || t('password.failedToReset')
   } finally {
     isLoading.value = false
   }

@@ -1,12 +1,12 @@
 <!-- src/pages/Profile.vue -->
 <template>
   <div class="profile-page">
-    <h2 class="page-title">My Profile</h2>
+    <h2 class="page-title">{{ t('profile.title') }}</h2>
 
     <!-- Loading state -->
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Loading profile information...</p>
+      <p>{{ t('profile.loadingProfile') }}</p>
     </div>
     
     <!-- Error state -->
@@ -18,39 +18,39 @@
         </svg>
       </div>
       <p>{{ error }}</p>
-      <button @click="loadUserData" class="action-btn">Try Again</button>
+      <button @click="loadUserData" class="action-btn">{{ t('profile.tryAgain') }}</button>
     </div>
 
     <!-- Profile Content -->
     <div v-else class="profile-content">
       <div class="section user-info">
-        <h3 class="section-title">Account Information</h3>
+        <h3 class="section-title">{{ t('profile.accountInformation') }}</h3>
         
         <!-- View Mode - Display User Info -->
         <div v-if="!editMode" class="user-details">
           <div class="info-item">
-            <div class="info-label">Username</div>
+            <div class="info-label">{{ t('account.username') }}</div>
             <div class="info-value">{{ userData.username }}</div>
           </div>
           <div class="info-item">
-            <div class="info-label">Email</div>
+            <div class="info-label">{{ t('account.email') }}</div>
             <div class="info-value">{{ userData.email }}</div>
           </div>
           <div class="info-item">
-            <div class="info-label">Account Type</div>
+            <div class="info-label">{{ t('profile.accountType') }}</div>
             <div class="info-value">{{ userRole }}</div>
           </div>
           <div class="info-item">
-            <div class="info-label">Member Since</div>
+            <div class="info-label">{{ t('profile.memberSince') }}</div>
             <div class="info-value">{{ formatDate(userData.createdAt) }}</div>
           </div>
-          <button @click="enableEditMode" class="action-btn edit-btn">Edit Profile</button>
+          <button @click="enableEditMode" class="action-btn edit-btn">{{ t('profile.editProfile') }}</button>
         </div>
         
         <!-- Edit Mode - Edit User Info Form -->
         <form v-else @submit.prevent="updateProfile" class="edit-form">
           <div class="form-group">
-            <label for="username" class="form-label">Username</label>
+            <label for="username" class="form-label">{{ t('account.username') }}</label>
             <input 
               id="username" 
               v-model="formData.username" 
@@ -67,7 +67,7 @@
           </div>
           
           <div class="form-group">
-            <label for="email" class="form-label">Email</label>
+            <label for="email" class="form-label">{{ t('account.email') }}</label>
             <input 
               id="email" 
               v-model="formData.email" 
@@ -84,13 +84,13 @@
           </div>
           
           <div class="form-actions">
-            <button type="button" @click="cancelEdit" class="cancel-btn">Cancel</button>
+            <button type="button" @click="cancelEdit" class="cancel-btn">{{ t('common.cancel') }}</button>
             <button 
               type="submit" 
               class="action-btn save-btn"
               :disabled="!isFormValid || isSaving"
             >
-              {{ isSaving ? 'Saving...' : 'Save Changes' }}
+              {{ isSaving ? t('profile.saving') : t('profile.saveChanges') }}
             </button>
           </div>
         </form>
@@ -98,16 +98,16 @@
       
       <!-- Change Password Section -->
       <div class="section password-section">
-        <h3 class="section-title">Change Password</h3>
+        <h3 class="section-title">{{ t('profile.changePassword') }}</h3>
         
         <div v-if="!showPasswordForm" class="password-prompt">
-          <p>Change your account password to keep your account secure.</p>
-          <button @click="showPasswordForm = true" class="action-btn password-btn">Change Password</button>
+          <p>{{ t('profile.passwordSecurityMessage') }}</p>
+          <button @click="showPasswordForm = true" class="action-btn password-btn">{{ t('profile.changePassword') }}</button>
         </div>
         
         <form v-else @submit.prevent="updatePassword" class="password-form">
           <div class="form-group">
-            <label for="currentPassword" class="form-label">Current Password</label>
+            <label for="currentPassword" class="form-label">{{ t('account.currentPassword') }}</label>
             <input 
               id="currentPassword" 
               v-model="passwordData.currentPassword" 
@@ -122,7 +122,7 @@
               aria-label="Toggle password visibility"
             >
               <svg v-if="showCurrentPassword" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3-5.5 8-5.5S16 8 16 8zM1.173 8a13.133 13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 13.134 0 0 1 1.172 8z"/>
                 <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
               </svg>
               <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -133,7 +133,7 @@
           </div>
           
           <div class="form-group">
-            <label for="newPassword" class="form-label">New Password</label>
+            <label for="newPassword" class="form-label">{{ t('account.newPassword') }}</label>
             <input 
               id="newPassword" 
               v-model="passwordData.newPassword" 
@@ -153,7 +153,7 @@
               aria-label="Toggle password visibility"
             >
               <svg v-if="showNewPassword" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8zM1.173 8a13.133 13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 13.134 0 0 1 1.172 8z"/>
+                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3-5.5 8-5.5S16 8 16 8zM1.173 8a13.133 13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 13.134 0 0 1 1.172 8z"/>
                 <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
               </svg>
               <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -166,33 +166,33 @@
               <div :class="{ 'requirement-met': passwordLength }">
                 <span v-if="passwordLength">✓</span>
                 <span v-else>•</span>
-                At least 8 characters
+                {{ t('profile.passwordMinLength') }}
               </div>
               <div :class="{ 'requirement-met': passwordUppercase }">
                 <span v-if="passwordUppercase">✓</span>
                 <span v-else>•</span>
-                Contains uppercase letter
+                {{ t('profile.passwordUppercase') }}
               </div>
               <div :class="{ 'requirement-met': passwordLowercase }">
                 <span v-if="passwordLowercase">✓</span>
                 <span v-else>•</span>
-                Contains lowercase letter
+                {{ t('profile.passwordLowercase') }}
               </div>
               <div :class="{ 'requirement-met': passwordNumber }">
                 <span v-if="passwordNumber">✓</span>
                 <span v-else>•</span>
-                Contains number
+                {{ t('profile.passwordNumber') }}
               </div>
               <div :class="{ 'requirement-met': passwordSpecial }">
                 <span v-if="passwordSpecial">✓</span>
                 <span v-else>•</span>
-                Contains special character
+                {{ t('profile.passwordSpecial') }}
               </div>
             </div>
           </div>
           
           <div class="form-group">
-            <label for="confirmPassword" class="form-label">Confirm New Password</label>
+            <label for="confirmPassword" class="form-label">{{ t('account.confirmPassword') }}</label>
             <input 
               id="confirmPassword" 
               v-model="passwordData.confirmPassword" 
@@ -212,7 +212,7 @@
               aria-label="Toggle password visibility"
             >
               <svg v-if="showConfirmPassword" xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3-5.5 8-5.5S16 8 16 8zM1.173 8a13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 0 0 1 1.172 8z"/>
+                <path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3-5.5 8-5.5S16 8 16 8zM1.173 8a13.133 13.133 13.133 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13.133 13.133 13.133 0 0 1 14.828 8c-.058.087-.122.183-.195.288-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5c-2.12 0-3.879-1.168-5.168-2.457A13.134 13.134 13.134 0 0 1 1.172 8z"/>
                 <path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5zM4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0z"/>
               </svg>
               <svg v-else xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -224,51 +224,51 @@
           </div>
           
           <div class="form-actions">
-            <button type="button" @click="cancelPasswordChange" class="cancel-btn">Cancel</button>
+            <button type="button" @click="cancelPasswordChange" class="cancel-btn">{{ t('common.cancel') }}</button>
             <button 
               type="submit" 
               class="action-btn save-btn"
               :disabled="!isPasswordFormValid || isChangingPassword"
             >
-              {{ isChangingPassword ? 'Updating...' : 'Update Password' }}
+              {{ isChangingPassword ? t('profile.updating') : t('profile.updatePassword') }}
             </button>
           </div>
         </form>
         
         <div v-if="passwordSuccess" class="success-message">
-          Your password has been updated successfully.
+          {{ t('profile.passwordUpdateSuccess') }}
         </div>
       </div>
       
       <!-- User Statistics Section -->
       <div class="section stats-section">
-        <h3 class="section-title">Quiz Statistics</h3>
+        <h3 class="section-title">{{ t('profile.quizStatistics') }}</h3>
         
         <div class="stats-grid">
           <div class="stat-card">
             <div class="stat-value">{{ userStats.createdQuizzes }}</div>
-            <div class="stat-label">Quizzes Created</div>
+            <div class="stat-label">{{ t('profile.quizzesCreated') }}</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">{{ userStats.takenQuizzes }}</div>
-            <div class="stat-label">Quizzes Taken</div>
+            <div class="stat-label">{{ t('profile.quizzesTaken') }}</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">{{ userStats.passRate }}%</div>
-            <div class="stat-label">Pass Rate</div>
+            <div class="stat-label">{{ t('profile.passRate') }}</div>
           </div>
           <div class="stat-card">
             <div class="stat-value">{{ userStats.totalUpvotes }}</div>
-            <div class="stat-label">Total Upvotes</div>
+            <div class="stat-label">{{ t('profile.totalUpvotes') }}</div>
           </div>
         </div>
       </div>
       
       <!-- Account Deletion Section -->
       <div class="section danger-section">
-        <h3 class="section-title">Danger Zone</h3>
-        <p class="warning-text">Permanently delete your account and all associated data.</p>
-        <button @click="confirmDeleteAccount" class="delete-btn">Delete Account</button>
+        <h3 class="section-title">{{ t('profile.dangerZone') }}</h3>
+        <p class="warning-text">{{ t('profile.deleteAccountWarning') }}</p>
+        <button @click="confirmDeleteAccount" class="delete-btn">{{ t('account.deleteAccount') }}</button>
       </div>
     </div>
     
@@ -292,10 +292,30 @@ import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
 import bcrypt from 'bcryptjs'
 import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useLanguage } from '@/context/LanguageContext'
 import '@/assets/pages/profile.css';
 
 // Router for navigation
 const router = useRouter()
+
+// Translation function
+const languageState = useLanguage()
+const t = (key: string, params?: Record<string, any>): string => {
+  if (!languageState) return key
+  
+  // Get the translation from the language state
+  let translation = languageState.t(key)
+  
+  // If params are provided, replace placeholders like {param} with actual values
+  if (params) {
+    Object.keys(params).forEach(paramKey => {
+      const placeholder = new RegExp(`{${paramKey}}`, 'g')
+      translation = translation.replace(placeholder, params[paramKey])
+    })
+  }
+  
+  return translation
+}
 
 // State variables
 const isLoading = ref(true)
@@ -448,7 +468,7 @@ async function loadUserData() {
     
   } catch (err) {
     console.error('Error loading user data:', err)
-    error.value = 'Failed to load profile. Please try again.'
+    error.value = t('profile.loadError')
   } finally {
     isLoading.value = false
   }
@@ -516,11 +536,11 @@ function validateUsername() {
   usernameError.value = ''
   
   if (formData.username.length < 3) {
-    usernameError.value = 'Username must be at least 3 characters'
+    usernameError.value = t('profile.usernameMinLength')
   } else if (formData.username.length > 20) {
-    usernameError.value = 'Username must be less than 20 characters'
+    usernameError.value = t('profile.usernameMaxLength')
   } else if (!/^[a-zA-Z0-9_]+$/.test(formData.username)) {
-    usernameError.value = 'Username can only contain letters, numbers, and underscores'
+    usernameError.value = t('profile.usernameInvalidCharacters')
   }
 }
 
@@ -529,7 +549,7 @@ function validateEmail() {
   
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   if (!emailRegex.test(formData.email)) {
-    emailError.value = 'Please enter a valid email address'
+    emailError.value = t('profile.invalidEmail')
   }
 }
 
@@ -550,13 +570,13 @@ function validateConfirmPassword() {
   passwordMatchError.value = ''
   
   if (passwordData.newPassword !== passwordData.confirmPassword) {
-    passwordMatchError.value = 'Passwords do not match'
+    passwordMatchError.value = t('profile.passwordMismatch')
   }
 }
 
 // Date formatter
 function formatDate(dateString: string) {
-  if (!dateString) return 'N/A'
+  if (!dateString) return t('common.notAvailable')
   
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', {
@@ -616,11 +636,11 @@ async function updateProfile() {
         .maybeSingle()
       
       if (checkError) {
-        throw new Error('Error checking username availability')
+        throw new Error(t('profile.usernameCheckError'))
       }
       
       if (existingUser) {
-        usernameError.value = 'Username is already taken'
+        usernameError.value = t('profile.usernameTaken')
         return
       }
     }
@@ -635,11 +655,11 @@ async function updateProfile() {
         .maybeSingle()
       
       if (checkError) {
-        throw new Error('Error checking email availability')
+        throw new Error(t('profile.emailCheckError'))
       }
       
       if (existingEmail) {
-        emailError.value = 'Email is already in use'
+        emailError.value = t('profile.emailTaken')
         return
       }
     }
@@ -654,7 +674,7 @@ async function updateProfile() {
       .eq('id', userData.userId)
     
     if (updateError) {
-      throw new Error(updateError.message || 'Failed to update profile')
+      throw new Error(updateError.message || t('profile.updateError'))
     }
     
     // Update local user data
@@ -677,7 +697,7 @@ async function updateProfile() {
     
   } catch (err) {
     console.error('Error updating profile:', err)
-    error.value = err instanceof Error ? err.message : 'Failed to update profile'
+    error.value = err instanceof Error ? err.message : t('profile.updateError')
   } finally {
     isSaving.value = false
   }
@@ -699,12 +719,12 @@ async function updatePassword() {
       .single()
     
     if (userError || !user) {
-      throw new Error('User not found')
+      throw new Error(t('profile.userNotFound'))
     }
     
     const isValidPassword = await bcrypt.compare(passwordData.currentPassword, user.password_hash)
     if (!isValidPassword) {
-      throw new Error('Current password is incorrect')
+      throw new Error(t('profile.invalidCurrentPassword'))
     }
     
     // Hash new password
@@ -718,7 +738,7 @@ async function updatePassword() {
       .eq('id', userData.userId)
     
     if (updateError) {
-      throw new Error(updateError.message || 'Failed to update password')
+      throw new Error(updateError.message || t('profile.passwordUpdateError'))
     }
     
     // Reset password form and show success message
@@ -730,7 +750,7 @@ async function updatePassword() {
     
   } catch (err) {
     console.error('Error updating password:', err)
-    error.value = err instanceof Error ? err.message : 'Failed to update password'
+    error.value = err instanceof Error ? err.message : t('profile.passwordUpdateError')
   } finally {
     isChangingPassword.value = false
   }
@@ -738,9 +758,9 @@ async function updatePassword() {
 
 // Confirm delete account action
 function confirmDeleteAccount() {
-  confirmationData.title = 'Delete Account';
-  confirmationData.message = 'Are you sure you want to delete your account? This action cannot be undone and will permanently delete your account information, all quizzes you\'ve created, all your quiz attempts, and your upvotes and stats.';
-  confirmationData.confirmText = 'Delete Account';
+  confirmationData.title = t('profile.deleteAccountTitle');
+  confirmationData.message = t('profile.deleteAccountMessage');
+  confirmationData.confirmText = t('profile.deleteAccountConfirmText');
   confirmationData.type = 'danger';
   confirmationData.action = 'deleteAccount';
   
@@ -762,7 +782,7 @@ async function deleteAccount() {
       .eq('id', userData.userId)
     
     if (updateError) {
-      throw new Error(updateError.message || 'Failed to delete account')
+      throw new Error(updateError.message || t('profile.deleteAccountError'))
     }
     
     // Logout and redirect to home page
@@ -771,7 +791,7 @@ async function deleteAccount() {
     
   } catch (err) {
     console.error('Error deleting account:', err)
-    error.value = err instanceof Error ? err.message : 'Failed to delete account'
+    error.value = err instanceof Error ? err.message : t('profile.deleteAccountError')
   } finally {
     isDeletingAccount.value = false
   }

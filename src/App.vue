@@ -7,13 +7,14 @@
       </div>
       
       <nav>
-        <router-link to="/">Home</router-link>
-        <router-link to="/generate">Generate</router-link>
-        <router-link v-if="auth.state.isAuthenticated" to="/my-quizzes">My Quizzes</router-link>
-        <router-link v-if="isAdmin" to="/admin" class="admin-link">Admin</router-link>
+        <router-link to="/">{{ t('header.home') }}</router-link>
+        <router-link to="/generate">{{ t('header.generate') }}</router-link>
+        <router-link v-if="auth.state.isAuthenticated" to="/my-quizzes">{{ t('header.myQuizzes') }}</router-link>
+        <router-link v-if="isAdmin" to="/admin" class="admin-link">{{ t('header.admin') }}</router-link>
       </nav>
       
       <div class="auth-controls">
+        <LanguageSelector />
         <template v-if="auth.state.isAuthenticated">
           <div class="user-menu" ref="userMenu">
             <button class="user-menu-btn" @click="toggleUserMenu">
@@ -23,15 +24,15 @@
               </svg>
             </button>
             <div class="dropdown-menu" :class="{ 'show': showUserMenu }">
-              <router-link to="/profile" class="dropdown-item">Profile</router-link>
+              <router-link to="/profile" class="dropdown-item">{{ t('header.profile') }}</router-link>
               <div class="dropdown-divider"></div>
-              <button @click="logout" class="dropdown-item logout-btn">Logout</button>
+              <button @click="logout" class="dropdown-item logout-btn">{{ t('header.logout') }}</button>
             </div>
           </div>
         </template>
         <template v-else>
-          <router-link to="/login" class="auth-btn login-btn">Login</router-link>
-          <router-link to="/register" class="auth-btn register-btn">Register</router-link>
+          <router-link to="/login" class="auth-btn login-btn">{{ t('header.login') }}</router-link>
+          <router-link to="/register" class="auth-btn register-btn">{{ t('header.register') }}</router-link>
         </template>
       </div>
     </header>
@@ -55,11 +56,20 @@ import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
+import { useProvideLanguage } from '@/context/LanguageContext'
+import LanguageSelector from '@/components/LanguageSelector.vue'
 
 const router = useRouter()
 const showUserMenu = ref(false)
 const userMenu = ref<HTMLElement | null>(null)
 const userRole = ref<string | null>(null)
+
+// Set up language provider and get translation function
+const languageState = useProvideLanguage();
+const t = (key: string): string => {
+  if (!languageState) return key;
+  return languageState.t(key);
+};
 
 // Check if user is admin
 const isAdmin = computed(() => {

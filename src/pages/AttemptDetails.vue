@@ -1,12 +1,12 @@
 <!-- src/pages/AttemptDetails.vue -->
 <template>
   <div class="attempt-details">
-    <h2 class="page-title">Quiz Attempt Results</h2>
+    <h2 class="page-title">{{ t('quiz.quizResults') }}</h2>
 
     <!-- Loading state -->
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Loading attempt details...</p>
+      <p>{{ t('common.loading') }}</p>
     </div>
     
     <!-- Error state -->
@@ -18,7 +18,7 @@
         </svg>
       </div>
       <p>{{ errorMessage }}</p>
-      <router-link to="/my-quizzes" class="btn">Back to My Quizzes</router-link>
+      <router-link to="/my-quizzes" class="btn">{{ t('common.back') }} {{ t('myQuizzes.title') }}</router-link>
     </div>
 
     <!-- Attempt Details View -->
@@ -30,42 +30,42 @@
         <div class="summary-grid">
           <div class="summary-card">
             <div class="summary-value">{{ Math.round((attempt.score / attempt.totalQuestions) * 100) }}%</div>
-            <div class="summary-label">Score</div>
+            <div class="summary-label">{{ t('quiz.score') }}</div>
           </div>
           
           <div class="summary-card">
             <div class="summary-value">{{ attempt.score }} / {{ attempt.totalQuestions }}</div>
-            <div class="summary-label">Questions</div>
+            <div class="summary-label">{{ t('quiz.questions') }}</div>
           </div>
           
           <div class="summary-card">
             <div class="summary-value">{{ formatTime(attempt.elapsedTime) }}</div>
-            <div class="summary-label">Time Taken</div>
+            <div class="summary-label">{{ t('myQuizzes.time') }}</div>
           </div>
           
           <div class="summary-card">
             <div class="summary-value pass-fail" :class="{'pass': attempt.isPassed}">
-              {{ attempt.isPassed ? 'PASSED' : 'FAILED' }}
+              {{ attempt.isPassed ? t('quiz.pass') : t('quiz.fail') }}
             </div>
-            <div class="summary-label">Result</div>
+            <div class="summary-label">{{ t('quiz.results') }}</div>
           </div>
         </div>
         
         <div class="meta-details">
           <div class="meta-item">
-            <span class="meta-label">Attempt Date:</span>
+            <span class="meta-label">{{ t('myQuizzes.date') }}:</span>
             <span class="meta-value">{{ formatDate(attempt.completedAt) }}</span>
           </div>
           <div class="meta-item">
-            <span class="meta-label">Difficulty:</span>
-            <span class="meta-value difficulty-badge" :class="quiz.difficulty">{{ quiz.difficulty }}</span>
+            <span class="meta-label">{{ t('quiz.difficulty') }}:</span>
+            <span class="meta-value difficulty-badge" :class="quiz.difficulty">{{ t(`quiz.${quiz.difficulty}`) }}</span>
           </div>
         </div>
       </div>
 
       <!-- Answers Review -->
       <div class="answers-review">
-        <h3>Question Review</h3>
+        <h3>{{ t('quiz.question') }} {{ t('common.view') }}</h3>
         
         <ul class="question-list">
           <li 
@@ -75,7 +75,7 @@
             :class="{'correct': answer.isCorrect, 'incorrect': !answer.isCorrect}"
           >
             <div class="question-header">
-              <div class="question-number">Q{{ index + 1 }}</div>
+              <div class="question-number">{{ index + 1 }}</div>
               <div class="question-text">{{ answer.questionText }}</div>
               <div class="result-indicator" :class="{'correct': answer.isCorrect}">
                 {{ answer.isCorrect ? '✓' : '✗' }}
@@ -94,14 +94,14 @@
               >
                 <span class="option-text">{{ option.answerText }}</span>
                 <span v-if="option.isCorrect && option.optionId !== answer.selectedOptionId" class="correct-indicator">
-                  Correct Answer
+                  {{ t('quiz.correctAnswer') }}
                 </span>
               </li>
             </ul>
             
             <div class="answer-explanation" v-if="!answer.isCorrect">
               <p>
-                <strong>Correct answer:</strong> 
+                <strong>{{ t('quiz.correctAnswer') }}:</strong> 
                 {{ getCorrectAnswerText(answer.options) }}
               </p>
             </div>
@@ -110,8 +110,8 @@
       </div>
 
       <div class="action-buttons">
-        <router-link :to="`/quiz/${quiz.quizId}`" class="retake-btn">Retake Quiz</router-link>
-        <router-link to="/my-quizzes" class="back-btn">Back to My Quizzes</router-link>
+        <router-link :to="`/quiz/${quiz.quizId}`" class="retake-btn">{{ t('quiz.retakeQuiz') }}</router-link>
+        <router-link to="/my-quizzes" class="back-btn">{{ t('common.back') }} {{ t('myQuizzes.title') }}</router-link>
       </div>
     </div>
   </div>
@@ -122,8 +122,14 @@ import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
+import { useLanguage } from '@/context/LanguageContext'
 import '@/assets/pages/attempt.css';
 
+const languageContext = useLanguage()
+if (!languageContext) {
+  throw new Error('Language context is not available')
+}
+const { t } = languageContext
 const route = useRoute()
 const router = useRouter()
 const attemptId = parseInt(route.params.id as string)

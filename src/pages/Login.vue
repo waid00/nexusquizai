@@ -2,8 +2,8 @@
 <template>
   <div class="login-page">
     <div class="auth-container">
-      <h1 class="auth-title">Welcome Back</h1>
-      <p class="auth-subtitle">Enter your credentials to access your account</p>
+      <h1 class="auth-title">{{ t('login.welcomeBack') }}</h1>
+      <p class="auth-subtitle">{{ t('login.enterCredentials') }}</p>
       
       <div v-if="auth.state.error" class="error-message">
         {{ auth.state.error }}
@@ -11,7 +11,7 @@
 
       <form @submit.prevent="handleLogin">
         <div class="form-group">
-          <label for="username" class="form-label">Username or Email</label>
+          <label for="username" class="form-label">{{ t('login.usernameOrEmail') }}</label>
           <input 
             id="username" 
             v-model="formData.username" 
@@ -29,7 +29,7 @@
         </div>
 
         <div class="form-group">
-          <label for="password" class="form-label">Password</label>
+          <label for="password" class="form-label">{{ t('account.password') }}</label>
           <input 
             id="password" 
             v-model="formData.password" 
@@ -68,7 +68,7 @@
           class="auth-btn" 
           :disabled="auth.state.isLoading || !isFormValid"
         >
-          {{ auth.state.isLoading ? 'Signing In...' : 'Sign In' }}
+          {{ auth.state.isLoading ? t('login.signingIn') : t('login.signIn') }}
         </button>
         <div class="remember-me">
           <input 
@@ -78,18 +78,18 @@
             class="checkbox-input"
             :disabled="auth.state.isLoading"
           >
-          <label for="remember">Remember me</label>
+          <label for="remember">{{ t('account.rememberMe') }}</label>
         </div>
 
       </form>
 
       <p class="auth-alt">
-        Don't have an account? 
-        <router-link to="/register" class="auth-link">Create one</router-link>
+        {{ t('login.noAccount') }} 
+        <router-link to="/register" class="auth-link">{{ t('login.createOne') }}</router-link>
       </p>
 
       <p class="auth-alt">
-        <router-link to="/forgot-password" class="auth-link">Forgot password?</router-link>
+        <router-link to="/forgot-password" class="auth-link">{{ t('account.forgotPassword') }}</router-link>
       </p>
     </div>
   </div>
@@ -101,9 +101,29 @@ import { ref, reactive, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
+import { useLanguage } from '@/context/LanguageContext'
 
 // Router
 const router = useRouter()
+
+// Translation function
+const languageState = useLanguage()
+const t = (key: string, params?: Record<string, any>): string => {
+  if (!languageState) return key
+  
+  // Get the translation from the language state
+  let translation = languageState.t(key)
+  
+  // If params are provided, replace placeholders like {param} with actual values
+  if (params) {
+    Object.keys(params).forEach(paramKey => {
+      const placeholder = new RegExp(`{${paramKey}}`, 'g')
+      translation = translation.replace(placeholder, params[paramKey])
+    })
+  }
+  
+  return translation
+}
 
 // Form data
 const formData = reactive({

@@ -6,13 +6,13 @@
     <!-- Loading state -->
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Loading quiz...</p>
+      <p>{{ t('quiz.loadingQuiz') }}</p>
     </div>
     
     <!-- Quiz Taking Mode -->
     <div v-else-if="quizMode === 'take'" class="section quiz-taking-section">
       <div class="quiz-info">
-        <p>Questions: {{ questions.length }} | Difficulty: {{ difficulty }}</p>
+        <p>{{ t('quiz.questions') }}: {{ questions.length }} | {{ t('quiz.difficulty') }}: {{ difficulty }}</p>
         <div class="quiz-progress">
           <div class="progress-bar">
             <div 
@@ -21,14 +21,14 @@
             ></div>
           </div>
           <div class="progress-text">
-            Question {{ currentQuestionIndex + 1 }} of {{ questions.length }}
+            {{ t('quiz.questionProgress') }}
           </div>
         </div>
       </div>
 
       <div v-if="currentQuestion" class="question-card">
         <div class="question-header">
-          <strong class="question-number">Q{{ currentQuestionIndex + 1 }}:</strong>
+          <strong class="question-number">{{ t('quiz.questionNumber', { number: currentQuestionIndex + 1 }) }}:</strong>
           <span class="question-text">{{ currentQuestion.questionText }}</span>
         </div>
         <ul class="options-list interactive">
@@ -49,7 +49,7 @@
           @click="prevQuestion" 
           :disabled="currentQuestionIndex === 0"
         >
-          <span class="nav-icon">←</span> Previous
+          <span class="nav-icon">←</span> {{ t('common.previous') }}
         </button>
         
         <div class="question-dots">
@@ -69,7 +69,7 @@
           class="nav-btn" 
           @click="nextQuestion" 
         >
-          Next <span class="nav-icon">→</span>
+          {{ t('common.next') }} <span class="nav-icon">→</span>
         </button>
         <button 
           v-else
@@ -77,28 +77,28 @@
           @click="submitQuiz"
           :disabled="!allQuestionsAnswered"
         >
-          Submit Quiz
+          {{ t('quiz.submitQuiz') }}
         </button>
       </div>
 
       <div class="quiz-actions">
-        <button class="cancel-btn" @click="cancelQuiz">Cancel Quiz</button>
+        <button class="cancel-btn" @click="cancelQuiz">{{ t('common.cancel') }}</button>
       </div>
     </div>
 
     <!-- Quiz Results Mode -->
     <div v-else-if="quizMode === 'results'" class="section quiz-results-section">
       <div class="results-summary">
-        <h3>Quiz Results</h3>
+        <h3>{{ t('quiz.quizResults') }}</h3>
         <div class="score-display">
           <div class="score-percentage">
             {{ Math.round((score / questions.length) * 100) }}%
           </div>
           <div class="score-fraction">
-            {{ score }} / {{ questions.length }} correct
+            {{ score }} / {{ questions.length }} {{ t('quiz.correctCount') }}
           </div>
           <div class="pass-fail-indicator" :class="{'pass': score / questions.length >= 0.6}">
-            {{ score / questions.length >= 0.6 ? 'PASSED' : 'FAILED' }}
+            {{ score / questions.length >= 0.6 ? t('quiz.passed') : t('quiz.failed') }}
           </div>
         </div>
       </div>
@@ -106,7 +106,7 @@
       <ul class="question-list results">
         <li v-for="(q, i) in questions" :key="i" class="question-item">
           <div class="question-header">
-            <strong class="question-number">Q{{ i + 1 }}:</strong>
+            <strong class="question-number">{{ t('quiz.questionNumber', { number: i + 1 }) }}:</strong>
             <span class="question-text">{{ q.questionText }}</span>
             <span 
               class="result-indicator" 
@@ -132,7 +132,7 @@
           </ul>
           <div class="answer-explanation">
             <p v-if="!getAnswerCorrectness(i)">
-              Correct answer: {{ getCorrectAnswerText(i) }}
+              {{ t('quiz.correctAnswer') }}: {{ getCorrectAnswerText(i) }}
             </p>
           </div>
         </li>
@@ -140,22 +140,36 @@
 
       <div class="quiz-actions">
         <template v-if="auth.state.isAuthenticated">
-          <router-link to="/my-quizzes" class="return-btn">Back to My Quizzes</router-link>
+          <router-link to="/my-quizzes" class="return-btn">{{ t('quiz.backToMyQuizzes') }}</router-link>
         </template>
         <template v-else>
-          <router-link to="/" class="return-btn">Back to Home</router-link>
+          <router-link to="/" class="return-btn">{{ t('quiz.backToHome') }}</router-link>
         </template>
-        <button class="retake-btn" @click="retakeQuiz">Retake Quiz</button>
+        <button class="retake-btn" @click="retakeQuiz">{{ t('quiz.retakeQuiz') }}</button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, reactive } from 'vue'
+import { ref, reactive, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
+import { auth } from '@/store/auth'
+import { useLanguage } from '@/context/LanguageContext'
+
+const language = useLanguage()
+// Update t function to handle parameters
+const t = (key: string, params?: Record<string, any>) => {
+  if (params) {
+    let text = language?.t?.(key) || key
+    Object.entries(params).forEach(([paramKey, paramValue]) => {
+      text = text.replace(`{${paramKey}}`, String(paramValue))
+    })
+    return text
+  }
+  return language?.t?.(key) || key
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -241,7 +255,7 @@ onMounted(async () => {
 })
 
 // Watch for changes in the current question index to load options
-watch(currentQuestionIndex, (newIndex) => {
+watch(currentQuestionIndex, (newIndex: number) => {
   if (questions.value.length > 0) {
     loadOptionsForQuestion(questions.value[newIndex].questionId)
   }
@@ -555,3 +569,4 @@ function retakeQuiz() {
 <style>
 @import '../assets/pages/take-quiz.css';
 </style>
+```

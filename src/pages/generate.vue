@@ -2,7 +2,7 @@
 <!-- src/pages/Generate.vue -->
 <template>
   <div class="generate">
-    <h2 class="page-title">{{ quizMode === 'create' ? 'Generate a Quiz' : quizMode === 'take' ? 'Take Quiz' : 'Quiz Results' }}</h2>
+    <h2 class="page-title">{{ quizMode === 'create' ? t('quiz.generateQuiz') : quizMode === 'take' ? t('quiz.takeQuiz') : t('quiz.quizResults') }}</h2>
 
     <!-- Quiz Creation Mode -->
     <div v-if="quizMode === 'create'">
@@ -15,7 +15,7 @@
       <div v-if="!isFileMode" class="section content-section">
         <textarea
           v-model="text"
-          placeholder="Paste your text here…"
+          :placeholder="t('quiz.pasteTextHere')"
           class="content-input"
           :class="{
             'valid': contentValid,
@@ -27,9 +27,9 @@
           @blur="showContentValidationMessage = true"
         ></textarea>
         <div class="input-info">
-          <p class="input-hint">Minimum 100 characters required, maximum 10,000 characters.</p>
+          <p class="input-hint">{{ t('quiz.contentLengthRequirement') }}</p>
           <div class="validation-feedback" v-if="showContentValidationMessage && text.trim().length < 100 && text.trim().length > 0">
-            <div class="warning-message"><i class="warning-icon">⚠️</i> You need at least 100 characters for the model to work properly.</div>
+            <div class="warning-message"><i class="warning-icon">⚠️</i> {{ t('quiz.contentLengthWarning') }}</div>
           </div>
           <span class="char-counter" :class="{ 'limit-near': text.length > 9000, 'count-warning': text.trim().length < 100 && text.trim().length > 0 }">
             {{ text.length }}/10000
@@ -47,33 +47,33 @@
             accept=".txt,.docx"
           />
           <label for="file-input" class="file-btn">
-            {{ fileName || 'Choose File' }}
+            {{ fileName || t('quiz.chooseFile') }}
           </label>
           <button
             v-if="fileName"
             class="clear-btn"
             @click="clearFile"
-            aria-label="Remove file"
+            :aria-label="t('common.remove')"
           >×</button>
         </div>
       </div>
 
       <!-- 4) Required Prompt Section (Moved from below) -->
       <div class="section prompt-section">
-        <h3 class="section-title">Quiz Prompt <span class="required-marker">*</span></h3>
+        <h3 class="section-title">{{ t('quiz.quizPrompt') }} <span class="required-marker">*</span></h3>
         
         <div class="prompt-container">
           <div class="prompt-controls">
             <div class="prompt-toggle">
               <input type="checkbox" id="auto-generate-prompt" v-model="autoGeneratePrompt" />
-              <label for="auto-generate-prompt">Auto-generate prompt from content</label>
+              <label for="auto-generate-prompt">{{ t('quiz.autoGeneratePrompt') }}</label>
             </div>
-            <button @click="resetPrompt" class="reset-btn">Reset</button>
+            <button @click="resetPrompt" class="reset-btn">{{ t('common.reset') }}</button>
           </div>
           
           <textarea
             v-model="customPrompt"
-            :placeholder="autoGeneratePrompt ? 'AI will generate a prompt automatically...' : 'Enter specific instructions for how the AI should generate questions...'"
+            :placeholder="autoGeneratePrompt ? t('quiz.aiWillGeneratePrompt') : t('quiz.enterSpecificInstructions')"
             class="prompt-input"
             :class="{
               'valid': customPromptValid,
@@ -88,32 +88,32 @@
           ></textarea>
           
           <div class="input-info">
-            <p class="input-hint">Minimum 10 characters required, maximum 1,000 characters.</p>
+            <p class="input-hint">{{ t('quiz.promptLengthRequirement') }}</p>
             <div class="validation-feedback" v-if="showPromptValidationMessage && customPrompt.trim().length < 10 && customPrompt.trim().length > 0">
-              <div class="warning-message"><i class="warning-icon">⚠️</i> You need at least 10 characters for the model to work properly.</div>
+              <div class="warning-message"><i class="warning-icon">⚠️</i> {{ t('quiz.promptLengthWarning') }}</div>
             </div>
             <span class="char-counter" :class="{ 'limit-near': customPrompt.length > 900, 'count-warning': customPrompt.trim().length < 10 && customPrompt.trim().length > 0 }">
               {{ customPrompt.length }}/1000
             </span>
           </div>
           
-          <p class="prompt-info">This prompt guides how questions are created. Be specific about what aspects of the content to focus on.</p>
+          <p class="prompt-info">{{ t('quiz.promptGuidance') }}</p>
         </div>
       </div>
       
       <!-- 5) Quiz parameters (Moved down) -->
       <div class="section parameters-section">
-        <h3 class="section-title">Quiz Parameters</h3>
+        <h3 class="section-title">{{ t('quiz.quizParameters') }}</h3>
         <div class="controls">
           <div class="control-group">
-            <label for="quiz-type">Type</label>
+            <label for="quiz-type">{{ t('quiz.type') }}</label>
             <select id="quiz-type" v-model="type" class="select-input">
-              <option value="mcq">Multiple‑choice</option>
-              <option value="tf">True/False</option>
+              <option value="mcq">{{ t('quiz.multipleChoice') }}</option>
+              <option value="tf">{{ t('quiz.trueFalse') }}</option>
             </select>
           </div>
           <div class="control-group">
-            <label for="question-count">Count</label>
+            <label for="question-count">{{ t('quiz.count') }}</label>
             <input
               id="question-count"
               type="number"
@@ -124,11 +124,11 @@
             />
           </div>
           <div class="control-group">
-            <label for="quiz-difficulty">Difficulty</label>
+            <label for="quiz-difficulty">{{ t('quiz.difficulty') }}</label>
             <select id="quiz-difficulty" v-model="difficulty" class="select-input">
-              <option value="easy">Easy</option>
-              <option value="medium">Medium</option>
-              <option value="hard">Hard</option>
+              <option value="easy">{{ t('quiz.easy') }}</option>
+              <option value="medium">{{ t('quiz.medium') }}</option>
+              <option value="hard">{{ t('quiz.hard') }}</option>
             </select>
           </div>
         </div>
@@ -141,14 +141,14 @@
           @click="generate"
           :disabled="isLoading || (!autoGeneratePrompt && !customPrompt.trim())"
         >
-          <span v-if="!isLoading">Generate Quiz</span>
+          <span v-if="!isLoading">{{ t('quiz.generateQuiz') }}</span>
           <span v-else class="loading-text">
-            {{ generationStep || 'Generating quiz...' }} 
+            {{ generationStep || t('quiz.generatingQuiz') }} 
             <span v-if="generationProgress > 0" class="progress-indicator">{{ Math.round(generationProgress * 100) }}%</span>
           </span>
         </button>
         <div v-if="isLoading" class="generation-status">
-          {{ generationStep || 'Processing content...' }}
+          {{ generationStep || t('quiz.processingContent') }}
         </div>
       </div>
 
@@ -156,9 +156,9 @@
 
       <!-- Generated Quiz Category Section (appears after generation) -->
       <div v-if="questions.length > 0" class="section category-section">
-        <h3 class="section-title">Quiz Category</h3>
+        <h3 class="section-title">{{ t('quiz.quizCategory') }}</h3>
         <div class="category-selection">
-          <p class="category-info">AI has suggested this category based on your content:</p>
+          <p class="category-info">{{ t('quiz.suggestedCategory') }}</p>
           <select v-model="suggestedCategory" class="select-input">
             <option 
               v-for="category in categories" 
@@ -172,22 +172,22 @@
       </div>
       <div v-if="questions.length" class="section results-section">
         <div class="results-header">
-          <h3 class="section-title">Your Quiz</h3>
+          <h3 class="section-title">{{ t('quiz.yourQuiz') }}</h3>
           <div class="action-buttons">
-            <button class="edit-quiz-btn" @click="editEntireQuiz">Edit Quiz</button>
-            <button class="export-btn" @click="exportCSV">Export CSV</button>
-            <button class="save-quiz-btn" @click="saveAndViewQuiz">Save Quiz</button>
-            <button class="take-quiz-btn" @click="startQuiz">Take Quiz</button>
+            <button class="edit-quiz-btn" @click="editEntireQuiz">{{ t('quiz.editQuiz') }}</button>
+            <button class="export-btn" @click="exportCSV">{{ t('quiz.exportCSV') }}</button>
+            <button class="save-quiz-btn" @click="saveAndViewQuiz">{{ t('quiz.saveQuiz') }}</button>
+            <button class="take-quiz-btn" @click="startQuiz">{{ t('quiz.takeQuiz') }}</button>
           </div>
         </div>
         
         <div class="quiz-name-input">
-          <label for="quiz-name">Quiz Name:</label>
+          <label for="quiz-name">{{ t('quiz.quizName') }}:</label>
           <input 
             id="quiz-name" 
             v-model="quizName" 
             type="text" 
-            placeholder="Enter a name for your quiz"
+            :placeholder="t('quiz.enterQuizName')"
             class="form-input"
             :class="{
               'valid': quizNameValid,
@@ -220,8 +220,8 @@
     <!-- Quiz Taking Mode -->
     <div v-else-if="quizMode === 'take'" class="section quiz-taking-section">
       <div class="quiz-info">
-        <h3>{{ quizName || 'Untitled Quiz' }}</h3>
-        <p>Questions: {{ questions.length }} | Difficulty: {{ difficulty }}</p>
+        <h3>{{ quizName || t('quiz.untitledQuiz') }}</h3>
+        <p>{{ t('quiz.questions') }}: {{ questions.length }} | {{ t('quiz.difficulty') }}: {{ t(`quiz.${difficulty}`) }}</p>
         <div class="quiz-progress">
           <div class="progress-bar">
             <div 
@@ -230,7 +230,7 @@
             ></div>
           </div>
           <div class="progress-text">
-            Question {{ currentQuestionIndex + 1 }} of {{ questions.length }}
+            {{ t('quiz.questionProgress', { current: currentQuestionIndex + 1, total: questions.length }) }}
           </div>
         </div>
       </div>
@@ -258,7 +258,7 @@
           @click="prevQuestion" 
           :disabled="currentQuestionIndex === 0"
         >
-          <span class="nav-icon">←</span> Previous
+          <span class="nav-icon">←</span> {{ t('common.previous') }}
         </button>
         
         <div class="question-dots">
@@ -278,7 +278,7 @@
           class="nav-btn" 
           @click="nextQuestion" 
         >
-          Next <span class="nav-icon">→</span>
+          {{ t('common.next') }} <span class="nav-icon">→</span>
         </button>
         <button 
           v-else
@@ -286,28 +286,28 @@
           @click="submitQuiz"
           :disabled="!allQuestionsAnswered"
         >
-          Submit Quiz
+          {{ t('common.submit') }}
         </button>
       </div>
 
       <div class="quiz-actions">
-        <button class="cancel-btn" @click="cancelQuiz">Cancel Quiz</button>
+        <button class="cancel-btn" @click="cancelQuiz">{{ t('common.cancel') }}</button>
       </div>
     </div>
 
     <!-- Quiz Results Mode -->
     <div v-else-if="quizMode === 'results'" class="section quiz-results-section">
       <div class="results-summary">
-        <h3>Quiz Results</h3>
+        <h3>{{ t('quiz.results') }}</h3>
         <div class="score-display">
           <div class="score-percentage">
             {{ Math.round((score / questions.length) * 100) }}%
           </div>
           <div class="score-fraction">
-            {{ score }} / {{ questions.length }} correct
+            {{ score }} / {{ questions.length }} {{ t('quiz.correctAnswer') }}
           </div>
           <div class="pass-fail-indicator" :class="{'pass': score / questions.length >= 0.6}">
-            {{ score / questions.length >= 0.6 ? 'PASSED' : 'FAILED' }}
+            {{ score / questions.length >= 0.6 ? t('quiz.pass') : t('quiz.fail') }}
           </div>
         </div>
       </div>
@@ -340,15 +340,15 @@
             </li>
           </ul>
           <div class="answer-explanation">
-            <p v-if="userAnswers[i] !== q.answerIndex">Correct answer: {{ q.options[q.answerIndex] }}</p>
+            <p v-if="userAnswers[i] !== q.answerIndex">{{ t('quiz.correctAnswer') }}: {{ q.options[q.answerIndex] }}</p>
             <p v-if="q.explanation">{{ q.explanation }}</p>
           </div>
         </li>
       </ul>
 
       <div class="quiz-actions">
-        <button class="new-quiz-btn" @click="resetQuiz">New Quiz</button>
-        <button class="retake-btn" @click="retakeQuiz">Retake Quiz</button>
+        <button class="new-quiz-btn" @click="resetQuiz">{{ t('quiz.createQuiz') }}</button>
+        <button class="retake-btn" @click="retakeQuiz">{{ t('quiz.retakeQuiz') }}</button>
       </div>
     </div>
 
@@ -385,8 +385,28 @@ import {
   updateQuiz,
   createSourceDoc
 } from '@/api/supabase'
+import { useLanguage } from '@/context/LanguageContext'
 
 const router = useRouter()
+
+// Get the translation function
+const languageState = useLanguage()
+const t = (key: string, params?: Record<string, any>): string => {
+  if (!languageState) return key
+  
+  // Get the translation from the language state
+  let translation = languageState.t(key)
+  
+  // If params are provided, replace placeholders like {param} with actual values
+  if (params) {
+    Object.keys(params).forEach(paramKey => {
+      const placeholder = new RegExp(`{${paramKey}}`, 'g')
+      translation = translation.replace(placeholder, params[paramKey])
+    })
+  }
+  
+  return translation
+}
 
 const isFileMode  = ref(false)
 const text        = ref('')
@@ -1814,3 +1834,4 @@ const generationStep = ref<string>('')
 const generationProgress = ref<number>(0)
 </script>
 ```
+````

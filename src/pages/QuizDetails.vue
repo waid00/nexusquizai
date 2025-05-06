@@ -2,12 +2,12 @@
 <template>
   <div class="quiz-details">
     <h2 class="page-title" v-if="quiz">{{ quiz.title }}</h2>
-    <h2 class="page-title" v-else>Quiz Details</h2>
+    <h2 class="page-title" v-else>{{ t('quiz.quizDetails') }}</h2>
 
     <!-- Loading state -->
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Loading quiz details...</p>
+      <p>{{ t('common.loading') }}</p>
     </div>
     
     <!-- Error state -->
@@ -19,7 +19,7 @@
         </svg>
       </div>
       <p>{{ errorMessage }}</p>
-      <router-link to="/" class="btn">Back to Home</router-link>
+      <router-link to="/" class="btn btn-back">{{ t('common.backToHome') }}</router-link>
     </div>
 
     <!-- Quiz Details View -->
@@ -28,95 +28,95 @@
       <div class="info-panel">
         <div class="quiz-meta">
           <div class="meta-item">
-            <div class="meta-label">Difficulty</div>
-            <div class="meta-value difficulty-badge" :class="quiz.difficulty">{{ quiz.difficulty }}</div>
+            <div class="meta-label">{{ t('quiz.difficulty') }}</div>
+            <div class="meta-value difficulty-badge" :class="quiz.difficulty">{{ t(`quiz.${quiz.difficulty}`) }}</div>
           </div>
           <div class="meta-item">
-            <div class="meta-label">Questions</div>
+            <div class="meta-label">{{ t('quiz.questions') }}</div>
             <div class="meta-value">{{ questions.length }}</div>
           </div>
           <div class="meta-item">
-            <div class="meta-label">Created</div>
+            <div class="meta-label">{{ t('quiz.created') }}</div>
             <div class="meta-value">{{ formatDate(quiz.createdAt) }}</div>
           </div>
           <div class="meta-item">
-            <div class="meta-label">Times Taken</div>
+            <div class="meta-label">{{ t('quiz.timesTaken') }}</div>
             <div class="meta-value">{{ attemptCount }}</div>
           </div>
         </div>
 
-        <div class="quiz-description">
-          <h3>Description</h3>
-          <p>{{ quiz.description || 'No description provided for this quiz.' }}</p>
-        </div>
+        <div class="quiz-info-container">
+          <div class="quiz-description">
+            <h3>{{ t('quiz.description') }}</h3>
+            <p>{{ quiz.description || t('quiz.noDescription') }}</p>
+          </div>
 
-        <div class="author-info">
-          <h3>Created by</h3>
-          <div class="author-name">{{ quiz.authorName }}</div>
+          <div class="author-info">
+            <h3>{{ t('quiz.createdBy') }}</h3>
+            <div class="author-name">{{ quiz.authorName }}</div>
+          </div>
         </div>
 
         <div class="quiz-actions">
           <!-- Owner-specific actions -->
           <div v-if="isOwner" class="owner-actions">
-            <button class="edit-quiz-btn" @click="editQuiz">Edit Quiz</button>
-            <button class="action-btn take-quiz" @click="takeQuiz">Try Quiz</button>
-            <button class="delete-quiz-btn" @click="confirmDeleteQuiz">Delete Quiz</button>
+            <button class="btn btn-primary" @click="editQuiz">{{ t('quiz.editQuiz') }}</button>
+            <button class="btn btn-primary" @click="takeQuiz">{{ t('quiz.startQuiz') }}</button>
+            <button class="btn btn-danger" @click="confirmDeleteQuiz">{{ t('quiz.deleteQuiz') }}</button>
           </div>
           
           <!-- Non-owner actions -->
           <div v-else class="solver-actions">
-            <button class="take-quiz-btn" @click="takeQuiz">Take Quiz</button>
+            <button class="btn btn-primary" @click="takeQuiz">{{ t('quiz.startQuiz') }}</button>
             <button 
               v-if="auth.state.isAuthenticated"
-              class="upvote-btn" 
+              class="btn btn-upvote" 
               :class="{ active: hasUserUpvoted }"
               @click="toggleUpvote"
             >
               <span class="upvote-icon">⬆</span>
               <span class="upvote-count">{{ upvoteCount }}</span>
-              Upvote
+              {{ t('quiz.upvote') }}
             </button>
             <button 
               v-else
-              class="upvote-btn" 
+              class="btn btn-upvote" 
               @click="promptLogin"
             >
               <span class="upvote-icon">⬆</span>
               <span class="upvote-count">{{ upvoteCount }}</span>
-              Login to Upvote
+              {{ t('quiz.loginToUpvote') }}
             </button>
           </div>
-          
-          <router-link to="/" class="back-btn">Back to Home</router-link>
         </div>
       </div>
 
       <!-- Quiz Stats (visible to owners or after attempting) -->
       <div v-if="attemptCount > 0 && (isOwner || hasAttempted)" class="quiz-stats">
-        <h3>Quiz Statistics</h3>
+        <h3>{{ t('quiz.quizStatistics') }}</h3>
         
         <div class="stats-grid">
           <div class="stat-card">
-            <div class="stat-title">Average Score</div>
+            <div class="stat-title">{{ t('quiz.averageScore') }}</div>
             <div class="stat-value">{{ avgScore }}%</div>
-            <div class="stat-detail">{{ avgCorrect }} / {{ questions.length }} correct on average</div>
+            <div class="stat-detail">{{ avgCorrect }} / {{ questions.length }} {{ t('quiz.correctOnAverage') }}</div>
           </div>
           
           <div class="stat-card">
-            <div class="stat-title">Pass Rate</div>
+            <div class="stat-title">{{ t('quiz.passRate') }}</div>
             <div class="stat-value">{{ passRate }}%</div>
-            <div class="stat-detail">{{ passCount }} of {{ attemptCount }} attempts passed</div>
+            <div class="stat-detail">{{ passCount }} {{ t('quiz.of') }} {{ attemptCount }} {{ t('quiz.attemptsPassed') }}</div>
           </div>
           
           <div class="stat-card">
-            <div class="stat-title">Average Time</div>
+            <div class="stat-title">{{ t('quiz.averageTime') }}</div>
             <div class="stat-value">{{ formatTime(avgTime) }}</div>
-            <div class="stat-detail">to complete this quiz</div>
+            <div class="stat-detail">{{ t('quiz.toCompleteThisQuiz') }}</div>
           </div>
         </div>
 
         <div class="difficulty-distribution">
-          <h4>Success Rate by Question</h4>
+          <h4>{{ t('quiz.successRateByQuestion') }}</h4>
           <div class="question-success-bars">
             <div 
               v-for="(question, index) in questions" 
@@ -139,26 +139,26 @@
 
       <!-- Advanced Analytics (visible only to admins and quiz owners) -->
       <div v-if="isAdmin || isOwner" class="advanced-analytics">
-        <h3>Advanced Analytics</h3>
+        <h3>{{ t('quiz.advancedAnalytics') }}</h3>
         
         <div class="analytics-tabs">
           <button 
             :class="['tab-btn', { active: activeAnalyticsTab === 'attempts' }]" 
             @click="activeAnalyticsTab = 'attempts'"
           >
-            Attempt History
+            {{ t('quiz.attemptHistory') }}
           </button>
           <button 
             :class="['tab-btn', { active: activeAnalyticsTab === 'users' }]" 
             @click="activeAnalyticsTab = 'users'"
           >
-            User Performance
+            {{ t('quiz.userPerformance') }}
           </button>
           <button 
             :class="['tab-btn', { active: activeAnalyticsTab === 'trends' }]" 
             @click="activeAnalyticsTab = 'trends'"
           >
-            Performance Trends
+            {{ t('quiz.performanceTrends') }}
           </button>
         </div>
         
@@ -166,17 +166,17 @@
         <div v-if="activeAnalyticsTab === 'attempts'" class="analytics-tab-content">
           <div class="attempts-list">
             <div v-if="attempts.length === 0" class="empty-state">
-              <p>No attempts recorded yet.</p>
+              <p>{{ t('quiz.noAttemptsRecorded') }}</p>
             </div>
             <table v-else class="attempts-table">
               <thead>
                 <tr>
-                  <th>User</th>
-                  <th>Score</th>
-                  <th>Result</th>
-                  <th>Time</th>
-                  <th>Date</th>
-                  <th>Actions</th>
+                  <th>{{ t('common.user') }}</th>
+                  <th>{{ t('quiz.score') }}</th>
+                  <th>{{ t('quiz.result') }}</th>
+                  <th>{{ t('quiz.time') }}</th>
+                  <th>{{ t('quiz.date') }}</th>
+                  <th>{{ t('common.actions') }}</th>
                 </tr>
               </thead>
               <tbody>
@@ -188,14 +188,14 @@
                       class="badge"
                       :class="{ 'pass': attempt.isPassed, 'fail': !attempt.isPassed }"
                     >
-                      {{ attempt.isPassed ? 'PASSED' : 'FAILED' }}
+                      {{ attempt.isPassed ? t('quiz.passed') : t('quiz.failed') }}
                     </span>
                   </td>
                   <td>{{ formatTime(attempt.elapsedTime) }}</td>
                   <td>{{ formatDateWithTime(attempt.completedAt) }}</td>
                   <td>
                     <button class="view-btn" @click="viewAttemptDetails(attempt.attemptId)">
-                      View Details
+                      {{ t('common.viewDetails') }}
                     </button>
                   </td>
                 </tr>
@@ -207,31 +207,32 @@
         <!-- User Performance Tab -->
         <div v-if="activeAnalyticsTab === 'users'" class="analytics-tab-content">
           <div class="user-performance-chart">
-            <h4>Top Performers</h4>
-            <div class="performance-table-wrapper">
-              <table class="performance-table">
-                <thead>
-                  <tr>
-                    <th>Rank</th>
-                    <th>Username</th>
-                    <th>Attempts</th>
-                    <th>Best Score</th>
-                    <th>Avg Score</th>
-                    <th>Best Time</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr v-for="(user, index) in userPerformance" :key="user.userId">
-                    <td>{{ index + 1 }}</td>
-                    <td>{{ user.username }}</td>
-                    <td>{{ user.attemptCount }}</td>
-                    <td>{{ user.bestScore }}%</td>
-                    <td>{{ user.avgScore }}%</td>
-                    <td>{{ formatTime(user.bestTime) }}</td>
-                  </tr>
-                </tbody>
-              </table>
+            <h4>{{ t('quiz.topPerformers') }}</h4>
+            <div v-if="userPerformance.length === 0" class="empty-state">
+              <p>{{ t('quiz.noUserPerformanceData') }}</p>
             </div>
+            <table v-else class="attempts-table">
+              <thead>
+                <tr>
+                  <th>{{ t('quiz.rank') }}</th>
+                  <th>{{ t('common.username') }}</th>
+                  <th>{{ t('quiz.attempts') }}</th>
+                  <th>{{ t('quiz.bestScore') }}</th>
+                  <th>{{ t('quiz.avgScore') }}</th>
+                  <th>{{ t('quiz.bestTime') }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(user, index) in userPerformance" :key="user.userId">
+                  <td>{{ index + 1 }}</td>
+                  <td>{{ user.username }}</td>
+                  <td>{{ user.attemptCount }}</td>
+                  <td>{{ user.bestScore }}%</td>
+                  <td>{{ user.avgScore }}%</td>
+                  <td>{{ formatTime(user.bestTime) }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
         
@@ -239,40 +240,48 @@
         <div v-if="activeAnalyticsTab === 'trends'" class="analytics-tab-content">
           <div class="trends-content">
             <div class="trend-section">
-              <h4>Attempt Count Over Time</h4>
-              <div class="trend-chart attempt-chart">
-                <div 
-                  v-for="(count, index) in attemptCounts" 
-                  :key="'attempt-' + index" 
-                  class="trend-bar"
-                  :style="{ height: calculateBarHeight(count, maxAttemptCount) }"
-                >
-                  <div class="trend-value">{{ count }}</div>
-                </div>
+              <h4>{{ t('quiz.attemptCountOverTime') }}</h4>
+              <div v-if="attemptCounts.length === 0" class="empty-state">
+                <p>{{ t('quiz.noTrendData') }}</p>
               </div>
-              <div class="chart-labels">
-                <div v-for="(period, index) in trendTimePeriods" :key="'label-' + index" class="chart-label">
-                  {{ period }}
-                </div>
+              <div v-else>
+                <table class="attempts-table">
+                  <thead>
+                    <tr>
+                      <th>{{ t('quiz.timePeriod') }}</th>
+                      <th>{{ t('quiz.attemptCount') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(count, index) in attemptCounts" :key="'attempt-' + index">
+                      <td>{{ trendTimePeriods[index] }}</td>
+                      <td>{{ count }}</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
             
             <div class="trend-section">
-              <h4>Average Score Trend</h4>
-              <div class="trend-chart score-chart">
-                <div 
-                  v-for="(score, index) in avgScoreTrend" 
-                  :key="'score-' + index" 
-                  class="trend-bar score-bar"
-                  :style="{ height: `${score}%` }"
-                >
-                  <div class="trend-value">{{ score }}%</div>
-                </div>
+              <h4>{{ t('quiz.averageScoreTrend') }}</h4>
+              <div v-if="avgScoreTrend.length === 0" class="empty-state">
+                <p>{{ t('quiz.noTrendData') }}</p>
               </div>
-              <div class="chart-labels">
-                <div v-for="(period, index) in trendTimePeriods" :key="'score-label-' + index" class="chart-label">
-                  {{ period }}
-                </div>
+              <div v-else>
+                <table class="attempts-table">
+                  <thead>
+                    <tr>
+                      <th>{{ t('quiz.timePeriod') }}</th>
+                      <th>{{ t('quiz.averageScore') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="(score, index) in avgScoreTrend" :key="'score-' + index">
+                      <td>{{ trendTimePeriods[index] }}</td>
+                      <td>{{ score }}%</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
@@ -280,11 +289,12 @@
       </div>
       
       <div v-else-if="attemptCount === 0" class="no-attempts">
-        <p>This quiz hasn't been taken yet. Be the first to take it!</p>
+        <p>{{ t('quiz.noAttemptsYet') }}</p>
       </div>
+      
       <!-- Questions Preview -->
       <div class="questions-preview">
-        <h3>Quiz Questions</h3>
+        <h3>{{ t('quiz.quizQuestions') }}</h3>
         
         <ul class="question-list">
           <li 
@@ -343,7 +353,7 @@
                       <span v-if="getCorrectTrueFalseAnswer(question.questionId) === true && (isOwner || hasAttempted)" class="correct-marker">✓</span>
                       <span v-else class="option-letter">T</span>
                     </div>
-                    <div class="option-text">True</div>
+                    <div class="option-text">{{ t('common.yes') }}</div>
                   </div>
                   <div 
                     class="answer-option"
@@ -353,7 +363,7 @@
                       <span v-if="getCorrectTrueFalseAnswer(question.questionId) === false && (isOwner || hasAttempted)" class="correct-marker">✓</span>
                       <span v-else class="option-letter">F</span>
                     </div>
-                    <div class="option-text">False</div>
+                    <div class="option-text">{{ t('common.no') }}</div>
                   </div>
                 </template>
                 
@@ -361,10 +371,10 @@
                   <div class="answer-option fill-blank">
                     <div class="option-text">
                       <span v-if="isOwner || hasAttempted">
-                        Answer: <span class="correct-answer">{{ getBlankAnswer(question.questionId) }}</span>
+                        {{ t('quiz.answer') }}: <span class="correct-answer">{{ getBlankAnswer(question.questionId) }}</span>
                       </span>
                       <span v-else>
-                        The answer will be revealed after you take the quiz.
+                        {{ t('quiz.answerRevealedAfterQuiz') }}
                       </span>
                     </div>
                   </div>
@@ -375,7 +385,7 @@
         </ul>
         
         <div v-if="!isOwner && !hasAttempted" class="answer-note">
-          <p>Correct answers will be shown after you attempt the quiz.</p>
+          <p>{{ t('quiz.correctAnswersShownAfterAttempt') }}</p>
         </div>
       </div>
 
@@ -394,13 +404,16 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, reactive } from 'vue'
+import { ref, computed, onMounted, nextTick, reactive } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
-import { toggleQuizUpvote, checkUserUpvote } from '@/api/supabase'
-import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { auth } from '@/store/auth'
+import { useLanguage } from '@/context/LanguageContext'
 import '@/assets/pages/quizdetails.css';
+import ConfirmationModal from '@/components/ConfirmationModal.vue'
+
+const language = useLanguage()
+const t = (key: string) => language?.t?.(key) || key
 
 const route = useRoute()
 const router = useRouter()
@@ -551,12 +564,79 @@ const toggleQuestionExpand = (questionId: number) => {
   expandedQuestions[questionId] = !expandedQuestions[questionId]
 }
 
+// Format question type for display
 const formatQuestionType = (type: string) => {
-  if (type === 'multiple_choice') return 'Multiple Choice'
-  if (type === 'true_false') return 'True/False'
-  if (type === 'fill_blank') return 'Fill in the Blank'
+  if (type === 'multiple_choice') return t('quiz.multipleChoice')
+  if (type === 'true_false') return t('quiz.trueFalse')
+  if (type === 'fill_blank') return t('quiz.fillBlank')
   return type
 }
+
+// Toggle quiz upvote function
+const toggleQuizUpvote = async (quizId: number, userId: number) => {
+  // Check if user has already upvoted
+  const { data: existingUpvotes, error: fetchError } = await supabase
+    .from('QuizUpvotes')
+    .select('id')
+    .eq('quiz_id', quizId)
+    .eq('user_id', userId)
+    .limit(1); // Fetch as array, limit 1
+  
+  if (fetchError) {
+    console.error('Error fetching existing upvote during toggle:', fetchError);
+    throw fetchError;
+  }
+  
+  const upvoteExists = existingUpvotes && existingUpvotes.length > 0;
+  
+  // If upvote exists, remove it
+  if (upvoteExists) {
+    const upvoteId = existingUpvotes[0].id; // Get the ID of the specific upvote record
+    const { error: deleteError } = await supabase
+      .from('QuizUpvotes')
+      .delete()
+      .eq('id', upvoteId); // Delete by its primary key 'id'
+    
+    if (deleteError) {
+      console.error('Error deleting upvote:', deleteError);
+      throw deleteError;
+    }
+    return false; // Indicates upvote was removed
+  } 
+  // Otherwise add upvote
+  else {
+    const { error: insertError } = await supabase
+      .from('QuizUpvotes')
+      .insert({
+        quiz_id: quizId,
+        user_id: userId,
+        created_at: new Date().toISOString()
+      });
+    
+    if (insertError) {
+      console.error('Error inserting upvote:', insertError);
+      throw insertError;
+    }
+    return true; // Indicates upvote was added
+  }
+};
+
+// Check if user has upvoted this quiz
+const checkUserUpvote = async (quizId: number, userId: number) => {
+  const { data, error } = await supabase
+    .from('QuizUpvotes')
+    .select('id')
+    .eq('quiz_id', quizId)
+    .eq('user_id', userId)
+    .limit(1); // Fetch as array, limit 1
+  
+  if (error) {
+    console.error('Error checking upvote status:', error);
+    return false;
+  }
+  
+  return data !== null && data.length > 0; // Check if array is not null and has elements
+};
 
 // Answer handling functions
 const getAnswerOptions = (questionId: number) => {
@@ -588,9 +668,9 @@ const getSuccessRateClass = (rate: number) => {
 
 // Confirm delete quiz
 function confirmDeleteQuiz() {
-  confirmationData.title = 'Delete Quiz';
-  confirmationData.message = `Are you sure you want to delete "${quiz.value.title}"? This action cannot be undone.`;
-  confirmationData.confirmText = 'Delete';
+  confirmationData.title = t('quiz.deleteQuiz');
+  confirmationData.message = t('quiz.deleteQuizConfirmation');
+  confirmationData.confirmText = t('common.delete');
   confirmationData.type = 'danger';
   confirmationData.action = 'deleteQuiz';
   

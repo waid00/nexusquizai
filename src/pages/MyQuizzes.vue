@@ -1,34 +1,34 @@
 <!-- src/pages/MyQuizzes.vue -->
 <template>
   <div class="my-quizzes">
-    <h2 class="page-title">My Quizzes</h2>
+    <h2 class="page-title">{{ t('myQuizzes.title') }}</h2>
 
     <div class="tab-navigation">
       <button 
         :class="['tab-btn', { active: activeTab === 'created' }]" 
         @click="activeTab = 'created'"
       >
-        Created Quizzes
+        {{ t('myQuizzes.createdQuizzes') }}
       </button>
       <button 
         :class="['tab-btn', { active: activeTab === 'attempts' }]" 
         @click="activeTab = 'attempts'"
       >
-        Quiz Attempts
+        {{ t('myQuizzes.quizAttempts') }}
       </button>
     </div>
 
     <!-- Loading state -->
     <div v-if="isLoading" class="loading-container">
       <div class="loading-spinner"></div>
-      <p>Loading your quizzes...</p>
+      <p>{{ t('common.loading') }}</p>
     </div>
 
     <!-- Created Quizzes Tab -->
     <div v-else-if="activeTab === 'created'" class="tab-content">
       <div v-if="displayedCreatedQuizzes.length === 0 && !canLoadMoreCreated" class="empty-state">
-        <p>You haven't created any quizzes yet.</p>
-        <router-link to="/generate" class="action-btn">Create a Quiz</router-link>
+        <p>{{ t('myQuizzes.noCreatedQuizzes') }}</p>
+        <router-link to="/generate" class="action-btn">{{ t('myQuizzes.createQuiz') }}</router-link>
       </div>
 
       <div v-else class="quiz-list">
@@ -40,13 +40,13 @@
         >
           <div class="quiz-card-header">
             <h3 class="quiz-title">{{ quiz.title }}</h3>
-            <span class="quiz-badge" :class="quiz.difficulty">{{ quiz.difficulty }}</span>
+            <span class="quiz-badge" :class="quiz.difficulty">{{ t(`quiz.${quiz.difficulty}`) }}</span>
           </div>
           <div class="quiz-card-body">
             <p class="quiz-description">{{ quiz.description }}</p>
             
             <div class="privacy-toggle">
-              <span class="toggle-label">{{ quiz.isPublic ? 'Public' : 'Private' }}</span>
+              <span class="toggle-label">{{ quiz.isPublic ? t('myQuizzes.public') : t('myQuizzes.private') }}</span>
               <label class="switch">
                 <input 
                   type="checkbox" 
@@ -59,15 +59,15 @@
             
             <div class="quiz-stats">
               <div class="stat-item">
-                <span class="stat-label">Questions</span>
+                <span class="stat-label">{{ t('quiz.questions') }}</span>
                 <span class="stat-value">{{ quiz.questionCount }}</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">Attempts</span>
+                <span class="stat-label">{{ t('quiz.attempts') }}</span>
                 <span class="stat-value">{{ quiz.attemptCount }}</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">Created</span>
+                <span class="stat-label">{{ t('common.created') }}</span>
                 <span class="stat-value">{{ formatDate(quiz.createdAt) }}</span>
               </div>
             </div>
@@ -87,21 +87,21 @@
               class="quiz-card-footer take-quiz"
               @click.stop="takeQuiz(quiz.quizId)"
             >
-              Attempt
+              {{ t('myQuizzes.attempt') }}
             </button>
             
             <button 
               class="quiz-card-footer view-details"
               @click.stop="viewQuizDetails(quiz.quizId)"
             >
-              Details
+              {{ t('myQuizzes.details') }}
             </button>
           </div>
         </div>
         <!-- Loading indicator for infinite scrolling -->
         <div v-if="isLoadingMore" class="loading-more-container">
           <div class="loading-spinner"></div>
-          <p>Loading more...</p>
+          <p>{{ t('myQuizzes.loadingMore') }}</p>
         </div>
         <div ref="loadMoreTrigger" class="load-more-trigger"></div>
       </div>
@@ -110,8 +110,8 @@
     <!-- Quiz Attempts Tab -->
     <div v-else-if="activeTab === 'attempts'" class="tab-content">
       <div v-if="displayedAttempts.length === 0 && !canLoadMoreAttempts" class="empty-state">
-        <p>You haven't taken any quizzes yet.</p>
-        <router-link to="/generate" class="action-btn">Take a Quiz</router-link>
+        <p>{{ t('myQuizzes.noAttempts') }}</p>
+        <router-link to="/generate" class="action-btn">{{ t('myQuizzes.takeQuiz') }}</router-link>
       </div>
 
       <div v-else class="attempts-list">
@@ -127,39 +127,39 @@
               class="pass-status"
               :class="{ 'passed': attempt.isPassed }"
             >
-              {{ attempt.isPassed ? 'PASSED' : 'FAILED' }}
+              {{ attempt.isPassed ? t('quiz.pass') : t('quiz.fail') }}
             </div>
           </div>
           <div class="attempt-card-body">
             <div class="attempt-stats">
               <div class="stat-item">
-                <span class="stat-label">Score</span>
+                <span class="stat-label">{{ t('quiz.score') }}</span>
                 <span class="stat-value">{{ Math.round((attempt.score / attempt.totalQuestions) * 100) }}%</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">Questions</span>
+                <span class="stat-label">{{ t('quiz.questions') }}</span>
                 <span class="stat-value">{{ attempt.score }} / {{ attempt.totalQuestions }}</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">Time</span>
+                <span class="stat-label">{{ t('myQuizzes.time') }}</span>
                 <span class="stat-value">{{ formatTime(attempt.elapsedTime) }}</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">Date</span>
+                <span class="stat-label">{{ t('myQuizzes.date') }}</span>
                 <span class="stat-value">{{ formatDate(attempt.completedAt) }}</span>
               </div>
             </div>
           </div>
           <div class="attempt-card-actions">
-            <button class="action-btn take-quiz" @click="retakeQuiz(attempt.quizId)">Retake Quiz</button>
-            <button class="action-btn view-results" @click="viewAttemptDetails(attempt.attemptId)">View Results</button>
-            <button class="action-btn delete-btn" @click="confirmDeleteAttempt(attempt)">Delete</button>
+            <button class="action-btn take-quiz" @click="retakeQuiz(attempt.quizId)">{{ t('quiz.retakeQuiz') }}</button>
+            <button class="action-btn view-results" @click="viewAttemptDetails(attempt.attemptId)">{{ t('myQuizzes.viewResults') }}</button>
+            <button class="action-btn delete-btn" @click="confirmDeleteAttempt(attempt)">{{ t('common.delete') }}</button>
           </div>
         </div>
         <!-- Loading indicator for infinite scrolling -->
         <div v-if="isLoadingMore" class="loading-more-container">
           <div class="loading-spinner"></div>
-          <p>Loading more...</p>
+          <p>{{ t('myQuizzes.loadingMore') }}</p>
         </div>
         <div ref="loadMoreTrigger" class="load-more-trigger"></div>
       </div>
@@ -184,12 +184,32 @@ import { useRouter } from 'vue-router'
 import { auth } from '@/store/auth'
 import { supabase } from '@/api/supabase'
 import ConfirmationModal from '@/components/ConfirmationModal.vue'
+import { useLanguage } from '@/context/LanguageContext'
 
 const router = useRouter()
 const activeTab = ref('created')
 const isLoading = ref(true)
 const createdQuizzes = ref<any[]>([])
 const quizAttempts = ref<any[]>([])
+
+// Get translation function
+const languageState = useLanguage()
+const t = (key: string, params?: Record<string, any>): string => {
+  if (!languageState) return key
+  
+  // Get the translation from the language state
+  let translation = languageState.t(key)
+  
+  // If params are provided, replace placeholders like {param} with actual values
+  if (params) {
+    Object.keys(params).forEach(paramKey => {
+      const placeholder = new RegExp(`{${paramKey}}`, 'g')
+      translation = translation.replace(placeholder, params[paramKey])
+    })
+  }
+  
+  return translation
+}
 
 // Added for infinite scrolling
 const displayedCreatedQuizzes = ref<any[]>([])
