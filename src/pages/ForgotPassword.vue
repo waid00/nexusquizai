@@ -35,7 +35,7 @@
             class="auth-btn" 
             :disabled="isLoading || !username"
           >
-            {{ isLoading ? t('common.processing') : t('common.continue') }}
+            {{ isLoading ? t('common.processing') : t('common.submit') }}
           </button>
         </form>
       </div>

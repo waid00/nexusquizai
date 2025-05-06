@@ -365,5 +365,31 @@ export default {
       number: "Contains number"
     }
   },
-
+  password: {
+    recoverPassword: "Recover Password",
+    enterUsernameToRecover: "Enter your username or email to recover your password.",
+    usernameOrEmail: "Username or email",
+    processing: "Processing...",
+    enterRecoveryPhrase: "Enter Recovery Phrase",
+    type10Words: "Type the 10 words of your recovery phrase",
+    verifying: "Verifying...",
+    verifyRecoveryPhrase: "Verify Recovery Phrase",
+    createNewPassword: "Create New Password",
+    enterNewPassword: "Enter new password",
+    newPassword: "New Password",
+    atLeast8Chars: "At least 8 characters",
+    containsUppercase: "Contains uppercase letter",
+    containsLowercase: "Contains lowercase letter",
+    containsNumber: "Contains number",
+    confirmPassword: "Confirm Password",
+    passwordsDoNotMatch: "Passwords do not match",
+    resettingPassword: "Resetting password...",
+    resetPassword: "Reset Password",
+    passwordResetSuccess: "Password successfully reset",
+    userNotFound: "User not found",
+    invalidRecoveryPhrase: "Invalid recovery phrase",
+    sessionExpired: "Session expired",
+    failedToReset: "Failed to reset password",
+    goToLogin: "Go to Login"
+  },
 };

@@ -364,5 +364,32 @@ export default {
     invalidEmail: "Neplatná e-mailová adresa",
     usernameExists: "Uživatelské jméno již existuje",
     emailExists: "E-mail již existuje"
-  }
+  },
+  password: {
+    recoverPassword: "Obnovit heslo",
+    enterUsernameToRecover: "Zadejte uživatelské jméno nebo e-mailovou adresu pro obnovu hesla.",
+    usernameOrEmail: "Uživatelské jméno nebo e-mail",
+    processing: "Zpracovávám...",
+    enterRecoveryPhrase: "Zadejte obnovovací frázi",
+    type10Words: "Zadejte 10 slov vaší obnovovací fráze",
+    verifying: "Ověřování...",
+    verifyRecoveryPhrase: "Ověřit obnovovací frázi",
+    createNewPassword: "Vytvořit nové heslo",
+    enterNewPassword: "Zadejte nové heslo",
+    newPassword: "Nové heslo",
+    atLeast8Chars: "Alespoň 8 znaků",
+    containsUppercase: "Obsahuje velké písmeno",
+    containsLowercase: "Obsahuje malé písmeno",
+    containsNumber: "Obsahuje číslo",
+    confirmPassword: "Potvrdit heslo",
+    passwordsDoNotMatch: "Hesla se neshodují",
+    resettingPassword: "Obnovuji heslo...",
+    resetPassword: "Obnovit heslo",
+    passwordResetSuccess: "Heslo bylo úspěšně obnoveno",
+    userNotFound: "Uživatel nenalezen",
+    invalidRecoveryPhrase: "Neplatná obnovovací fráze",
+    sessionExpired: "Relace vypršela",
+    failedToReset: "Obnovení hesla selhalo",
+    goToLogin: "Přejít na přihlášení"
+  },
 };
