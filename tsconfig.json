@@ -7,5 +7,10 @@
     {
       "path": "./tsconfig.app.json"
     }
-  ]
+  ],
+  "compilerOptions": {
+    // ... vaše ostatní konfigurace
+    "types": ["vitest/globals", "node"] // Přidejte "vitest/globals"
+    // "node" je zde často také potřeba pro jiné globální typy
+  }
 }
