@@ -35,8 +35,9 @@
         <div 
           v-for="quiz in displayedCreatedQuizzes" 
           :key="quiz.quizId" 
-          class="quiz-card"
+          class="quiz-card clickable"
           :class="quiz.difficulty"
+          @click="viewQuizDetails(quiz.quizId)"
         >
           <div class="quiz-card-header">
             <h3 class="quiz-title">{{ quiz.title }}</h3>
@@ -45,7 +46,7 @@
           <div class="quiz-card-body">
             <p class="quiz-description">{{ quiz.description }}</p>
             
-            <div class="privacy-toggle">
+            <div class="privacy-toggle" @click.stop>
               <span class="toggle-label">{{ quiz.isPublic ? t('myQuizzes.public') : t('myQuizzes.private') }}</span>
               <label class="switch">
                 <input 
@@ -73,11 +74,11 @@
             </div>
           </div>
           
-          <div class="quiz-card-footer-container">
+          <div class="quiz-card-footer-container" @click.stop>
             <button 
               class="quiz-card-footer upvote"
               :class="{ active: quiz.hasUserUpvoted }"
-              @click.stop="toggleUpvote(quiz)"
+              @click="toggleUpvote(quiz)"
             >
               <span class="upvote-icon">⬆</span>
               <span class="upvote-count">{{ quiz.upvoteCount }}</span>
@@ -85,16 +86,9 @@
             
             <button 
               class="quiz-card-footer take-quiz"
-              @click.stop="takeQuiz(quiz.quizId)"
+              @click="takeQuiz(quiz.quizId)"
             >
               {{ t('myQuizzes.attempt') }}
-            </button>
-            
-            <button 
-              class="quiz-card-footer view-details"
-              @click.stop="viewQuizDetails(quiz.quizId)"
-            >
-              {{ t('myQuizzes.details') }}
             </button>
           </div>
         </div>

@@ -96,6 +96,31 @@
   gap: var(--spacing-md);
 }
 
+/* Clickable card styling */
+.quiz-card.clickable {
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.quiz-card.clickable:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* Visual indicator for clickable cards */
+.quiz-card.clickable::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-md);
+  pointer-events: none;
+  transition: background-color 0.2s ease;
+}
+
+.quiz-card.clickable:hover::after {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
 /* Toggle switch for privacy */
 .privacy-toggle {
   display: flex;
@@ -156,14 +181,19 @@ input:checked + .slider:before {
 }
 
 /* Quiz Card Footer customization for My Quizzes */
-.quiz-card-footer-container {
-  display: flex;
-  flex-direction: row;
-  border-top: 1px solid var(--input-border);
-  margin-top: auto;
+.quiz-card-footer, 
+.quiz-card-footer.upvote, 
+.quiz-card-footer.view-details,
+.quiz-card-footer.take-quiz {
+  /* Standardize height for all footer buttons */
+  height: 38px;
+  font-size: 0.9rem;
+  line-height: 1;
+  box-sizing: border-box;
 }
 
-.quiz-card-footer {
+/* Make class names more specific to MyQuizzes page to avoid conflicts with attempt.css */
+.my-quizzes .quiz-card-footer {
   flex: 1;
   padding: var(--spacing-xs) var(--spacing-xs);
   border: none;
@@ -178,57 +208,65 @@ input:checked + .slider:before {
   gap: 5px;
   border-radius: 0;
   font-size: 0.9rem;
-  height: 38px; /* Increased from 32px to 38px (1.2 times larger) */
+  height: 38px; /* Explicit height to override other styles */
+  line-height: 1;
+  box-sizing: border-box;
 }
 
-.quiz-card-footer:hover {
+.my-quizzes .quiz-card-footer:hover {
   background-color: rgba(0, 0, 0, 0.25);
 }
 
-.quiz-card-footer.upvote {
+.my-quizzes .quiz-card-footer.upvote {
   border-radius: 0 0 0 var(--radius-md);
   border-right: 1px solid var(--input-border);
+  height: 38px; /* Explicit height */
 }
 
-.quiz-card-footer.view-details {
+.my-quizzes .quiz-card-footer.view-details {
   border-radius: 0 0 var(--radius-md) 0;
   border-left: 1px solid var(--input-border);
+  height: 38px; /* Explicit height */
 }
 
-.quiz-card-footer.take-quiz {
+.my-quizzes .quiz-card-footer.take-quiz {
   background: var(--accent);
   color: white;
   border-radius: 0;
+  height: 38px; /* Explicit height */
 }
 
-.quiz-card-footer.take-quiz:hover {
+.my-quizzes .quiz-card-footer.take-quiz:hover {
   background: color-mix(in srgb, var(--accent) 90%, white);
 }
 
-.quiz-card.easy .quiz-card-footer.take-quiz {
+.my-quizzes .quiz-card.easy .quiz-card-footer.take-quiz {
   background: #2ed573;
   color: black;
+  height: 38px; /* Explicit height */
 }
 
-.quiz-card.medium .quiz-card-footer.take-quiz {
+.my-quizzes .quiz-card.medium .quiz-card-footer.take-quiz {
   background: #ffab00;
   color: black;
+  height: 38px; /* Explicit height */
 }
 
-.quiz-card.hard .quiz-card-footer.take-quiz {
+.my-quizzes .quiz-card.hard .quiz-card-footer.take-quiz {
   background: #ff4757;
   color: black;
+  height: 38px; /* Explicit height */
 }
 
-.quiz-card.easy .quiz-card-footer.take-quiz:hover {
+.my-quizzes .quiz-card.easy .quiz-card-footer.take-quiz:hover {
   background: color-mix(in srgb, #2ed573 90%, white);
 }
 
-.quiz-card.medium .quiz-card-footer.take-quiz:hover {
+.my-quizzes .quiz-card.medium .quiz-card-footer.take-quiz:hover {
   background: color-mix(in srgb, #ffab00 90%, white);
 }
 
-.quiz-card.hard .quiz-card-footer.take-quiz:hover {
+.my-quizzes .quiz-card.hard .quiz-card-footer.take-quiz:hover {
   background: color-mix(in srgb, #ff4757 90%, white);
 }
 
