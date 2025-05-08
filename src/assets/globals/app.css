@@ -5,29 +5,48 @@
   
   header {
     display: flex;
-    align-items: center; /* Vertically center all direct children */
-    justify-content: flex-start; /* Align items to the start, let margin handle spacing */
-    padding: 0 2rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
     background: var(--panel-bg);
     backdrop-filter: blur(10px);
     box-shadow: 0 2px 4px rgba(0,0,0,0.5);
     border-radius: 0 0 12px 12px;
-    height: 70px; /* Maintain fixed height */
+    min-height: 70px;
+  }
+  
+  .header-row {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .top-row {
+    margin-bottom: 0.75rem;
+  }
+  
+  .auth-row {
+    margin-bottom: 0.75rem;
   }
   
   .header-left {
     display: flex;
-    align-items: center; /* Vertically center logo and title */
-    gap: 1rem;
-    margin-right: 2rem; /* Add some space after the logo/title */
-    text-decoration: none; /* Remove underline from the router-link */
-    cursor: pointer; /* Show pointer cursor on hover */
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  
+  .language-selector-container {
+    margin-left: 1rem;
   }
   
   header .logo {
-    width: 42px;
-    height: 42px;
-    margin-right: 1rem;
+    width: 32px;
+    height: 32px;
     transition: transform 0.3s ease;
   }
   
@@ -36,7 +55,7 @@
   }
   
   header h1 {
-    font-size: 1.25rem;
+    font-size: 1.1rem;
     color: var(--text-main);
     font-weight: 700;
     letter-spacing: 0.5px;
@@ -44,9 +63,9 @@
   
   header nav {
     display: flex;
-    align-items: center; /* Vertically center nav links */
+    align-items: center;
+    justify-content: center;
     gap: 1.5rem;
-    margin-left: auto; /* Push nav away from left, towards center/right */
   }
   
   header nav a {
@@ -55,7 +74,7 @@
     text-decoration: none;
     transition: color var(--transition-duration) var(--transition-timing);
     font-weight: 500;
-    display: inline-flex; /* Helps with vertical alignment */
+    display: inline-flex;
     align-items: center;
   }
   
@@ -98,9 +117,9 @@
   /* Auth controls */
   .auth-controls {
     display: flex;
-    align-items: center; /* Vertically center buttons */
+    align-items: center;
+    justify-content: center;
     gap: 0.8rem;
-    margin-left: 2rem; /* Add space between nav and auth controls */
   }
   
   .auth-btn {
@@ -234,63 +253,28 @@
   
   /* Responsive adjustments */
   @media (max-width: 992px) {
-    header {
-      padding: 0 1.5rem;
-    }
-    
-    .header-left {
-      margin-right: 1.5rem;
-    }
-    
-    .auth-controls {
-      margin-left: 1.5rem;
+    .language-selector-container {
+      margin-left: 0.75rem;
     }
   }
   
   @media (max-width: 768px) {
     header {
-      flex-wrap: wrap;
-      padding: 0.75rem;
-      height: auto;
-      min-height: 60px;
-      gap: 0.5rem;
-      justify-content: space-between;
+      padding: 0.75rem 1rem;
     }
     
-    .header-left {
-      flex: 0 0 auto;
-      margin-right: 0;
-      text-decoration: none;
-    }
-    
-    header nav {
-      order: 3;
-      width: 100%;
-      margin-top: 0.5rem;
-      margin-left: 0;
-      justify-content: space-around;
-      overflow-x: auto;
-      padding-bottom: 0.5rem;
-    }
-    
-    .auth-controls {
-      margin-left: 0;
-      flex: 0 0 auto;
+    .header-row {
+      justify-content: center;
     }
   }
   
   @media (max-width: 576px) {
     header {
-      padding: 0.5rem 0.75rem;
-      border-radius: 0 0 8px 8px;
-    }
-    
-    header h1 {
-      font-size: 1.1rem;
+      padding: 0.5rem;
     }
     
     header nav {
-      gap: 0.75rem;
+      gap: 1.25rem;
     }
     
     header nav a {
@@ -312,28 +296,16 @@
     header .logo {
       width: 28px;
       height: 28px;
-      margin-right: 0.5rem;
     }
     
     .auth-btn {
       padding: 4px 10px;
       font-size: 0.8rem;
-      height: 30px;
-    }
-    
-    .username {
-      max-width: 80px;
-    }
-    
-    header nav {
-      justify-content: space-around;
-      gap: 0.5rem;
-      margin-top: 0.3rem;
-      margin-bottom: 0.3rem;
+      height: 32px;
     }
     
     .user-menu-btn {
-      height: 30px;
-      padding: 0 0.5rem;
+      height: 32px;
+      padding: 0 0.75rem;
     }
   }

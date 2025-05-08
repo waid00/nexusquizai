@@ -1,38 +1,47 @@
 <template>
   <div id="app">
     <header>
-      <router-link to="/" class="header-left">
-        <img src="@/assets/logo.png" alt="NexusQuiz AI" class="logo" />
-        <h1>NexusQuiz AI</h1>
-      </router-link>
+      <div class="header-row top-row">
+        <router-link to="/" class="header-left">
+          <img src="@/assets/logo.png" alt="NexusQuiz AI" class="logo" />
+          <h1>NexusQuiz AI</h1>
+        </router-link>
+        
+        <div class="language-selector-container">
+          <LanguageSelector />
+        </div>
+      </div>
       
-      <nav>
-        <router-link to="/generate">{{ t('header.generate') }}</router-link>
-        <router-link v-if="auth.state.isAuthenticated" to="/my-quizzes">{{ t('header.myQuizzes') }}</router-link>
-        <router-link v-if="isAdmin" to="/admin" class="admin-link">{{ t('header.admin') }}</router-link>
-      </nav>
-      
-      <div class="auth-controls">
-        <LanguageSelector />
-        <template v-if="auth.state.isAuthenticated">
-          <div class="user-menu" ref="userMenu">
-            <button class="user-menu-btn" @click="toggleUserMenu">
-              <span class="username">{{ auth.state.user?.username }}</span>
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path d="M1.553 6.776a.5.5 0 0 1 .67-.223L8 9.44l5.776-2.888a.5.5 0 1 1 .448.894l-6 3a.5.5 0 0 1-.448 0l-6-3a.5.5 0 0 1-.223-.67z"/>
-              </svg>
-            </button>
-            <div class="dropdown-menu" :class="{ 'show': showUserMenu }">
-              <router-link to="/profile" class="dropdown-item">{{ t('header.profile') }}</router-link>
-              <div class="dropdown-divider"></div>
-              <button @click="logout" class="dropdown-item logout-btn">{{ t('header.logout') }}</button>
+      <div class="header-row auth-row">
+        <div class="auth-controls">
+          <template v-if="auth.state.isAuthenticated">
+            <div class="user-menu" ref="userMenu">
+              <button class="user-menu-btn" @click="toggleUserMenu">
+                <span class="username">{{ auth.state.user?.username }}</span>
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                  <path d="M1.553 6.776a.5.5 0 0 1 .67-.223L8 9.44l5.776-2.888a.5.5 0 1 1 .448.894l-6 3a.5.5 0 0 1-.448 0l-6-3a.5.5 0 0 1-.223-.67z"/>
+                </svg>
+              </button>
+              <div class="dropdown-menu" :class="{ 'show': showUserMenu }">
+                <router-link to="/profile" class="dropdown-item">{{ t('header.profile') }}</router-link>
+                <div class="dropdown-divider"></div>
+                <button @click="logout" class="dropdown-item logout-btn">{{ t('header.logout') }}</button>
+              </div>
             </div>
-          </div>
-        </template>
-        <template v-else>
-          <router-link to="/login" class="auth-btn login-btn">{{ t('header.login') }}</router-link>
-          <router-link to="/register" class="auth-btn register-btn">{{ t('header.register') }}</router-link>
-        </template>
+          </template>
+          <template v-else>
+            <router-link to="/login" class="auth-btn login-btn">{{ t('header.login') }}</router-link>
+            <router-link to="/register" class="auth-btn register-btn">{{ t('header.register') }}</router-link>
+          </template>
+        </div>
+      </div>
+      
+      <div class="header-row nav-row">
+        <nav>
+          <router-link to="/generate">{{ t('header.generate') }}</router-link>
+          <router-link v-if="auth.state.isAuthenticated" to="/my-quizzes">{{ t('header.myQuizzes') }}</router-link>
+          <router-link v-if="isAdmin" to="/admin" class="admin-link">{{ t('header.admin') }}</router-link>
+        </nav>
       </div>
     </header>
 
