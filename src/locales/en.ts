@@ -9,7 +9,7 @@ export default {
     login: "Log In",
     logout: "Log Out",
     register: "Register",
-    admin: "Admin Dashboard"
+    admin: "Admin"
   },
   common: {
     loading: "Loading...",

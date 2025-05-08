@@ -249,7 +249,7 @@ export default {
     created: "Vytvořeno",
     status: "Stav",
     actions: "Akce",
-    active: "Aktivní",  
+    active: "Aktivní",
     inactive: "Neaktivní",
     deactivate: "Deaktivovat",
     activate: "Aktivovat",
@@ -289,6 +289,9 @@ export default {
     quizAttempt: "Pokus o kvíz",
     searchUsers: "Vyhledat uživatele",
     searchQuizzes: "Vyhledat kvízy",
+    confirmAction: "Potvrdit akci",
+    confirmText: "Potvrdit",
+    type: "Typ",
     tabs: {
       users: "Uživatelé",
       quizzes: "Kvízy",

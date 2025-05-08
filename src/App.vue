@@ -1,13 +1,12 @@
 <template>
   <div id="app">
     <header>
-      <div class="header-left">
+      <router-link to="/" class="header-left">
         <img src="@/assets/logo.png" alt="NexusQuiz AI" class="logo" />
         <h1>NexusQuiz AI</h1>
-      </div>
+      </router-link>
       
       <nav>
-        <router-link to="/">{{ t('header.home') }}</router-link>
         <router-link to="/generate">{{ t('header.generate') }}</router-link>
         <router-link v-if="auth.state.isAuthenticated" to="/my-quizzes">{{ t('header.myQuizzes') }}</router-link>
         <router-link v-if="isAdmin" to="/admin" class="admin-link">{{ t('header.admin') }}</router-link>

@@ -147,9 +147,6 @@
             <span v-if="generationProgress > 0" class="progress-indicator">{{ Math.round(generationProgress * 100) }}%</span>
           </span>
         </button>
-        <div v-if="isLoading" class="generation-status">
-          {{ generationStep || t('quiz.processingContent') }}
-        </div>
       </div>
 
       <!-- 7) Results & Export -->
