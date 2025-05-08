@@ -339,26 +339,5 @@ function viewQuizDetails(quiz: any) {
 @import '../assets/components/quiz-cards.css';
 
 /* Add styles for infinite scrolling loading indicator */
-.loading-more-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: var(--spacing-md);
-  margin-top: var(--spacing-md);
-  height: 100px; /* Increased height for better visibility */
-  border-top: 1px dashed var(--color-border);
-}
 
-.scroll-debug {
-  text-align: center;
-  padding: var(--spacing-md);
-  color: var(--color-text-muted);
-  font-style: italic;
-}
-
-/* Add a min-height to the quizzes container to ensure there's scrollable content */
-.public-quizzes {
-  min-height: 120vh;
-}
 </style>
