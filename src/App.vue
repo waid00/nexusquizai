@@ -2,7 +2,7 @@
   <div id="app">
     <header>
       <router-link to="/" class="header-left">
-        <img src="@/assets/logo.png" alt="NexusQuiz AI" class="logo" />
+        <img src="@/assets/logo.png" alt="logo" class="logo" />
         <h1>NexusQuiz AI</h1>
       </router-link>
       
