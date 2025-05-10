@@ -26,6 +26,7 @@
               required 
               autocomplete="username"
               :disabled="auth.state.isLoading"
+              placeholder="Enter your username..."
               @blur="validateUsername"
             >
             <span class="input-icon">
@@ -51,6 +52,7 @@
               autocomplete="email"
               :disabled="auth.state.isLoading"
               @blur="validateEmail"
+              placeholder="Enter your email..."
             >
             <span class="input-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -75,6 +77,7 @@
               autocomplete="new-password"
               :disabled="auth.state.isLoading"
               @input="validatePassword"
+              placeholder="Enter your password..."
             >
             <span class="input-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -157,6 +160,7 @@
               autocomplete="new-password"
               :disabled="auth.state.isLoading"
               @input="validatePasswordMatch"
+              placeholder="Confirm your password..."
             >
             <span class="input-icon">
               <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">

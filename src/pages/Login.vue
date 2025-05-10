@@ -20,6 +20,7 @@
             required 
             autocomplete="username"
             :disabled="auth.state.isLoading"
+            placeholder="Enter your username or email..."
           >
           <span class="input-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
@@ -38,6 +39,7 @@
             required
             autocomplete="current-password"
             :disabled="auth.state.isLoading"
+            placeholder="Enter your password..."
           >
           <span class="input-icon">
             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
