@@ -5,26 +5,26 @@
  * Determines if the application is running in development mode
  */
 export const isDevelopment = (): boolean => {
-  return import.meta.env.MODE === 'development' || true; // Forcing true for testing
+  // For testing, return true to bypass API calls
+  return true;
+  // Uncomment the line below when ready for production
+  // return import.meta.env.MODE === 'development';
 };
 
 /**
  * Gets the base URL for API calls, accounting for different environments
  */
 export const getApiBaseUrl = (): string => {
-  // Check if a base URL is specified in the environment
-  const configuredBaseUrl = import.meta.env.VITE_API_BASE_URL;
-  if (configuredBaseUrl) {
-    return configuredBaseUrl;
+  console.log('Getting API base URL...');
+  
+  // Check if we're in the browser
+  if (typeof window !== 'undefined') {
+    // Use the current window location as base for API calls
+    console.log('Window location:', window.location.origin);
+    return window.location.origin;
   }
   
-  // For Vercel deployments, we might need to use the deployment URL
-  const vercelUrl = import.meta.env.VITE_VERCEL_URL;
-  if (vercelUrl) {
-    return `https://${vercelUrl}`;
-  }
-  
-  // Default to empty string which will result in relative URLs
+  // Default to empty string which will result in relative URLs (current domain)
   return '';
 };
 

@@ -408,13 +408,13 @@ async function register(username: string, email: string, password: string) {
 async function sendVerificationEmail(userId: number, email: string, username: string) {
   try {
     console.log('Sending verification email for user:', email);
-    // First, check if we're running on Vercel
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-    const apiPath = '/api/send-verification-email/';
     
-    console.log('Using API endpoint:', baseUrl + apiPath);
+    // Use the buildApiUrl function to get the proper API URL
+    const apiUrl = buildApiUrl('/api/send-verification-email');
     
-    const response = await axios.post(baseUrl + apiPath, {
+    console.log('Using API endpoint:', apiUrl);
+    
+    const response = await axios.post(apiUrl, {
       userId,
       email,
       username
@@ -434,7 +434,9 @@ async function verifyEmail(token: string) {
   state.error = null;
   
   try {
-    console.log('Verifying email with token:', token);      // For development/testing: bypass API verification
+    console.log('Verifying email with token:', token);
+    
+    // For development/testing: bypass API verification
     if (isDevelopment()) {
       console.log('Development mode: Auto-verifying email');
       if (state.user) {
@@ -444,27 +446,42 @@ async function verifyEmail(token: string) {
       return true;
     }
     
-    // First, check if we're running on Vercel
-    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
-    const apiPath = '/api/verify-email/';
-    
-    console.log('Using verification API endpoint:', baseUrl + apiPath);
-    console.log('Sending token to API:', token);
-    
-    const response = await axios.post(baseUrl + apiPath, { token });
-    console.log('Verification API response:', response.data);
-    
-    if (response.data.success) {
-      // If user is already set in state, update confirmed status
-      if (state.user) {
-        state.user.confirmed = true;
-        localStorage.setItem('user', JSON.stringify(state.user));
-      }
-      
-      return true;
+    // Use the current page URL origin to build the API URL
+    let apiUrl = '';
+    if (typeof window !== 'undefined') {
+      apiUrl = `${window.location.origin}/api/verify-email`;
+    } else {
+      apiUrl = '/api/verify-email';
     }
     
-    return false;  } catch (error: any) {
+    console.log('Using verification API endpoint:', apiUrl);
+    console.log('Sending token to API:', token);
+    
+    try {
+      const response = await axios.post(apiUrl, { token });
+      console.log('Verification API response:', response.data);
+      
+      if (response.data.success) {
+        // If user is already set in state, update confirmed status
+        if (state.user) {
+          state.user.confirmed = true;
+          localStorage.setItem('user', JSON.stringify(state.user));
+        }
+        
+        return true;
+      }
+      
+      return false;
+    } catch (apiError: any) {
+      console.error('API Error:', {
+        status: apiError.response?.status,
+        statusText: apiError.response?.statusText,
+        data: apiError.response?.data,
+        message: apiError.message
+      });
+      throw apiError;
+    }
+  } catch (error: any) {
     console.error('Email verification error:', error);
     const errorMessage = error.response?.data?.error || 'Failed to verify email';
     console.error('Error details:', {

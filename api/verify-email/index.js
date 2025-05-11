@@ -1,8 +1,17 @@
 import { createClient } from '@supabase/supabase-js';
 
 // Initialize Supabase client
-const supabaseUrl = process.env.VITE_SUPABASE_URL;
-const supabaseKey = process.env.VITE_SUPABASE_KEY;
+// Check both VITE_ prefixed and non-prefixed env vars
+const supabaseUrl = process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY || process.env.VITE_SUPABASE_KEY;
+
+console.log('Supabase config in verify-email API:', { 
+  urlExists: !!supabaseUrl, 
+  keyExists: !!supabaseKey,
+  url: supabaseUrl ? supabaseUrl.substring(0, 10) + '...' : 'undefined'
+});
+
+// Create the Supabase client
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 // Verification token expiry time in hours
