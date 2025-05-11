@@ -84,8 +84,10 @@ const token = route.query.token as string;
 // Verify email on component mount
 onMounted(async () => {
   console.log('VerifyEmail mounted, token present:', !!token);
+  console.log('Current URL:', window.location.href);
   
   if (!token) {
+    console.error('No token found in URL parameters!');
     isVerifying.value = false;
     verificationError.value = t('validation.required');
     additionalErrorInfo.value = t('register.verifyEmailNote');
@@ -99,15 +101,23 @@ onMounted(async () => {
     isVerifying.value = false;
     
     if (success) {
+      console.log('Email verification successful');
       isVerified.value = true;
     } else {
-      verificationError.value = auth.state.error || t('common.error');
       console.error('Verification failed:', auth.state.error);
+      verificationError.value = auth.state.error || t('common.error');
       // Check if user is logged in to show resend option
       showResendOption.value = !!auth.state.user && !auth.state.user.confirmed;
+      
+      // Additional debugging for error case
+      console.log('User logged in:', !!auth.state.user);
+      if (auth.state.user) {
+        console.log('User confirmed status:', auth.state.user.confirmed);
+      }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error in verification process:', error);
+    console.error('Error details:', error.message || 'Unknown error');
     isVerifying.value = false;
     verificationError.value = t('common.error');
     additionalErrorInfo.value = t('register.verifyEmailNote');

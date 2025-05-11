@@ -456,22 +456,28 @@ async function verifyEmail(token: string) {
     
     console.log('Using verification API endpoint:', apiUrl);
     console.log('Sending token to API:', token);
-    
-    try {
+      try {
+      console.log('Making verification API request to:', apiUrl);
       const response = await axios.post(apiUrl, { token });
       console.log('Verification API response:', response.data);
       
       if (response.data.success) {
+        console.log('API verification successful');
         // If user is already set in state, update confirmed status
         if (state.user) {
+          console.log('Updating user confirmed status');
           state.user.confirmed = true;
           localStorage.setItem('user', JSON.stringify(state.user));
+        } else {
+          console.log('No logged in user to update');
         }
         
         return true;
+      } else {
+        console.error('API returned success: false');
+        state.error = response.data.error || 'Verification failed';
+        return false;
       }
-      
-      return false;
     } catch (apiError: any) {
       console.error('API Error:', {
         status: apiError.response?.status,
@@ -479,7 +485,15 @@ async function verifyEmail(token: string) {
         data: apiError.response?.data,
         message: apiError.message
       });
-      throw apiError;
+      
+      // Set a more specific error message
+      if (apiError.response?.status === 404) {
+        state.error = 'Verification API not found. Please try again later or contact support.';
+      } else {
+        state.error = apiError.response?.data?.error || apiError.message || 'Unknown API error';
+      }
+      
+      return false;
     }
   } catch (error: any) {
     console.error('Email verification error:', error);

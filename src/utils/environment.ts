@@ -5,10 +5,25 @@
  * Determines if the application is running in development mode
  */
 export const isDevelopment = (): boolean => {
-  // For testing, return true to bypass API calls
-  return true;
-  // Uncomment the line below when ready for production
-  // return import.meta.env.MODE === 'development';
+  // Check if we have a specific development override from localStorage
+  if (typeof window !== 'undefined') {
+    const devMode = localStorage.getItem('dev_mode');
+    if (devMode === 'true') {
+      console.log('Development mode enabled via localStorage');
+      return true;
+    }
+    
+    // Check for localhost
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return true;
+    }
+  }
+  
+  // Check environment mode
+  const isDevEnv = import.meta.env.MODE === 'development';
+  console.log('Environment mode:', import.meta.env.MODE);
+  
+  return isDevEnv;
 };
 
 /**
