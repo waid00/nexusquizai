@@ -80,6 +80,33 @@
     font-size: 0.9rem;
   }
   
+  .primary-action {
+    background-color: var(--accent);
+    color: white;
+    font-weight: 600;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
+    transform: scale(1);
+  }
+  
+  .primary-action:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  .login-instruction {
+    margin: 1rem 0;
+    font-size: 1.1rem;
+    color: var(--text-color);
+  }
+  
+  .redirect-message {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    font-style: italic;
+  }
+  
   @media (min-width: 1200px) {
     .auth-container {
       max-width: 520px;

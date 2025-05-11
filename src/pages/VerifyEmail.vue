@@ -7,9 +7,7 @@
         <div class="loading-indicator">
           <div class="spinner"></div>
         </div>
-      </div>
-
-      <div v-else-if="isVerified">
+      </div>      <div v-else-if="isVerified">
         <h1 class="auth-title">{{ t('register.emailSentSuccess') }}</h1>
         <div class="success-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
@@ -17,13 +15,12 @@
           </svg>
         </div>
         <p class="success-message">{{ t('register.emailSentSuccess') }}</p>
-        <p>{{ t('login.noAccount') }}</p>
-        <button @click="navigateToLogin" class="auth-btn">
+        <p class="login-instruction">{{ t('login.pleaseSignIn') || 'Please sign in to continue' }}</p>
+        <button @click="navigateToLogin" class="auth-btn primary-action">
           {{ t('login.signIn') }}
         </button>
-      </div>
-
-      <div v-else>
+        <p class="redirect-message">{{ t('common.redirecting') || 'Redirecting to login...' }}</p>
+      </div>      <div v-else>
         <h1 class="auth-title">{{ t('common.error') }}</h1>
         <div class="error-icon">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" viewBox="0 0 16 16">
@@ -34,17 +31,10 @@
         <p class="error-message">{{ verificationError || t('validation.required') }}</p>
         <p>{{ additionalErrorInfo }}</p>
         
-        <div v-if="showResendOption" class="resend-container">
-          <p>{{ t('register.checkInbox') }}</p>
-          <button 
-            @click="resendVerificationEmail" 
-            class="auth-btn"
-            :disabled="resending"
-          >
-            {{ resending ? t('register.sending') : t('register.resendVerificationEmail') }}
-          </button>
-          <p v-if="resendSuccess" class="success-text">{{ t('register.emailSentSuccess') }}</p>
-        </div>
+        <p class="login-instruction">{{ t('login.trySigningIn') || 'Please try signing in to your account' }}</p>
+        <button @click="navigateToLogin" class="auth-btn primary-action">
+          {{ t('login.signIn') }}
+        </button>
         
         <div class="action-links">
           <router-link to="/login" class="auth-link">{{ t('login.signIn') }}</router-link>
@@ -86,6 +76,9 @@ onMounted(async () => {
   console.log('VerifyEmail mounted, token present:', !!token);
   console.log('Current URL:', window.location.href);
   
+  // Log out any existing user before verification
+  auth.logout();
+  
   if (!token) {
     console.error('No token found in URL parameters!');
     isVerifying.value = false;
@@ -103,17 +96,14 @@ onMounted(async () => {
     if (success) {
       console.log('Email verification successful');
       isVerified.value = true;
+      // Automatically redirect to login page after a short delay
+      setTimeout(() => {
+        navigateToLogin();
+      }, 1500);
     } else {
       console.error('Verification failed:', auth.state.error);
       verificationError.value = auth.state.error || t('common.error');
-      // Check if user is logged in to show resend option
-      showResendOption.value = !!auth.state.user && !auth.state.user.confirmed;
-      
-      // Additional debugging for error case
-      console.log('User logged in:', !!auth.state.user);
-      if (auth.state.user) {
-        console.log('User confirmed status:', auth.state.user.confirmed);
-      }
+      showResendOption.value = false; // Don't show resend option since user is logged out
     }
   } catch (error: any) {
     console.error('Error in verification process:', error);
@@ -121,14 +111,14 @@ onMounted(async () => {
     isVerifying.value = false;
     verificationError.value = t('common.error');
     additionalErrorInfo.value = t('register.verifyEmailNote');
-    
-    // Check if user is logged in to show resend option
-    showResendOption.value = !!auth.state.user && !auth.state.user.confirmed;
+    showResendOption.value = false; // Don't show resend option since user is logged out
   }
 });
 
 // Navigate to login page
 function navigateToLogin() {
+  // Ensure user is logged out before redirecting
+  auth.logout();
   router.push('/login');
 }
 
