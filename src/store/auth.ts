@@ -3,9 +3,7 @@ import { reactive } from 'vue';
 import { supabase } from '@/api/supabase';
 import bcrypt from 'bcryptjs';
 import axios from 'axios';
-
-// Check if we're in development mode
-const isDevelopment = import.meta.env.MODE === 'development'
+import { isDevelopment, buildApiUrl } from '@/utils/environment';
 
 export interface User {
   userId: number;
@@ -377,10 +375,9 @@ async function register(username: string, email: string, password: string) {
       roleId: newUser.role_id,
       confirmed: false // Default to true until the column exists
     };
-    
-    // In production, try to send verification email
+      // In production, try to send verification email
     // In development, skip email verification
-    if (!isDevelopment) {
+    if (!isDevelopment()) {
       try {
         await sendVerificationEmail(newUser.id, email, username);
       } catch (emailError) {
@@ -410,12 +407,20 @@ async function register(username: string, email: string, password: string) {
 // Send verification email
 async function sendVerificationEmail(userId: number, email: string, username: string) {
   try {
-    const response = await axios.post('/api/send-verification-email/', {
+    console.log('Sending verification email for user:', email);
+    // First, check if we're running on Vercel
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    const apiPath = '/api/send-verification-email/';
+    
+    console.log('Using API endpoint:', baseUrl + apiPath);
+    
+    const response = await axios.post(baseUrl + apiPath, {
       userId,
       email,
       username
     });
     
+    console.log('Send verification email response:', response.data);
     return response.data.success;
   } catch (error) {
     console.error('Error sending verification email:', error);
@@ -429,7 +434,25 @@ async function verifyEmail(token: string) {
   state.error = null;
   
   try {
-    const response = await axios.post('/api/verify-email/', { token });
+    console.log('Verifying email with token:', token);      // For development/testing: bypass API verification
+    if (isDevelopment()) {
+      console.log('Development mode: Auto-verifying email');
+      if (state.user) {
+        state.user.confirmed = true;
+        localStorage.setItem('user', JSON.stringify(state.user));
+      }
+      return true;
+    }
+    
+    // First, check if we're running on Vercel
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || '';
+    const apiPath = '/api/verify-email/';
+    
+    console.log('Using verification API endpoint:', baseUrl + apiPath);
+    console.log('Sending token to API:', token);
+    
+    const response = await axios.post(baseUrl + apiPath, { token });
+    console.log('Verification API response:', response.data);
     
     if (response.data.success) {
       // If user is already set in state, update confirmed status
@@ -441,10 +464,14 @@ async function verifyEmail(token: string) {
       return true;
     }
     
-    return false;
-  } catch (error: any) {
+    return false;  } catch (error: any) {
     console.error('Email verification error:', error);
     const errorMessage = error.response?.data?.error || 'Failed to verify email';
+    console.error('Error details:', {
+      message: error.message,
+      response: error.response?.data,
+      status: error.response?.status
+    });
     state.error = errorMessage;
     return false;
   } finally {

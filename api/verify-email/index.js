@@ -9,18 +9,33 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 const TOKEN_EXPIRY_HOURS = 24;
 
 export default async function handler(req, res) {
+  console.log('Verify email API called, method:', req.method);
+
+  // Add CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  
+  // Handle OPTIONS request (preflight)
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
   // Only allow POST requests for API security
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
+    console.log('Verify email request body:', req.body);
     const { token } = req.body;
     
     if (!token) {
       return res.status(400).json({ error: 'Token is required' });
     }
 
+    console.log('Verifying token:', token);
+    
     // Decode the token to get user ID and timestamp
     let decodedToken;
     try {
@@ -48,13 +63,12 @@ export default async function handler(req, res) {
           confirmed: true,
           updated_at: new Date().toISOString() 
         })
-        .eq('id', userId);
-
-      if (updateError) {
+        .eq('id', userId);      if (updateError) {
         console.error('Error updating user:', updateError);
         return res.status(500).json({ error: 'Failed to verify email' });
       }
 
+      console.log('Email verified successfully for user ID:', userId);
       return res.status(200).json({ 
         success: true,
         message: 'Email verified successfully' 

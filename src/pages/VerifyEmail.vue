@@ -83,6 +83,8 @@ const token = route.query.token as string;
 
 // Verify email on component mount
 onMounted(async () => {
+  console.log('VerifyEmail mounted, token present:', !!token);
+  
   if (!token) {
     isVerifying.value = false;
     verificationError.value = t('validation.required');
@@ -91,17 +93,21 @@ onMounted(async () => {
   }
 
   try {
+    console.log('Attempting to verify email with token:', token.substring(0, 10) + '...');
     const success = await auth.verifyEmail(token);
+    console.log('Verification result:', success);
     isVerifying.value = false;
     
     if (success) {
       isVerified.value = true;
     } else {
       verificationError.value = auth.state.error || t('common.error');
+      console.error('Verification failed:', auth.state.error);
       // Check if user is logged in to show resend option
       showResendOption.value = !!auth.state.user && !auth.state.user.confirmed;
     }
   } catch (error) {
+    console.error('Error in verification process:', error);
     isVerifying.value = false;
     verificationError.value = t('common.error');
     additionalErrorInfo.value = t('register.verifyEmailNote');
