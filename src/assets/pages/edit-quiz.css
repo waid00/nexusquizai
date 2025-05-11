@@ -12,7 +12,6 @@
   letter-spacing: 0.5px;
 }
 
-/* Loading and error states */
 .loading-container, .error-container {
   display: flex;
   flex-direction: column;
@@ -43,7 +42,6 @@
   max-width: 400px;
 }
 
-/* Form layout */
 .edit-form-container {
   display: flex;
   flex-direction: column;
@@ -108,7 +106,6 @@ select:focus {
   border-color: var(--accent);
 }
 
-/* Checkbox styling */
 input[type="checkbox"] {
   margin-right: var(--spacing-xs);
 }
@@ -124,7 +121,6 @@ input[type="checkbox"] {
   margin-left: 24px;
 }
 
-/* Question Cards */
 .empty-questions {
   background: rgba(255, 255, 255, 0.05);
   padding: var(--spacing-md);
@@ -245,7 +241,6 @@ input[type="checkbox"] {
   animation: slideDown 0.3s ease-out;
 }
 
-/* Options styling */
 .options-container {
   margin-top: var(--spacing-md);
 }
@@ -315,7 +310,6 @@ h4 {
   color: #ff4757;
 }
 
-/* True/False options */
 .true-false-options {
   display: flex;
   gap: var(--spacing-md);
@@ -331,16 +325,15 @@ h4 {
   margin-left: var(--spacing-xs);
 }
 
-/* Action buttons */
 .action-buttons {
   display: flex;
   gap: var(--spacing-md);
   margin-top: var(--spacing-md);
-  padding: 0 var(--spacing-md); /* Add padding to align with content above */
+  padding: 0 var(--spacing-md); 
 }
 
 .save-btn, .cancel-btn {
-  flex: 1; /* Make buttons take full width */
+  flex: 1; 
   padding: 12px;
   font-size: 1rem;
   border-radius: var(--radius-sm);
@@ -352,9 +345,9 @@ h4 {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 44px; /* Consistent height */
+  height: 44px; 
   box-sizing: border-box;
-  margin-top: 0px !important; /* Override margin-top from action-buttons */
+  margin-top: 0px !important; 
 }
 
 .add-btn {
@@ -400,7 +393,6 @@ h4 {
   margin-right: 4px;
 }
 
-/* Validation feedback */
 .form-input.valid {
   border-color: var(--accent);
   background-color: rgba(46, 213, 115, 0.05);
@@ -421,7 +413,6 @@ input.invalid, textarea.invalid, select.invalid {
   background-color: rgba(255, 89, 89, 0.05);
 }
 
-/* Animations */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
@@ -431,7 +422,6 @@ input.invalid, textarea.invalid, select.invalid {
   to { opacity: 1; max-height: 1000px; }
 }
 
-/* Responsive layout */
 @media (max-width: 768px) {
   .edit-quiz {
     padding: var(--spacing-md);

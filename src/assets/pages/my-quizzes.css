@@ -180,19 +180,17 @@ input:checked + .slider:before {
   transform: translateX(14px);
 }
 
-/* Quiz Card Footer customization for My Quizzes */
 .quiz-card-footer, 
 .quiz-card-footer.upvote, 
 .quiz-card-footer.view-details,
 .quiz-card-footer.take-quiz {
-  /* Standardize height for all footer buttons */
+
   height: 38px;
   font-size: 0.9rem;
   line-height: 1;
   box-sizing: border-box;
 }
 
-/* Make class names more specific to MyQuizzes page to avoid conflicts with attempt.css */
 .my-quizzes .quiz-card-footer {
   flex: 1;
   padding: var(--spacing-xs) var(--spacing-xs);
@@ -208,7 +206,7 @@ input:checked + .slider:before {
   gap: 5px;
   border-radius: 0;
   font-size: 0.9rem;
-  height: 38px; /* Explicit height to override other styles */
+  height: 38px; 
   line-height: 1;
   box-sizing: border-box;
 }
@@ -220,20 +218,20 @@ input:checked + .slider:before {
 .my-quizzes .quiz-card-footer.upvote {
   border-radius: 0 0 0 var(--radius-md);
   border-right: 1px solid var(--input-border);
-  height: 38px; /* Explicit height */
+  height: 38px; 
 }
 
 .my-quizzes .quiz-card-footer.view-details {
   border-radius: 0 0 var(--radius-md) 0;
   border-left: 1px solid var(--input-border);
-  height: 38px; /* Explicit height */
+  height: 38px; 
 }
 
 .my-quizzes .quiz-card-footer.take-quiz {
   background: var(--accent);
   color: white;
   border-radius: 0;
-  height: 38px; /* Explicit height */
+  height: 38px; 
 }
 
 .my-quizzes .quiz-card-footer.take-quiz:hover {
@@ -243,19 +241,19 @@ input:checked + .slider:before {
 .my-quizzes .quiz-card.easy .quiz-card-footer.take-quiz {
   background: #2ed573;
   color: black;
-  height: 38px; /* Explicit height */
+  height: 38px;
 }
 
 .my-quizzes .quiz-card.medium .quiz-card-footer.take-quiz {
   background: #ffab00;
   color: black;
-  height: 38px; /* Explicit height */
+  height: 38px;
 }
 
 .my-quizzes .quiz-card.hard .quiz-card-footer.take-quiz {
   background: #ff4757;
   color: black;
-  height: 38px; /* Explicit height */
+  height: 38px;
 }
 
 .my-quizzes .quiz-card.easy .quiz-card-footer.take-quiz:hover {
@@ -270,7 +268,6 @@ input:checked + .slider:before {
   background: color-mix(in srgb, #ff4757 90%, white);
 }
 
-/* Attempts specific styling */
 .attempts-list {
   display: flex;
   flex-direction: column;
@@ -324,7 +321,6 @@ input:checked + .slider:before {
   font-size: 0.85rem;
 }
 
-/* Pass status badge */
 .pass-status {
   font-size: 0.8rem;
   font-weight: 500;
@@ -340,7 +336,6 @@ input:checked + .slider:before {
   color: #2ed573;
 }
 
-/* Delete button */
 .delete-btn {
   background: rgba(255, 71, 87, 0.15);
   color: #ff4757;
@@ -353,19 +348,16 @@ input:checked + .slider:before {
   background: rgba(255, 71, 87, 0.3);
 }
 
-/* My Quizzes specific stat styling */
 .my-quizzes .quiz-stats .stat-item:nth-child(3) {
   grid-column: 1 / span 2;
   width: 100%;
 }
 
-/* Make the Created stat in MyQuizzes span the full width */
 .my-quizzes .quiz-card-body .quiz-stats .stat-item:nth-child(3) {
-  grid-column: 1 / span 2 !important; /* Using !important to override any other styles */
+  grid-column: 1 / span 2 !important;
   width: 100%;
 }
 
-/* Infinite scrolling styles */
 .load-more-trigger {
   height: 80px;
   width: 100%;
@@ -393,7 +385,6 @@ input:checked + .slider:before {
   font-style: italic;
 }
 
-/* Responsive adjustments */
 @media (min-width: 1440px) {
   .quiz-list {
     grid-template-columns: repeat(2, 1fr);

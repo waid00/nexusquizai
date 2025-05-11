@@ -5,7 +5,7 @@ import bcrypt from 'bcryptjs';
 import axios from 'axios';
 
 // Check if we're in development mode
-const isDevelopment = import.meta.env.MODE === 'development';
+const isDevelopment = import.meta.env.MODE === 'development'
 
 export interface User {
   userId: number;
@@ -410,7 +410,7 @@ async function register(username: string, email: string, password: string) {
 // Send verification email
 async function sendVerificationEmail(userId: number, email: string, username: string) {
   try {
-    const response = await axios.post('/api/send-verification-email', {
+    const response = await axios.post('/api/send-verification-email/', {
       userId,
       email,
       username
@@ -429,7 +429,7 @@ async function verifyEmail(token: string) {
   state.error = null;
   
   try {
-    const response = await axios.post('/api/verify-email', { token });
+    const response = await axios.post('/api/verify-email/', { token });
     
     if (response.data.success) {
       // If user is already set in state, update confirmed status

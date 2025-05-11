@@ -31,7 +31,6 @@
     color: var(--text-alt);
   }
   
-  /* Verification screen styles */
   .verification-container {
     animation: fadeIn 0.5s ease;
   }
@@ -78,7 +77,6 @@
     font-size: 0.9rem;
   }
   
-  /* Recovery phrase styles */
   .recovery-phrase-container {
     animation: fadeIn 0.5s ease;
   }
@@ -222,7 +220,6 @@
     outline: none;
   }
   
-  /* Mobile responsiveness improvements */
   @media (max-width: 768px) {
     .register-page {
       padding: 1.5rem 1rem;
@@ -302,7 +299,6 @@
     }
   }
   
-  /* Adjust animations to be less intensive on mobile */
   @media (max-width: 576px) {
     .verification-container,
     .recovery-phrase-container {

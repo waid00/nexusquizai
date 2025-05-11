@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/$1" }
+  ],
+  "routes": [
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/index.html" }
+  ],
+  "env": {
+    "VITE_SUPABASE_URL": "${VITE_SUPABASE_URL}",
+    "VITE_SUPABASE_KEY": "${VITE_SUPABASE_KEY}",
+    "SMTP_HOST": "${SMTP_HOST}",
+    "SMTP_PORT": "${SMTP_PORT}",
+    "SMTP_USER": "${SMTP_USER}",
+    "SMTP_PASS": "${SMTP_PASS}",
+    "SMTP_SECURE": "${SMTP_SECURE}",
+    "APP_URL": "https://nexusquizai.vercel.app",
+    "CLEANUP_SECRET_TOKEN": "${CLEANUP_SECRET_TOKEN}"
+  }
+}

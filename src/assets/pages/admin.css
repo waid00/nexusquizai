@@ -12,7 +12,6 @@ admin-page {
     letter-spacing: 0.5px;
   }
   
-  /* Loading and error states */
   .loading-container, .error-container {
     display: flex;
     flex-direction: column;
@@ -42,7 +41,6 @@ admin-page {
     max-width: 400px;
   }
   
-  /* Admin tabs */
   .admin-tabs {
     display: flex;
     border-bottom: 1px solid var(--input-border);
@@ -95,7 +93,6 @@ admin-page {
     font-weight: 500;
   }
   
-  /* Search bar */
   .search-bar {
     margin-bottom: var(--spacing-md);
   }
@@ -110,7 +107,6 @@ admin-page {
     font-size: 1rem;
   }
   
-  /* Table styles */
   .table-wrapper {
     overflow-x: auto;
     background: var(--panel-bg);
@@ -150,7 +146,6 @@ admin-page {
     padding-right: var(--spacing-md);
   }
   
-  /* Status badges */
   .status-badge {
     display: inline-block;
     padding: 0.2rem 0.6rem;
@@ -169,7 +164,6 @@ admin-page {
     color: #ff4757;
   }
   
-  /* Action buttons */
   .actions-cell {
     display: flex;
     gap: 0.5rem;
@@ -224,7 +218,6 @@ admin-page {
     background: rgba(52, 152, 219, 0.3);
   }
   
-  /* Role select */
   .role-select {
     padding: 0.2rem 0.4rem;
     background: var(--input-bg);
@@ -234,7 +227,6 @@ admin-page {
     font-size: 0.9rem;
   }
   
-  /* Edit input */
   .edit-input {
     width: 100%;
     padding: 0.3rem 0.5rem;
@@ -245,7 +237,6 @@ admin-page {
     font-size: 0.9rem;
   }
   
-  /* Category form */
   .category-form {
     margin-bottom: var(--spacing-md);
   }
@@ -266,7 +257,6 @@ admin-page {
     font-size: 1rem;
   }
   
-  /* Stats grid */
   .stats-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -294,13 +284,10 @@ admin-page {
     font-size: 0.9rem;
   }
   
-  /* Animation */
   @keyframes spin {
     to { transform: rotate(360deg); }
   }
   
-  /* Comprehensive Responsive Layouts */
-  /* Large Desktops (1200px and up) */
   @media (min-width: 1200px) {
     .admin-page {
       padding: var(--spacing-xl) var(--spacing-lg);
@@ -315,7 +302,6 @@ admin-page {
     }
   }
   
-  /* Standard Desktops (992px to 1199px) */
   @media (min-width: 992px) and (max-width: 1199px) {
     .admin-page {
       max-width: 95%;
@@ -327,7 +313,6 @@ admin-page {
     }
   }
   
-  /* Tablets (768px to 991px) */
   @media (min-width: 768px) and (max-width: 991px) {
     .admin-page {
       padding: var(--spacing-md);
@@ -368,10 +353,9 @@ admin-page {
       width: 100%;
     }
     
-    /* Data columns visibility for certain screen sizes */
     .data-table th:nth-child(1),
     .data-table td:nth-child(1) {
-      display: none; /* Hide ID column on tablets */
+      display: none; 
     }
     
     .action-btn {
@@ -379,7 +363,6 @@ admin-page {
     }
   }
   
-  /* Large Mobiles (576px to 767px) */
   @media (min-width: 576px) and (max-width: 767px) {
     .admin-page {
       padding: var(--spacing-sm);
@@ -426,7 +409,6 @@ admin-page {
       flex-direction: column;
     }
     
-    /* Responsive tables for smaller screens */
     .data-table {
       font-size: 0.85rem;
     }
@@ -435,7 +417,7 @@ admin-page {
     .data-table td:nth-child(1),
     .data-table th:nth-child(5),
     .data-table td:nth-child(5) {
-      display: none; /* Hide ID and Created columns */
+      display: none;
     }
     
     .actions-cell {
@@ -450,7 +432,6 @@ admin-page {
     }
   }
   
-  /* Small Mobiles (400px to 575px) */
   @media (max-width: 575px) {
     .admin-page {
       padding: 0.5rem;
@@ -502,14 +483,13 @@ admin-page {
       margin-right: 0.5rem;
     }
     
-    /* Responsive data table for mobile */
     .data-table {
       display: block;
       font-size: 0.8rem;
     }
     
     .data-table thead {
-      display: none; /* Hide table headers on mobile */
+      display: none; 
     }
     
     .data-table tbody, 
@@ -572,7 +552,6 @@ admin-page {
     }
   }
   
-  /* Extra Small Mobiles (less than 400px) */
   @media (max-width: 399px) {
     .tab-btn {
       font-size: 0.75rem;
@@ -588,7 +567,6 @@ admin-page {
     }
   }
   
-  /* Touch device optimizations */
   @media (hover: none) and (pointer: coarse) {
     .tab-btn {
       padding-top: 0.75rem;

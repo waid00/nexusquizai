@@ -1,4 +1,3 @@
-<!-- src/components/ModeToggle.vue -->
 <template>
     <div class="mode-toggle">
       <div class="toggle-container" :class="{ 'file-active': modelValue }">

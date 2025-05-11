@@ -9,7 +9,6 @@
   color: var(--text-main);
 }
 
-/* Enhanced Responsive Layout */
 @media (min-width: 1200px) {
   .quiz-details {
     max-width: 1100px;
@@ -231,7 +230,6 @@
   }
 }
 
-/* Quiz details layout */
 .quiz-details-container {
   display: flex;
   flex-direction: column;
@@ -245,7 +243,6 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* Quiz meta information */
 .quiz-meta {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -269,7 +266,6 @@
   color: var(--text-main);
 }
 
-/* Difficulty badges */
 .difficulty-badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;
@@ -294,7 +290,6 @@
   color: #ff4757;
 }
 
-/* Quiz description & author */
 .quiz-info-container {
   display: flex;
   gap: var(--spacing-md);
@@ -326,7 +321,6 @@
   color: var(--text-main);
 }
 
-/* Media query adjustments for smaller screens */
 @media (max-width: 767px) {
   .quiz-info-container {
     flex-direction: column;
@@ -337,7 +331,6 @@
   }
 }
 
-/* Quiz actions */
 .quiz-actions {
   display: flex;
   gap: var(--spacing-md);
@@ -351,7 +344,6 @@
   flex: 1;
 }
 
-/* Button styling */
 .btn {
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-sm);
@@ -429,7 +421,6 @@
   min-width: 120px;
 }
 
-/* Quiz statistics */
 .quiz-stats {
   margin-bottom: var(--spacing-md);
   padding: var(--spacing-md) var(--spacing-lg);
@@ -489,7 +480,6 @@
   line-height: 1.4;
 }
 
-/* Question success bars */
 .difficulty-distribution {
   margin-top: var(--spacing-md);
 }
@@ -558,7 +548,6 @@
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-/* Advanced analytics */
 .advanced-analytics {
   margin-bottom: var(--spacing-md);
   background: var(--panel-bg);
@@ -599,7 +588,6 @@
   margin-top: var(--spacing-md);
 }
 
-/* Questions preview */
 .questions-preview {
   margin-bottom: var(--spacing-md);
 }
@@ -676,7 +664,6 @@
   transform: rotate(180deg);
 }
 
-/* Question details (expanded state) */
 .question-details {
   padding: var(--spacing-md);
   background: var(--panel-bg);
@@ -735,7 +722,6 @@
   font-size: 0.9rem;
 }
 
-/* Attempts table */
 .attempts-table {
   width: 100%;
   border-collapse: collapse;
@@ -788,7 +774,6 @@
   text-decoration: underline;
 }
 
-/* Loading and error states */
 .loading-container, .error-container {
   display: flex;
   flex-direction: column;
@@ -824,7 +809,6 @@
   max-width: 400px;
 }
 
-/* Empty state */
 .no-attempts {
   text-align: center;
   padding: var(--spacing-lg);

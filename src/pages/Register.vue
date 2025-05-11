@@ -13,7 +13,7 @@
 
         <form @submit.prevent="handleRegister">
           <div class="form-group">
-            <label for="username" class="form-label">{{ t('account.username') }}</label>
+            <label for="username" class="form-label">{{ t('account.username') }}*</label>
             <input 
               id="username" 
               v-model="formData.username" 
@@ -38,7 +38,7 @@
           </div>
 
           <div class="form-group">
-            <label for="email" class="form-label">{{ t('account.emailAddress') }}</label>
+            <label for="email" class="form-label">{{ t('account.emailAddress') }}*</label>
             <input 
               id="email" 
               v-model="formData.email" 
@@ -63,7 +63,7 @@
           </div>
 
           <div class="form-group">
-            <label for="password" class="form-label">{{ t('account.password') }}</label>
+            <label for="password" class="form-label">{{ t('account.password') }}*</label>
             <input 
               id="password" 
               v-model="formData.password" 
@@ -146,7 +146,7 @@
           </div>
 
           <div class="form-group">
-            <label for="confirmPassword" class="form-label">{{ t('register.confirmPassword') }}</label>
+            <label for="confirmPassword" class="form-label">{{ t('register.confirmPassword') }}*</label>
             <input 
               id="confirmPassword" 
               v-model="formData.confirmPassword" 

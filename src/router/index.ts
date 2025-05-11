@@ -88,11 +88,19 @@ const routes: RouteRecordRaw[] = [
     name: 'ForgotPassword',
     component: ForgotPassword,
     meta: { guestOnly: true }
-  },
-  {
+  },  {
     path: '/verify-email',
     name: 'VerifyEmail',
     component: VerifyEmail
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'NotFound',
+    component: Home,
+    beforeEnter: (to, from, next) => {
+      console.warn(`Route not found: ${to.fullPath}, redirecting to Home`);
+      next({ name: 'Home' });
+    }
   }
 ]
 

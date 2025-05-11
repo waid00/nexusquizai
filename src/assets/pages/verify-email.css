@@ -80,8 +80,6 @@
     font-size: 0.9rem;
   }
   
-  /* Comprehensive Responsive Layouts */
-  /* Large Desktops (1200px and up) */
   @media (min-width: 1200px) {
     .auth-container {
       max-width: 520px;
@@ -113,14 +111,12 @@
     }
   }
   
-  /* Standard Desktops (992px to 1199px) */
   @media (min-width: 992px) and (max-width: 1199px) {
     .auth-container {
       max-width: 500px;
     }
   }
   
-  /* Tablets (768px to 991px) */
   @media (min-width: 768px) and (max-width: 991px) {
     .auth-container {
       max-width: 450px;
@@ -132,7 +128,6 @@
     }
   }
   
-  /* Large Mobiles (576px to 767px) */
   @media (min-width: 576px) and (max-width: 767px) {
     .verify-email-page {
       padding: 1.5rem 1rem;
@@ -175,7 +170,6 @@
     }
   }
   
-  /* Small Mobiles (400px to 575px) */
   @media (max-width: 575px) {
     .verify-email-page {
       padding: 1rem 0.8rem;
@@ -241,7 +235,6 @@
     }
   }
   
-  /* Extra Small Mobiles (less than 400px) */
   @media (max-width: 399px) {
     .verify-email-page {
       padding: 0.8rem 0.5rem;
@@ -289,7 +282,6 @@
     }
   }
   
-  /* Touch device optimizations */
   @media (hover: none) and (pointer: coarse) {
     .auth-btn {
       min-height: 44px;

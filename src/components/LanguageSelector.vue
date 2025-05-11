@@ -1,4 +1,3 @@
-// src/components/LanguageSelector.vue
 <template>
   <div class="language-selector">
     <button 

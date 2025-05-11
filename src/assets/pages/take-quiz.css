@@ -1,5 +1,3 @@
-/* Take Quiz Page Styles */
-
 .take-quiz {
   max-width: 800px;
   margin: 0 auto;
@@ -14,7 +12,6 @@
   letter-spacing: 0.5px;
 }
 
-/* Loading state */
 .loading-container {
   display: flex;
   flex-direction: column;
@@ -37,7 +34,6 @@
   to { transform: rotate(360deg); }
 }
 
-/* Quiz taking styles */
 .section {
   border-radius: var(--radius-md);
   padding: var(--spacing-md);
@@ -225,7 +221,6 @@
   margin-top: var(--spacing-md);
 }
 
-/* Results styles */
 .quiz-results-section {
   animation: fadeIn 0.3s ease-in-out;
 }
@@ -355,8 +350,6 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-/* Comprehensive Responsive Layouts */
-/* Large Desktops (1200px and up) */
 @media (min-width: 1200px) {
   .take-quiz {
     max-width: 900px;
@@ -381,7 +374,6 @@
   }
 }
 
-/* Standard Desktops (992px to 1199px) */
 @media (min-width: 992px) and (max-width: 1199px) {
   .take-quiz {
     max-width: 800px;
@@ -392,7 +384,6 @@
   }
 }
 
-/* Tablets (768px to 991px) */
 @media (min-width: 768px) and (max-width: 991px) {
   .take-quiz {
     padding: var(--spacing-md);
@@ -444,7 +435,6 @@
   }
 }
 
-/* Large Mobiles (576px to 767px) */
 @media (min-width: 576px) and (max-width: 767px) {
   .take-quiz {
     padding: var(--spacing-sm);
@@ -529,7 +519,6 @@
   }
 }
 
-/* Small Mobiles (400px to 575px) */
 @media (min-width: 400px) and (max-width: 575px) {
   .take-quiz {
     padding: var(--spacing-xs);
@@ -563,7 +552,7 @@
   }
   
   .question-header {
-    padding-right: 25px; /* Space for indicator */
+    padding-right: 25px;
   }
   
   .question-number {
@@ -671,7 +660,6 @@
   }
 }
 
-/* Extra Small Mobiles (less than 400px) */
 @media (max-width: 399px) {
   .take-quiz {
     padding: 0.4rem;
@@ -705,7 +693,7 @@
   }
   
   .question-header {
-    padding-right: 20px; /* Space for indicator */
+    padding-right: 20px;
   }
   
   .question-number {
@@ -811,7 +799,6 @@
   }
 }
 
-/* Touch device optimizations */
 @media (hover: none) and (pointer: coarse) {
   .options-list.interactive .option-item {
     min-height: 44px;

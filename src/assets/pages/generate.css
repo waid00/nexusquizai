@@ -1,4 +1,3 @@
-/* src/assets/pages/generate.css */
 :root {
     /* darker accent for the handle */
     --accent-dark: #27ae60;
@@ -29,7 +28,6 @@
     --shadow-lg: 0 6px 16px rgba(0, 0, 0, 0.15);
   }
   
-  /* Base container */
   .generate {
     max-width: 800px;
     margin: 0 auto;
@@ -39,7 +37,6 @@
     gap: var(--spacing-lg);
   }
   
-  /* Page title */
   .page-title {
     text-align: center;
     margin-bottom: var(--spacing-md);
@@ -48,7 +45,6 @@
     letter-spacing: 0.5px;
   }
   
-  /* Section styling */
   .section {
     border-radius: var(--radius-md);
     padding: var(--spacing-md);
@@ -63,7 +59,6 @@
     font-weight: 500;
   }
   
-  /* Toggle section */
   .toggle-section {
     display: flex;
     justify-content: center;
@@ -72,7 +67,6 @@
     padding: 0;
   }
   
-  /* Content input areas */
   .content-section {
     margin-bottom: var(--spacing-md);
     margin-top: var(--spacing-xl);
@@ -100,7 +94,6 @@
     box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
   }
   
-  /* File picker */
   .file-input {
     display: flex;
     align-items: center;
@@ -148,7 +141,6 @@
     border-radius: var(--radius-sm);
   }
   
-  /* File Button */
   .file-btn {
     padding: 0.6rem 1.2rem;
     background: var(--input-bg);
@@ -176,14 +168,12 @@
     color: var(--text-main);
   }
 
-  /* Button container */
   .button-container {
     display: flex;
     justify-content: center;
     margin: var(--spacing-xs) 0;
   }
   
-  /* Preview button */
   .preview-btn {
     background: var(--panel-bg);
     color: var(--text-main);
@@ -202,7 +192,6 @@
     box-shadow: var(--shadow-sm);
   }
   
-  /* Preview section */
   .preview-section {
     max-height: 300px;
     overflow-y: auto;
@@ -217,7 +206,6 @@
     line-height: 1.6;
   }
   
-  /* Parameters section */
   .parameters-section {
     text-align: center;
   }
@@ -263,7 +251,6 @@
     box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.2);
   }
   
-  /* Generate button */
   .generate-btn {
     padding: var(--spacing-sm) var(--spacing-xl);
     margin-top: var(--spacing-xl);
@@ -296,7 +283,6 @@
     opacity: 0.7;
   }
   
-  /* Results section */
   .results-section {
     display: flex;
     flex-direction: column;
@@ -328,7 +314,6 @@
     color: #fff;
   }
   
-  /* Question list */
   .question-list {
     list-style: none;
     padding: 0;
@@ -348,7 +333,7 @@
   
   .question-header {
     margin-bottom: var(--spacing-sm);
-    padding-right: 60px; /* Space for remove button */
+    padding-right: 60px;
   }
   
   .question-number {
@@ -360,7 +345,6 @@
     line-height: 1.5;
   }
   
-  /* Options list */
   .options-list {
     list-style: none;
     padding-left: var(--spacing-lg);
@@ -383,7 +367,6 @@
     font-weight: bold;
   }
   
-  /* Remove button */
   .remove-btn {
     position: absolute;
     top: var(--spacing-sm);
@@ -402,7 +385,6 @@
     background: rgba(255, 87, 87, 0.4);
   }
   
-  /* Quiz name input */
   .quiz-name-input {
     margin: var(--spacing-md) 0;
     display: flex;
@@ -441,7 +423,6 @@
     color: var(--accent);
   }
 
-  /* Action buttons */
   .action-buttons {
     display: flex;
     gap: var(--spacing-sm);
@@ -488,7 +469,6 @@
     background: color-mix(in srgb, var(--accent) 80%, white);
   }
 
-  /* Interactive quiz taking styles */
   .quiz-taking-section {
     animation: fadeIn 0.3s ease-in-out;
   }
@@ -636,7 +616,6 @@
     cursor: not-allowed;
   }
 
-  /* Quiz results display */
   .quiz-results-section {
     animation: fadeIn 0.3s ease-in-out;
   }
@@ -746,7 +725,6 @@
     font-size: 0.9rem;
   }
 
-  /* Category section styles */
   .category-section {
     margin-top: var(--spacing-md);
     margin-bottom: var(--spacing-md);
@@ -763,7 +741,6 @@
     font-size: 0.9rem;
   }
 
-  /* Custom Prompt Section */
   .prompt-section {
     margin-bottom: var(--spacing-md);
     background: var(--panel-bg);
@@ -836,7 +813,6 @@
     cursor: pointer;
   }
 
-  /* Section Header */
   .section-header {
     display: flex;
     justify-content: space-between;
@@ -900,7 +876,6 @@
     font-weight: bold;
   }
 
-  /* Loading state styles */
   .loading-text {
     display: flex;
     align-items: center;
@@ -938,7 +913,6 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Quiz Actions */
   .quiz-actions {
     margin-top: var(--spacing-md);
     display: flex;
@@ -946,13 +920,11 @@
     gap: var(--spacing-md);
   }
 
-  /* Required marker */
   .required-marker {
     color: rgb(255, 70, 70);
     font-weight: bold;
   }
 
-  /* Animations */
   @keyframes slide-in {
     from {
       opacity: 0;
@@ -964,7 +936,6 @@
     }
   }
   
-  /* Responsive adjustments */
   @media (max-width: 768px) {
     .generate {
       padding: var(--spacing-sm);
@@ -1011,11 +982,6 @@
     }
   }
 
-  /* Enhanced Responsive Styles for Generate Page */
-
-  /* Comprehensive Responsive Design */
-
-  /* Large Desktops (1440px and up) */
   @media (min-width: 1440px) {
     .generate {
       max-width: 960px;
@@ -1031,14 +997,12 @@
     }
   }
 
-  /* Standard Desktops (992px to 1439px) */
   @media (min-width: 992px) and (max-width: 1439px) {
     .generate {
       max-width: 800px;
     }
   }
 
-  /* Tablets (768px to 991px) */
   @media (min-width: 768px) and (max-width: 991px) {
     .generate {
       max-width: 90%;
@@ -1076,7 +1040,6 @@
     }
   }
 
-  /* Large Mobiles (576px to 767px) */
   @media (min-width: 576px) and (max-width: 767px) {
     .generate {
       max-width: 100%;
@@ -1154,7 +1117,6 @@
     }
   }
 
-  /* Small Mobiles (375px to 575px) */
   @media (min-width: 375px) and (max-width: 575px) {
     .generate {
       padding: var(--spacing-xs);
@@ -1233,7 +1195,6 @@
       padding-left: var(--spacing-sm);
     }
     
-    /* Quiz taking mode on small screens */
     .quiz-taking-section {
       padding: var(--spacing-xs);
     }
@@ -1262,7 +1223,6 @@
       margin: var(--spacing-xs) 0;
     }
     
-    /* Quiz results on small screens */
     .quiz-results-section {
       padding: var(--spacing-xs);
     }
@@ -1294,7 +1254,6 @@
       width: 100%;
     }
     
-    /* Custom prompt section on small screens */
     .prompt-controls {
       flex-direction: column;
       align-items: flex-start;
@@ -1314,7 +1273,6 @@
     }
   }
 
-  /* Extra Small Mobiles (up to 374px) */
   @media (max-width: 374px) {
     .generate {
       padding: var(--spacing-xs) 8px;
@@ -1385,10 +1343,7 @@
       align-self: flex-end;
     }
   }
-
-  /* Touch-specific optimizations */
   @media (hover: none) and (pointer: coarse) {
-    /* Make buttons and interactive elements larger for touch */
     .select-input, 
     .number-input,
     .file-btn,
@@ -1402,7 +1357,7 @@
       height: 16px;
     }
     
-    /* Improve spacing for better touch targets */
+
     .options-list.interactive .option-item {
       margin-bottom: 12px;
       padding: 12px;

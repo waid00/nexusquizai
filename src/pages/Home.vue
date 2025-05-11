@@ -338,6 +338,4 @@ function viewQuizDetails(quiz: any) {
 @import '../assets/pages/home.css';
 @import '../assets/components/quiz-cards.css';
 
-/* Add styles for infinite scrolling loading indicator */
-
 </style>

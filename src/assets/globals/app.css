@@ -5,8 +5,8 @@
   
   header {
     display: flex;
-    align-items: center; /* Vertically center all direct children */
-    justify-content: flex-start; /* Align items to the start, let margin handle spacing */
+    align-items: center;
+    justify-content: flex-start;
     padding: 0 2rem;
     background: var(--panel-bg);
     backdrop-filter: blur(10px);
@@ -17,11 +17,11 @@
   
   .header-left {
     display: flex;
-    align-items: center; /* Vertically center logo and title */
+    align-items: center;
     gap: 1rem;
-    margin-right: 2rem; /* Add some space after the logo/title */
-    text-decoration: none; /* Remove underline from the router-link */
-    cursor: pointer; /* Show pointer cursor on hover */
+    margin-right: 2rem;
+    text-decoration: none;
+    cursor: pointer;
   }
   
   header .logo {
@@ -44,9 +44,9 @@
   
   header nav {
     display: flex;
-    align-items: center; /* Vertically center nav links */
+    align-items: center;
     gap: 1.5rem;
-    margin-left: auto; /* Push nav away from left, towards center/right */
+    margin-left: auto;
   }
   
   header nav a {
@@ -55,7 +55,7 @@
     text-decoration: none;
     transition: color var(--transition-duration) var(--transition-timing);
     font-weight: 500;
-    display: inline-flex; /* Helps with vertical alignment */
+    display: inline-flex;
     align-items: center;
   }
   
@@ -64,7 +64,6 @@
     color: var(--accent);
   }
   
-  /* Admin link styling */
   header nav a.admin-link {
     color: #ff9500;
   }
@@ -78,7 +77,6 @@
     background: #ff9500;
   }
   
-  /* sliding underline */
   header nav a::after {
     content: "";
     position: absolute;
@@ -95,12 +93,11 @@
     width: 100%;
   }
   
-  /* Auth controls */
   .auth-controls {
     display: flex;
-    align-items: center; /* Vertically center buttons */
+    align-items: center;
     gap: 0.8rem;
-    margin-left: 2rem; /* Add space between nav and auth controls */
+    margin-left: 2rem;
   }
   
   .auth-btn {
@@ -113,8 +110,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    height: 38px; /* Consistent height */
-    white-space: nowrap; /* Prevent button text wrapping */
+    height: 38px;
+    white-space: nowrap;
   }
   
   .login-btn {
@@ -137,7 +134,7 @@
     opacity: 0.9;
   }
   
-  /* User menu dropdown */
+
   .user-menu {
     position: relative;
     display: flex;
@@ -155,8 +152,8 @@
     border-radius: 6px;
     cursor: pointer;
     transition: all 0.3s ease;
-    height: 38px; /* Match auth-btn height */
-    white-space: nowrap; /* Prevent button text wrapping */
+    height: 38px;
+    white-space: nowrap;
   }
   
   .username {
@@ -180,7 +177,7 @@
     opacity: 0;
     transform: translateY(-10px);
     transition: all 0.3s ease;
-    z-index: 1000; /* Increased z-index */
+    z-index: 1000;
   }
   
   .dropdown-menu.show {
@@ -231,8 +228,7 @@
     background: rgba(255, 89, 89, 0.1);
     color: rgb(255, 89, 89);
   }
-  
-  /* Responsive adjustments */
+
   @media (max-width: 992px) {
     header {
       padding: 0 1.5rem;

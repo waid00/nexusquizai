@@ -1,8 +1,8 @@
 import { supabase } from '@/api/supabase';
 
-/**
- * Initialize the default roles in the database
- */
+
+ // Initialize the default roles in the database
+ 
 export async function initializeRoles() {
   console.log('Checking and initializing roles...');
   

@@ -1,8 +1,8 @@
 import { supabase } from '@/api/supabase';
 
-/**
- * Initialize the default categories in the database
- */
+
+ // Initialize the default categories in the database
+ 
 export async function initializeCategories() {
   console.log('Checking and initializing categories...');
   

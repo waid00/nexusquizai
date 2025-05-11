@@ -1,4 +1,3 @@
-<!-- src/components/ConfirmationModal.vue -->
 <template>
   <div v-if="show" class="modal-overlay" @click.self="onCancel">
     <div class="modal-container">

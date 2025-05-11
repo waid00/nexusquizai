@@ -1,5 +1,5 @@
 :root {
-  /* — your existing vars — */
+  /* — existing vars — */
   --bg-start: #1e2026;
   --bg-end:   #111318;
   --panel-bg: rgba(255,255,255,0.08);
@@ -29,7 +29,6 @@ body {
   font-family: "Segoe UI", Roboto, sans-serif;
 }
 
-/* — Page transition (for <transition name="fade">) — */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.5s ease;
@@ -39,7 +38,6 @@ body {
   opacity: 0;
 }
 
-/* — Header & Nav — */
 header {
   display: flex;
   align-items: center;
@@ -71,7 +69,6 @@ header nav a.router-link-active,
 header nav a:hover {
   color: var(--accent);
 }
-/* sliding underline */
 header nav a::after {
   content: "";
   position: absolute;
@@ -87,13 +84,12 @@ header nav a:hover::after {
   width: 100%;
 }
 
-/* — Main & Footer full‑width — */
 main {
   flex: 1;
   width: 100%;
-  max-width: 960px;  /* same as App.vue */
-  margin: 0 auto;    /* center it */
-  padding: 2rem 1rem;/* comfortable padding on sides */
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
 }
 
 footer {
@@ -106,7 +102,6 @@ footer {
   box-shadow: 0 -2px 4px rgba(0,0,0,0.5);
 }
 
-/* — Buttons — */
 button {
   border: none;
   border-radius: 8px;
@@ -128,7 +123,7 @@ button:disabled {
   cursor: not-allowed;
 }
 
-/* — Inputs, selects, textarea — */
+
 input, select, textarea {
   background: var(--input-bg);
   border: 1px solid var(--input-border);
@@ -145,7 +140,7 @@ input:focus, select:focus, textarea:focus {
   box-shadow: 0 0 8px var(--accent);
 }
 
-/* — Quiz‑item slide‑in — */
+
 .results li {
   opacity: 0;
   transform: translateY(20px);

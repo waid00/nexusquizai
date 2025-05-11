@@ -12,7 +12,6 @@
   letter-spacing: 0.5px;
 }
 
-/* Loading and error states */
 .loading-container, .error-container {
   display: flex;
   flex-direction: column;
@@ -43,7 +42,6 @@
   max-width: 400px;
 }
 
-/* Content sections */
 .profile-content {
   display: flex;
   flex-direction: column;
@@ -65,7 +63,6 @@
   padding-bottom: var(--spacing-sm);
 }
 
-/* User info display */
 .user-details {
   display: grid;
   gap: var(--spacing-md);
@@ -87,7 +84,6 @@
   font-size: 1rem;
 }
 
-/* Form elements */
 .form-group {
   margin-bottom: var(--spacing-md);
   position: relative;
@@ -155,7 +151,6 @@
   margin-top: var(--spacing-md);
 }
 
-/* Buttons */
 .action-btn, .cancel-btn, .delete-btn {
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-sm);
@@ -200,7 +195,6 @@
   background: rgba(255, 89, 89, 0.2);
 }
 
-/* Password requirements */
 .password-requirements {
   margin-top: var(--spacing-xs);
   font-size: 0.8rem;
@@ -218,7 +212,6 @@
   color: var(--accent);
 }
 
-/* Success message */
 .success-message {
   margin-top: var(--spacing-md);
   padding: var(--spacing-sm);
@@ -229,7 +222,6 @@
   text-align: center;
 }
 
-/* Stats section */
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -258,7 +250,6 @@
   color: var(--text-alt);
 }
 
-/* Danger zone */
 .danger-section {
   border: 1px solid rgba(255, 89, 89, 0.3);
 }
@@ -268,7 +259,6 @@
   margin-bottom: var(--spacing-md);
 }
 
-/* Delete confirmation modal */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -336,12 +326,10 @@
   cursor: not-allowed;
 }
 
-/* Animation */
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
 
-/* Responsive layout */
 @media (max-width: 768px) {
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
