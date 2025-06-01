@@ -140,8 +140,8 @@
               :type="showNewPassword ? 'text' : 'password'" 
               class="form-input" 
               :class="{
-                'is-valid': passwordData.newPassword && passwordLength && passwordUppercase && passwordLowercase && passwordNumber && passwordSpecial,
-                'is-invalid': passwordData.newPassword && !(passwordLength && passwordUppercase && passwordLowercase && passwordNumber && passwordSpecial)
+                'is-valid': passwordData.newPassword && passwordLength && passwordUppercase && passwordLowercase && passwordNumber,
+                'is-invalid': passwordData.newPassword && !(passwordLength && passwordUppercase && passwordLowercase && passwordNumber)
               }"
               required
               @input="validateNewPassword"
@@ -182,11 +182,6 @@
                 <span v-if="passwordNumber">✓</span>
                 <span v-else>•</span>
                 {{ t('profile.passwordNumber') }}
-              </div>
-              <div :class="{ 'requirement-met': passwordSpecial }">
-                <span v-if="passwordSpecial">✓</span>
-                <span v-else>•</span>
-                {{ t('profile.passwordSpecial') }}
               </div>
             </div>
           </div>
@@ -344,7 +339,7 @@ const passwordLength = ref(false)
 const passwordUppercase = ref(false)
 const passwordLowercase = ref(false)
 const passwordNumber = ref(false)
-const passwordSpecial = ref(false)
+//const passwordSpecial = ref(false)
 
 // Confirmation modal state
 const showConfirmation = ref(false)
@@ -410,7 +405,7 @@ const isPasswordFormValid = computed(() => {
     passwordUppercase.value &&
     passwordLowercase.value &&
     passwordNumber.value &&
-    passwordSpecial.value &&
+    //passwordSpecial.value &&
     !passwordMatchError.value
   )
 })
@@ -559,7 +554,7 @@ function validateNewPassword() {
   passwordUppercase.value = /[A-Z]/.test(password)
   passwordLowercase.value = /[a-z]/.test(password)
   passwordNumber.value = /[0-9]/.test(password)
-  passwordSpecial.value = /[!@#$%^&*(),.?":{}|<>]/.test(password)
+  //passwordSpecial.value = /[!@#$%^&*(),.?":{}|<>]/.test(password)
   
   if (passwordData.confirmPassword) {
     validateConfirmPassword()
