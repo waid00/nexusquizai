@@ -100,6 +100,14 @@
       >
         <div v-if="isLoadingMore" class="loading-spinner"></div>
         <p v-else>{{ t('common.scrollForMore') }}</p>
+        <!-- Add this refresh button -->
+        <button 
+          v-if="!isLoadingMore" 
+          @click="loadMoreQuizzes"
+          class="refresh-button"
+        >
+          {{ t('common.loadMore') }}
+        </button>
       </div>
       <!-- Debug element to ensure we can see when scrolling reaches the bottom -->
       <div class="scroll-debug" v-if="!canLoadMore && displayedQuizzes.length > 0">
@@ -124,7 +132,7 @@ const isLoading = ref(true)
 const isLoadingMore = ref(false)
 const publicQuizzes = ref<any[]>([])
 const displayedQuizzes = ref<any[]>([])
-const pageSize = 3 // Changed from 6 to 3 to show fewer quizzes initially
+const pageSize = 9
 const currentPage = ref(1)
 const canLoadMore = ref(false)
 const loadMoreTrigger = ref<HTMLElement | null>(null)

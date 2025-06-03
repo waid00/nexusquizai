@@ -13,6 +13,7 @@ export default {
   },
   common: {
     loading: "Loading...",
+    loadMore: "Load More",
     error: "An error occurred",
     processing: "Processing...",
     submit: "Submit",
@@ -29,7 +30,7 @@ export default {
     yes: "Yes",
     searchForQuizzes: "Search for quizzes...",
     clearSearch: "Clear search",
-    scrollForMore: "Scroll to load more quizzes...",
+    scrollForMore: " ",
     endOfQuizzes: "You've reached the end of the list.",
     created: "Created",
     today: "Today",

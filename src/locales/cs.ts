@@ -13,6 +13,7 @@ export default {
   },
   common: {
     loading: "Načítání...",
+    loadMore: "Načíst více",
     error: "Došlo k chybě",
     submit: "Odeslat",
     cancel: "Zrušit",
@@ -32,7 +33,7 @@ export default {
     language: "Jazyk",
     searchForQuizzes: "Hledat kvízy",
     clearSearch: "Vymazat vyhledávání",
-    scrollForMore: "Posunout pro další",
+    scrollForMore: " ",
     endOfQuizzes: "Konec kvízů",
     user: "Uživatel",
     created: "Vytvořeno",
