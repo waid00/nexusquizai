@@ -226,11 +226,36 @@ function clearSearch() {
 }
 
 // On component mount, fetch public quizzes and set up intersection observer
+// On component mount, fetch public quizzes and set up intersection observer
 onMounted(async () => {
   try {
     const quizzes = await getPublicQuizzes()
-    publicQuizzes.value = quizzes
-    displayedQuizzes.value = quizzes.slice(0, pageSize)
+    
+    // Mark quizzes that the user has upvoted
+    if (auth.state.isAuthenticated) {
+      await Promise.all(quizzes.map(async (quiz) => {
+        try {
+          const hasUpvoted = await checkUserUpvote(quiz.quizId, auth.state.user!.userId);
+          quiz.hasUserUpvoted = hasUpvoted;
+          // Also mark quizzes owned by the current user
+          quiz.isUserOwner = quiz.ownerId === auth.state.user!.userId;
+        } catch (error) {
+          console.error('Error checking upvote status:', error);
+          quiz.hasUserUpvoted = false;
+        }
+      }));
+    }
+
+    // Sort quizzes first by upvote count (descending) and then by title (ascending)
+    publicQuizzes.value = quizzes.sort((a, b) => {
+      // First compare by upvote count
+      if (b.upvoteCount !== a.upvoteCount) {
+        return b.upvoteCount - a.upvoteCount
+      }
+      // If upvote counts are equal, sort alphabetically by title
+      return a.title.localeCompare(b.title)
+    })
+    displayedQuizzes.value = publicQuizzes.value.slice(0, pageSize)
     updateCanLoadMore()
   } catch (error) {
     console.error('Error loading public quizzes:', error)
