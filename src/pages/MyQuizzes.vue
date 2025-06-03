@@ -78,7 +78,7 @@
             <button 
               class="quiz-card-footer upvote"
               :class="{ active: quiz.hasUserUpvoted }"
-              @click="toggleUpvote(quiz)"
+              
             >
               <span class="upvote-icon">⬆</span>
               <span class="upvote-count">{{ quiz.upvoteCount }}</span>
