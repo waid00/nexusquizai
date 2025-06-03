@@ -82,7 +82,7 @@ export async function getPublicQuizzes() {
     ownerId: quiz.owner_id,
     questionCount: quiz.Questions?.length || 0,
     attemptCount: quiz.QuizAttempts?.length || 0,
-    upvoteCount: quiz.QuizUpvotes?.length || 0,
+    upvoteCount: quiz.QuizUpvotes?.[0]?.count || 0,
     categoryName: quiz.Categories?.category_name || 'Uncategorized',
     hasUserUpvoted: false,
     isUserOwner: false
