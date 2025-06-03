@@ -431,8 +431,8 @@ async function fetchCreatedQuizzes() {
         createdAt: quiz.created_at,
         isPublic: quiz.is_public,
         ownerId: quiz.owner_id,
-        questionCount: quiz.Questions?.length || 0,
-        attemptCount: quiz.QuizAttempts?.length || 0,
+        questionCount: quiz.Questions?.[0]?.count || 0,
+        attemptCount: quiz.QuizAttempts?.[0]?.count || 0,
         upvoteCount: quiz.QuizUpvotes?.[0]?.count || 0,
         hasUserUpvoted: userUpvotes ? userUpvotes.some((uv: any) => uv.quiz_id === quiz.id) : false,
         isUserOwner: quiz.owner_id === auth.state.user!.userId
