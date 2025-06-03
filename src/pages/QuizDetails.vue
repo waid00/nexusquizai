@@ -92,7 +92,7 @@
       </div>
 
       <!-- Quiz Stats (visible to owners or after attempting) -->
-      <div v-if="attemptCount > 0 && (isOwner || hasAttempted)" class="quiz-stats">
+      <div v-if="attemptCount > 0 && (isOwner || hasAttempted)" id="quiz-stats">
         <h3>{{ t('quiz.quizStatistics') }}</h3>
         
         <div class="stats-grid">
