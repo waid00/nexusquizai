@@ -188,7 +188,17 @@ onMounted(async () => {
 
 // Load attempt details from Supabase
 async function loadAttemptDetails() {
-  const { data, error } = await supabase
+  // Check if user is admin
+  const { data: roleData } = await supabase
+    .from('Roles')
+    .select('role_name')
+    .eq('id', auth.state.user?.roleId || -1)
+    .single();
+  
+  const isAdmin = roleData?.role_name === 'admin';
+  
+  // Create query
+  let query = supabase
     .from('QuizAttempts')
     .select(`
       id,
@@ -201,9 +211,14 @@ async function loadAttemptDetails() {
       elapsed_time,
       is_passed
     `)
-    .eq('id', attemptId)
-    .eq('user_id', auth.state.user!.userId)
-    .single();
+    .eq('id', attemptId);
+  
+  // Only filter by user_id if not admin
+  if (!isAdmin) {
+    query = query.eq('user_id', auth.state.user!.userId);
+  }
+  
+  const { data, error } = await query.single();
   
   if (error || !data) {
     throw new Error('Attempt not found or you do not have permission to view it');

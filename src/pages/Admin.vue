@@ -247,10 +247,7 @@
               <div class="stat-label">{{ t('admin.quizAttempts') }}</div>
             </div>
             
-            <div class="stat-card">
-              <div class="stat-value">{{ stats.activeUsers }}</div>
-              <div class="stat-label">{{ t('admin.activeUsers') }}</div>
-            </div>
+
           </div>
 
           <h3 class="subsection-title">{{ t('admin.recentActivity') }}</h3>
