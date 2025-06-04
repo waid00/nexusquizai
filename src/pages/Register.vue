@@ -451,6 +451,7 @@ const handleRegister = async () => {
   if (success) {
     // First show the verification screen
     registrationComplete.value = true
+    showRecoveryPhrase.value = true
   }
 }
 
