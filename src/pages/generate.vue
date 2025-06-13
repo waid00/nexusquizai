@@ -680,7 +680,7 @@ async function generatePromptFromContent(content: string): Promise<string> {
       content: `Analyze the provided text and create a detailed prompt that will help generate excellent quiz questions. 
       Focus on identifying the key concepts, themes, and knowledge areas in the text.
       Your prompt should be 2-4 sentences and provide specific guidance on what aspects to focus on.
-      Generate the prompt in the same language as the provided content.
+      Generate the prompt in the same language as the provided content. IMPORTANT: Generate the prompt in ${detectedLanguage}.
       DO NOT create the actual quiz questions - just create a prompt that would help generate good questions.`
     };
     
